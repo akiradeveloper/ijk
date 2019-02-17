@@ -113,6 +113,19 @@ impl Parser {
     }
 }
 #[test]
+fn test_node() {
+    use crate::Key::*;
+
+    let a = Node::new("a");
+    let b = Node::new("b");
+
+    a.add_trans(Edge::new(Char('0')), &a);
+    a.add_trans(Edge::new(CharRange('1','9')), &b);
+
+    let tr = a.find_trans(&Char('7')).unwrap();
+    assert_eq!(tr.n.name(), b.name());
+}
+#[test]
 fn test_vi_command_mode() {
     use crate::Key::*;
 
@@ -129,8 +142,8 @@ fn test_vi_command_mode() {
     parser.feed(Char('0'));
     parser.feed(Char('G'));
     assert_eq!(parser.cur_node.name(), "init");
-
     parser.reset(&init);
+
     parser.feed(Char('7'));
     assert_eq!(parser.cur_node.name(), "num");
     parser.feed(Char('0'));
