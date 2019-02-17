@@ -74,13 +74,13 @@ impl Edge {
             matcher: matcher
         }
     }
-    fn matches(&self, key: &Key) -> bool {
+    fn matches(&self, k: &Key) -> bool {
         match self.matcher.clone() {
-            Key::CharRange(a,b) => match key.clone() {
+            Key::CharRange(a,b) => match k.clone() {
                 Key::Char(c) => a <= c && c <= b,
                 _ => false
             },
-            k => k == self.matcher
+            mhr => k.clone() == mhr
         }
     }
 }
@@ -111,6 +111,12 @@ impl Parser {
         self.prev_node = Some(cur_node);
         self.rec.push_back(k);
     }
+}
+#[test]
+fn test_key_eq() {
+    let a = Key::Char('0');
+    let b = Key::Char('7');
+    assert_ne!(a, b);
 }
 #[test]
 fn test_node() {
