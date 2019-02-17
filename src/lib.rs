@@ -21,3 +21,4 @@ pub enum Key {
 }
 
 pub mod automaton;
+pub mod diff_buffer;
