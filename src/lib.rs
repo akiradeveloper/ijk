@@ -20,5 +20,12 @@ pub enum Key {
     CharRange(char,char), // only for matcher. inclusive like ...
 }
 
+#[derive(Clone, PartialEq)]
+enum BufElem {
+    Char(char),
+    Eol,
+    Indent
+}
+
 pub mod automaton;
 pub mod diff_buffer;

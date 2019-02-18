@@ -1,41 +1,49 @@
 use crate::*;
 
 struct DiffBuffer {
-    stack: Vec<char>
+    buf: Vec<BufElem>,
+    init_pos: usize,
+    pos: usize,
 }
 
 impl DiffBuffer {
-    fn new() -> DiffBuffer {
+    fn new(line: &[BufElem], col: usize) -> DiffBuffer {
         DiffBuffer {
-            stack: vec![]
+            buf: line.to_vec(),
+            init_pos: col,
+            pos: col,
         }
-    }
-    fn len(&self) -> usize {
-        self.stack.len()
     }
     fn input(&mut self, k: Key) -> Option<i8> {
         match k {
-            Key::Char(c) => {
-                self.stack.push(c);
-                if c == '\n' {
-                    Some(1)
+            Key::Backspace => {
+                if self.pos <= self.init_pos {
+                    None
                 } else {
-                    Some(0)
+                    let e = self.buf[self.pos - 1].clone(); self.buf.remove(self.pos - 1);
+                    self.pos -= 1;
+                    if e == BufElem::Eol {
+                        Some(-1)
+                    } else {
+                        Some(0)
+                    }
                 }
             },
-            Key::Backspace => {
-                let c0 = self.stack.last().cloned();
-                match c0 {
-                    Some(c) => {
-                        self.stack.pop();
-                        if c == '\n' {
-                            Some(-1)
-                        } else {
-                            Some(0)
-                        }
-                    },
-                    None => None
-                }
+            Key::Char('\n') => {
+                self.buf.insert(self.pos, BufElem::Eol);
+                // TODO auto-indent
+                self.pos += 1;
+                Some(1)
+            },
+            Key::Char('\t') => {
+                self.buf.insert(self.pos, BufElem::Indent);
+                self.pos += 1;
+                Some(0)
+            },
+            Key::Char(c) => {
+                self.buf.insert(self.pos, BufElem::Char(c));
+                self.pos += 1;
+                Some(0)
             },
             _ => None
         }
@@ -44,15 +52,13 @@ impl DiffBuffer {
 
 #[test]
 fn test_diff_buffer() {
-    let mut df = DiffBuffer::new();
-    assert_eq!(df.input(Key::Char('a')), Some(0));
-    assert_eq!(df.len(), 1);
+    use crate::BufElem::*;
+
+    let mut df = DiffBuffer::new(&[Char('a'),Char('b'),Eol], 1);
+    assert_eq!(df.input(Key::Char('a')), Some(0)); // -> aa[b]e
     assert_eq!(df.input(Key::PageUp), None);
-    assert_eq!(df.input(Key::Char('\n')), Some(1));
-    assert_eq!(df.len(), 2);
-    assert_eq!(df.input(Key::Backspace), Some(-1));
-    assert_eq!(df.len(), 1);
-    assert_eq!(df.input(Key::Backspace), Some(0));
-    assert_eq!(df.len(), 0);
-    assert_eq!(df.input(Key::Backspace), None);
+    assert_eq!(df.input(Key::Char('\n')), Some(1)); // -> aae[b]e
+    assert_eq!(df.input(Key::Backspace), Some(-1)); // -> aa[b]e
+    assert_eq!(df.input(Key::Backspace), Some(0)); // -> a[b]e
+    assert_eq!(df.input(Key::Backspace), None); // -> a[b]e
 }
