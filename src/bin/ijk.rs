@@ -27,6 +27,11 @@ fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
 }
 
 fn main() {
+    let stdin = stdin();
+    let mut stdout = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+    // write!(stdout, "{}", clear::All);
+    // stdout.flush().unwrap();
+
     let matches = App::new("ijk")
         .about("A toy editor for fun")
         .bin_name("ijk")
@@ -45,10 +50,7 @@ fn main() {
                      .collect()
                 })
         })
-        .unwrap_or(Vec::new());
-
-    let stdin = stdin();
-    let mut stdout = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+        .unwrap_or(vec![vec![BufElem::Eol]]);
 
     let mut eb = EB::EditBuffer::new();
     eb.reset_with(read_buf);
@@ -56,9 +58,10 @@ fn main() {
 
     for c in stdin.keys() {
         // draw
+        dbg!(&c);
 
         // conversion
-        let k = match c.unwrap() {
+        let k = match dbg!(c.unwrap()) {
             TermKey::Char(c) => Char(c),
             TermKey::Ctrl('c') => return,
             TermKey::Ctrl(c) => Ctrl(c),

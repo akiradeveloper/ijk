@@ -20,7 +20,7 @@ pub enum Key {
     CharRange(char,char), // only for matcher. inclusive like ...
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum BufElem {
     Char(char),
     Eol,
