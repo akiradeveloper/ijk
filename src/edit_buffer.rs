@@ -89,6 +89,7 @@ fn mk_automaton() -> AM::Node {
 
     init
 }
+use std::str::FromStr;
 impl KeyReceiver {
     pub fn new() -> KeyReceiver {
         let init = mk_automaton();
@@ -100,7 +101,7 @@ impl KeyReceiver {
     pub fn receive(&mut self, k: Key) -> Action {
         self.parser.feed(k);
         let cur_node: &str = &self.parser.cur_node.name();
-        let prev_node: &str = &self.parser.cur_node.name();
+        let prev_node: &str = &self.parser.prev_node.clone().unwrap().name();
         let last0 = self.parser.rec.back().cloned();
         let mut reset_parser = true;
         let act = match (prev_node, cur_node, last0) {
@@ -112,12 +113,16 @@ impl KeyReceiver {
             ("init", "init", Some(Char('$'))) => Action::JumpLineLast,
             ("init", "init", Some(Char('G'))) => Action::JumpLast,
             ("num", "init", Some(Char('G'))) => {
-                self.parser.rec.pop_back();
-                let n = self.parser.rec.iter().map(|k| match k.clone() {
+                self.parser.rec.pop_back(); // eliminate EOL
+                let cs = self.parser.rec.iter().map(|k| match k.clone() {
                     Char(c) => c,
                     _ => panic!()
                 });
-                let n = 1;
+                let mut s = String::new();
+                for c in cs {
+                    s.push(c);
+                }
+                let n = s.parse::<usize>().unwrap();
                 Action::Jump(n)
             },
             _ => {
