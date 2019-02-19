@@ -29,8 +29,6 @@ fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
 fn main() {
     let stdin = stdin();
     let mut stdout = AlternateScreen::from(stdout().into_raw_mode().unwrap());
-    // write!(stdout, "{}", clear::All);
-    // stdout.flush().unwrap();
 
     let matches = App::new("ijk")
         .about("A toy editor for fun")
@@ -58,13 +56,25 @@ fn main() {
 
     for c in stdin.keys() {
         // draw
-        dbg!(&c);
+        write!(stdout, "{}", clear::All);
+        for row in 0 .. eb.buf.len() {
+            let line = &eb.buf[row];
+            write!(stdout, "{}", cursor::Goto(1,(row+1) as u16));
+            for col in 0 .. line.len() {
+                let e = eb.buf[row][col].clone();
+                match e {
+                    BufElem::Char(c) => { write!(stdout, "{}", c); },
+                    BufElem::Eol => {}
+                }
+            }
+        }
+        stdout.flush().unwrap();
 
         // conversion
-        let k = match dbg!(c.unwrap()) {
-            TermKey::Char(c) => Char(c),
+        let k = match c.unwrap() {
             TermKey::Ctrl('c') => return,
             TermKey::Ctrl(c) => Ctrl(c),
+            TermKey::Char(c) => Char(c),
             _ => return,
         };
         let act = kr.receive(k);
