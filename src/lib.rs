@@ -21,7 +21,7 @@ pub enum Key {
 }
 
 #[derive(Clone, PartialEq)]
-enum BufElem {
+pub enum BufElem {
     Char(char),
     Eol,
 }

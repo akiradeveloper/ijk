@@ -1,23 +1,26 @@
 use crate::BufElem;
 
-struct Cursor {
-    row: usize,
-    col: usize,
+pub struct Cursor {
+    pub row: usize,
+    pub col: usize,
 }
 
-struct EditBuffer {
-    buf: Vec<Vec<BufElem>>,
-    cursor: Cursor,
+pub struct EditBuffer {
+    pub buf: Vec<Vec<BufElem>>,
+    pub cursor: Cursor,
 }
 
 impl EditBuffer {
-    fn new() -> EditBuffer {
+    pub fn new() -> EditBuffer {
         EditBuffer {
             buf: vec![vec![]],
             cursor: Cursor { row: 0, col: 0 },
         }
     }
-    fn receive(&mut self, act: Action) {
+    pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
+        self.buf = new_buf;
+    }
+    pub fn receive(&mut self, act: Action) {
         match act {
             Action::CursorUp => {
                 if self.cursor.row > 0 { self.cursor.row -= 1; }
@@ -44,7 +47,7 @@ impl EditBuffer {
     }
 }
 
-enum Action {
+pub enum Action {
     CursorUp,
     CursorDown,
     CursorLeft,
@@ -57,7 +60,7 @@ enum Action {
 use crate::automaton as AM;
 use crate::Key;
 use crate::Key::*;
-struct KeyReceiver {
+pub struct KeyReceiver {
     automaton: AM::Node,
     parser: AM::Parser,
 }
@@ -78,14 +81,14 @@ fn mk_automaton() -> AM::Node {
     init
 }
 impl KeyReceiver {
-    fn new() -> KeyReceiver {
+    pub fn new() -> KeyReceiver {
         let init = mk_automaton();
         KeyReceiver {
             parser: AM::Parser::new(&init),
             automaton: init,
         }
     }
-    fn receive(&mut self, k: Key) -> Action {
+    pub fn receive(&mut self, k: Key) -> Action {
         self.parser.feed(k);
         let cur_node: &str = &self.parser.cur_node.name();
         let prev_node: &str = &self.parser.cur_node.name();
