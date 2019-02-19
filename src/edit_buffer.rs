@@ -32,7 +32,13 @@ impl EditBuffer {
                 if self.cursor.col > 0 { self.cursor.col -= 1; }
             },
             Action::CursorRight => {
-                if self.cursor.col < self.buf[self.cursor.row].len() - 1 { self.cursor.row += 1; }
+                if self.cursor.col < self.buf[self.cursor.row].len() - 1 { self.cursor.col += 1; }
+            },
+            Action::JumpLineHead => {
+                self.cursor.col = 0;
+            },
+            Action::JumpLineLast => {
+                self.cursor.col = self.buf[self.cursor.row].len() - 1;
             },
             Action::Jump(row) => {
                 self.cursor.row = row;
@@ -52,6 +58,8 @@ pub enum Action {
     CursorDown,
     CursorLeft,
     CursorRight,
+    JumpLineHead,
+    JumpLineLast,
     Jump(usize),
     JumpLast,
     None,
@@ -74,6 +82,7 @@ fn mk_automaton() -> AM::Node {
     init.add_trans(AM::Edge::new(Char('l')), &init);
     init.add_trans(AM::Edge::new(Char('G')), &init);
     init.add_trans(AM::Edge::new(Char('0')), &init);
+    init.add_trans(AM::Edge::new(Char('$')), &init);
     init.add_trans(AM::Edge::new(CharRange('1','9')), &num);
     num.add_trans(AM::Edge::new(CharRange('0','9')), &num);
     num.add_trans(AM::Edge::new(Char('G')), &init);
@@ -99,6 +108,8 @@ impl KeyReceiver {
             ("init", "init", Some(Char('k'))) => Action::CursorDown,
             ("init", "init", Some(Char('j'))) => Action::CursorLeft,
             ("init", "init", Some(Char('l'))) => Action::CursorRight,
+            ("init", "init", Some(Char('0'))) => Action::JumpLineHead,
+            ("init", "init", Some(Char('$'))) => Action::JumpLineLast,
             ("init", "init", Some(Char('G'))) => Action::JumpLast,
             ("num", "init", Some(Char('G'))) => {
                 self.parser.rec.pop_back();

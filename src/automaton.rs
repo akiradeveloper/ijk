@@ -86,6 +86,9 @@ impl Parser {
     }
     pub fn feed(&mut self, k: Key) {
         let trans0 = self.cur_node.find_trans(&k);
+        if trans0.is_none() {
+            return;
+        }
         let trans = trans0.unwrap(); // hope that user inputs are all perfect
         let cur_node = self.cur_node.clone();
         self.cur_node = trans.n;

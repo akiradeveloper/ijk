@@ -55,6 +55,16 @@ fn main() {
     let mut kr = EB::KeyReceiver::new();
 
     for c in stdin.keys() {
+        // conversion
+        let k = match c.unwrap() {
+            TermKey::Ctrl('c') => return,
+            TermKey::Ctrl(c) => Ctrl(c),
+            TermKey::Char(c) => Char(c),
+            _ => return,
+        };
+        let act = kr.receive(k);
+        eb.receive(act);
+
         // draw
         write!(stdout, "{}", clear::All);
         for row in 0 .. eb.buf.len() {
@@ -68,16 +78,7 @@ fn main() {
                 }
             }
         }
+        write!(stdout, "{}", cursor::Goto((eb.cursor.col+1) as u16, (eb.cursor.row+1) as u16));
         stdout.flush().unwrap();
-
-        // conversion
-        let k = match c.unwrap() {
-            TermKey::Ctrl('c') => return,
-            TermKey::Ctrl(c) => Ctrl(c),
-            TermKey::Char(c) => Char(c),
-            _ => return,
-        };
-        let act = kr.receive(k);
-        eb.receive(act);
     }
 }
