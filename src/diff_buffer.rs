@@ -35,11 +35,6 @@ impl DiffBuffer {
                 self.pos += 1;
                 Some(1)
             },
-            Key::Char('\t') => {
-                self.buf.insert(self.pos, BufElem::Indent);
-                self.pos += 1;
-                Some(0)
-            },
             Key::Char(c) => {
                 self.buf.insert(self.pos, BufElem::Char(c));
                 self.pos += 1;

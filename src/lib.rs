@@ -24,8 +24,8 @@ pub enum Key {
 enum BufElem {
     Char(char),
     Eol,
-    Indent
 }
 
 pub mod automaton;
 pub mod diff_buffer;
+pub mod edit_buffer;
