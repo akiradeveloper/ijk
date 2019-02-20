@@ -105,6 +105,9 @@ impl EditBuffer {
                     self.buf.insert(vr.start.row, vec![])
                 }
                 self.insert(Cursor { row: vr.start.row, col: 0 }, survivors);
+
+                self.cursor = vr.start;
+                self.visual_cursor = None;
             },
             Action::EnterVisualMode => {
                 self.visual_cursor = Some(self.cursor.clone())
