@@ -1,5 +1,6 @@
 use crate::BufElem;
 
+#[derive(Clone, PartialOrd, PartialEq)]
 pub struct Cursor {
     pub row: usize,
     pub col: usize,
@@ -8,6 +9,7 @@ pub struct Cursor {
 pub struct EditBuffer {
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
+    visual_cursor: Option<Cursor>,
 }
 
 impl EditBuffer {
@@ -15,13 +17,26 @@ impl EditBuffer {
         EditBuffer {
             buf: vec![vec![]],
             cursor: Cursor { row: 0, col: 0 },
+            visual_cursor: None,
         }
+    }
+    pub fn visual_range(&self) -> Option<(Cursor, Cursor)> {
+        self.visual_cursor.clone().map(|vc| 
+            if self.cursor > vc {
+                (vc, self.cursor.clone())
+            } else {
+                (self.cursor.clone(), vc)
+            }
+        )
     }
     pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
         self.buf = new_buf;
     }
     pub fn receive(&mut self, act: Action) {
         match act {
+            Action::EnterVisualMode => {
+                self.visual_cursor = Some(self.cursor.clone())
+            },
             Action::CursorUp => {
                 if self.cursor.row > 0 { self.cursor.row -= 1; }
             },
@@ -62,6 +77,7 @@ pub enum Action {
     JumpLineLast,
     Jump(usize),
     JumpLast,
+    EnterVisualMode,
     None,
 }
 
@@ -76,9 +92,10 @@ fn mk_automaton() -> AM::Node {
     let init = AM::Node::new("init");
     let num = AM::Node::new("num");
 
-    init.add_trans(AM::Edge::new(Char('i')), &init);
+    init.add_trans(AM::Edge::new(Char('v')), &init);
     init.add_trans(AM::Edge::new(Char('k')), &init);
     init.add_trans(AM::Edge::new(Char('j')), &init);
+    init.add_trans(AM::Edge::new(Char('h')), &init);
     init.add_trans(AM::Edge::new(Char('l')), &init);
     init.add_trans(AM::Edge::new(Char('G')), &init);
     init.add_trans(AM::Edge::new(Char('0')), &init);
@@ -105,9 +122,10 @@ impl KeyReceiver {
         let last0 = self.parser.rec.back().cloned();
         let mut reset_parser = true;
         let act = match (prev_node, cur_node, last0) {
-            ("init", "init", Some(Char('i'))) => Action::CursorUp,
-            ("init", "init", Some(Char('k'))) => Action::CursorDown,
-            ("init", "init", Some(Char('j'))) => Action::CursorLeft,
+            ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
+            ("init", "init", Some(Char('k'))) => Action::CursorUp,
+            ("init", "init", Some(Char('j'))) => Action::CursorDown,
+            ("init", "init", Some(Char('h'))) => Action::CursorLeft,
             ("init", "init", Some(Char('l'))) => Action::CursorRight,
             ("init", "init", Some(Char('0'))) => Action::JumpLineHead,
             ("init", "init", Some(Char('$'))) => Action::JumpLineLast,

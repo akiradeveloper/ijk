@@ -3,6 +3,7 @@ extern crate termion;
 use std::io::{stdin, stdout, Write};
 use termion::clear;
 use termion::cursor;
+use termion::color;
 use termion::event::Event;
 use termion::event::Key as TermKey;
 use termion::input::TermRead;
@@ -66,18 +67,27 @@ fn main() {
         eb.receive(act);
 
         // draw
+        let vr0 = eb.visual_range();
         write!(stdout, "{}", clear::All);
         for row in 0 .. eb.buf.len() {
             let line = &eb.buf[row];
             write!(stdout, "{}", cursor::Goto(1,(row+1) as u16));
             for col in 0 .. line.len() {
                 let e = eb.buf[row][col].clone();
-                match e {
-                    BufElem::Char(c) => { write!(stdout, "{}", c); },
-                    BufElem::Eol => {}
+                let as_cursor = EB::Cursor { row: row, col: col };
+                let in_visual_range = vr0.clone().map(|vr| vr.0 <= as_cursor && as_cursor <= vr.1).unwrap_or(false);
+                let c = match e {
+                    BufElem::Char(c) => c,
+                    BufElem::Eol => ' '
+                };
+                if in_visual_range {
+                    write!(stdout, "{}{}", color::Bg(color::Blue), c);
+                } else {
+                    write!(stdout, "{}{}", color::Bg(color::Reset), c);
                 }
             }
         }
+        // write!(stdout, "{}", color::Fg(color::Blue));
         write!(stdout, "{}", cursor::Goto((eb.cursor.col+1) as u16, (eb.cursor.row+1) as u16));
         stdout.flush().unwrap();
     }
