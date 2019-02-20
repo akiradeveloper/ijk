@@ -6,6 +6,12 @@ pub struct Cursor {
     pub col: usize,
 }
 
+#[derive(Clone)]
+pub struct CursorRange {
+    pub start: Cursor,
+    pub end: Cursor,
+}
+
 pub struct EditBuffer {
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
@@ -20,22 +26,75 @@ impl EditBuffer {
             visual_cursor: None,
         }
     }
-    pub fn visual_range(&self) -> Option<(Cursor, Cursor)> {
+    pub fn visual_range(&self) -> Option<CursorRange> {
         self.visual_cursor.clone().map(|vc| 
             if self.cursor > vc {
-                (vc, self.cursor.clone())
+                CursorRange { start: vc, end: self.cursor.clone() }
             } else {
-                (self.cursor.clone(), vc)
+                CursorRange { start: self.cursor.clone(), end: vc }
             }
         )
     }
     pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
         self.buf = new_buf;
     }
+    fn expand_range(&self, r: &CursorRange) -> Vec<(usize, std::ops::Range<usize>)> {
+        let mut res = vec![];
+        for row in r.start.row .. r.end.row + 1 {
+            let col_start = if row == r.start.row {
+                r.start.col
+            } else {
+                0
+            };
+            let col_end = if row == r.end.row {
+                r.end.col + 1
+            } else {
+                self.buf[row].len()
+            };
+            res.push((row, col_start .. col_end));
+        }
+        res
+    }
+    fn insert(&mut self, at: Cursor, buf: Vec<BufElem>) {
+        let mut row = at.row;
+        let mut col = at.col;
+        for e in buf {
+            match e {
+                BufElem::Eol => {
+                    row += 1;
+                    col = 0;
+                    self.buf.insert(row, vec![BufElem::Eol])
+                },
+                c @ BufElem::Char(_) => {
+                    self.buf[row].insert(col, c)
+                }
+            }
+        }
+    }
     pub fn receive(&mut self, act: Action) {
         match act {
             Action::Reset => {
                 self.visual_cursor = None
+            },
+            Action::Delete => {
+                if self.visual_range().is_none() { return; }
+                let vr = self.visual_range().unwrap();
+                let mut survivors = vec![];
+                let mut removed = vec![];
+
+                for (row, col_range) in self.expand_range(&vr) {
+                    for col in 0 .. self.buf[row].len() {
+                        if col_range.start <= col && col < col_range.end {
+                            removed.push(self.buf[row][col].clone())
+                        } else {
+                            survivors.push(self.buf[row][col].clone())
+                        }
+                    }
+                }
+                for (row, col_range) in self.expand_range(&vr).into_iter().rev() {
+                    self.buf.remove(row);
+                }
+                self.insert(Cursor { row: vr.start.row, col: 0 }, survivors);
             },
             Action::EnterVisualMode => {
                 self.visual_cursor = Some(self.cursor.clone())
@@ -72,6 +131,7 @@ impl EditBuffer {
 }
 
 pub enum Action {
+    Delete,
     CursorUp,
     CursorDown,
     CursorLeft,
@@ -129,6 +189,7 @@ impl KeyReceiver {
         let mut reset_parser = true;
         let act = match (prev_node, cur_node, last0) {
             (_, _, Some(Esc)) => Action::Reset,
+            ("init", "init", Some(Char('d'))) => Action::Delete,
             ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
             ("init", "init", Some(Char('k'))) => Action::CursorUp,
             ("init", "init", Some(Char('j'))) => Action::CursorDown,

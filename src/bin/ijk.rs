@@ -76,7 +76,7 @@ fn main() {
             for col in 0 .. line.len() {
                 let e = eb.buf[row][col].clone();
                 let as_cursor = EB::Cursor { row: row, col: col };
-                let in_visual_range = vr0.clone().map(|vr| vr.0 <= as_cursor && as_cursor <= vr.1).unwrap_or(false);
+                let in_visual_range = vr0.clone().map(|vr| vr.start <= as_cursor && as_cursor <= vr.end).unwrap_or(false);
                 let c = match e {
                     BufElem::Char(c) => c,
                     BufElem::Eol => ' '
