@@ -34,6 +34,9 @@ impl EditBuffer {
     }
     pub fn receive(&mut self, act: Action) {
         match act {
+            Action::Reset => {
+                self.visual_cursor = None
+            },
             Action::EnterVisualMode => {
                 self.visual_cursor = Some(self.cursor.clone())
             },
@@ -78,11 +81,11 @@ pub enum Action {
     Jump(usize),
     JumpLast,
     EnterVisualMode,
+    Reset,
     None,
 }
 
-use crate::automaton as AM;
-use crate::Key;
+use crate::automaton as AM; use crate::Key;
 use crate::Key::*;
 pub struct KeyReceiver {
     automaton: AM::Node,
@@ -104,6 +107,9 @@ fn mk_automaton() -> AM::Node {
     num.add_trans(AM::Edge::new(CharRange('0','9')), &num);
     num.add_trans(AM::Edge::new(Char('G')), &init);
 
+    init.add_trans(AM::Edge::new(Esc), &init);
+    num.add_trans(AM::Edge::new(Esc), &init);
+
     init
 }
 use std::str::FromStr;
@@ -122,6 +128,7 @@ impl KeyReceiver {
         let last0 = self.parser.rec.back().cloned();
         let mut reset_parser = true;
         let act = match (prev_node, cur_node, last0) {
+            (_, _, Some(Esc)) => Action::Reset,
             ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
             ("init", "init", Some(Char('k'))) => Action::CursorUp,
             ("init", "init", Some(Char('j'))) => Action::CursorDown,

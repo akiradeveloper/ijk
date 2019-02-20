@@ -60,6 +60,7 @@ fn main() {
         let k = match c.unwrap() {
             TermKey::Ctrl('c') => return,
             TermKey::Ctrl(c) => Ctrl(c),
+            TermKey::Esc => Esc,
             TermKey::Char(c) => Char(c),
             _ => return,
         };
