@@ -78,6 +78,9 @@ impl EditBuffer {
             }
         }
     }
+    fn is_eof(&self, row: usize, col: usize) -> bool {
+        row == self.buf.len() - 1 && col == self.buf[row].len() - 1
+    }
     pub fn receive(&mut self, act: Action) {
         match act {
             Action::Reset => {
@@ -89,16 +92,36 @@ impl EditBuffer {
                 let mut survivors = vec![];
                 let mut removed = vec![];
 
-                for (row, col_range) in self.expand_range(&vr) {
+                // if the end of the range is some eol then the current line should be joined with the next line
+                //
+                // Before ([] is the range):
+                // xxxx[xxe]
+                // xxe
+                //
+                // After:
+                // xxxxxxe
+                let target_region = if vr.end.col == self.buf[vr.end.row].len() - 1 && vr.end.row != self.buf.len() - 1 {
+                    let mut res = self.expand_range(&vr);
+                    res.push((vr.end.row+1, 0..0));
+                    res
+                } else {
+                    self.expand_range(&vr)
+                };
+
+                // the characters in the range will be deleted and
+                // others will survive, be merged and inserted afterward
+                for (row, col_range) in target_region.clone() {
                     for col in 0 .. self.buf[row].len() {
-                        if col_range.start <= col && col < col_range.end {
+                        if self.is_eof(row, col){
+                            survivors.push(self.buf[row][col].clone())
+                        } else if col_range.start <= col && col < col_range.end {
                             removed.push(self.buf[row][col].clone())
                         } else {
                             survivors.push(self.buf[row][col].clone())
                         }
                     }
                 }
-                for (row, col_range) in self.expand_range(&vr).into_iter().rev() {
+                for (row, _) in target_region.into_iter().rev() {
                     self.buf.remove(row);
                 }
                 if !survivors.is_empty() {
