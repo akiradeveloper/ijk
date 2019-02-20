@@ -148,7 +148,7 @@ impl KeyReceiver {
                     s.push(c);
                 }
                 let n = s.parse::<usize>().unwrap();
-                Action::Jump(n)
+                Action::Jump(n-1) // convert to 0-origin
             },
             _ => {
                 reset_parser = false;
