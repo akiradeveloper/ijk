@@ -58,15 +58,22 @@ impl EditBuffer {
     fn insert(&mut self, at: Cursor, buf: Vec<BufElem>) {
         let mut row = at.row;
         let mut col = at.col;
+        let mut should_insert_newline = false;
         for e in buf {
+            if should_insert_newline {
+                row += 1;
+                col = 0;
+                self.buf.insert(row, vec![]);
+                should_insert_newline = false;
+            }
             match e {
                 BufElem::Eol => {
-                    row += 1;
-                    col = 0;
-                    self.buf.insert(row, vec![BufElem::Eol])
+                    self.buf[row].insert(col, BufElem::Eol);
+                    should_insert_newline = true;
                 },
                 c @ BufElem::Char(_) => {
-                    self.buf[row].insert(col, c)
+                    self.buf[row].insert(col, c);
+                    col += 1;
                 }
             }
         }
@@ -93,6 +100,9 @@ impl EditBuffer {
                 }
                 for (row, col_range) in self.expand_range(&vr).into_iter().rev() {
                     self.buf.remove(row);
+                }
+                if !survivors.is_empty() {
+                    self.buf.insert(vr.start.row, vec![])
                 }
                 self.insert(Cursor { row: vr.start.row, col: 0 }, survivors);
             },
@@ -155,6 +165,7 @@ fn mk_automaton() -> AM::Node {
     let init = AM::Node::new("init");
     let num = AM::Node::new("num");
 
+    init.add_trans(AM::Edge::new(Char('d')), &init);
     init.add_trans(AM::Edge::new(Char('v')), &init);
     init.add_trans(AM::Edge::new(Char('k')), &init);
     init.add_trans(AM::Edge::new(Char('j')), &init);
