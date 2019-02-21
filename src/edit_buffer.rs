@@ -61,7 +61,19 @@ impl EditBuffer {
         true
     }
     fn redo(&mut self) -> bool {
-        false
+        let log = self.change_log_buffer.pop_redo();
+        if log.is_none() { return false }
+        let mut log = log.unwrap();
+
+        let delete_range = CursorRange {
+            start: log.at,
+            end: self.find_cursor_pair(log.at, log.deleted.len()),
+        };
+        let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
+        pre_survivors.append(&mut log.inserted);
+        pre_survivors.append(&mut post_survivors);
+        self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
+        true
     }
     pub fn visual_range(&self) -> Option<CursorRange> {
         self.visual_cursor.clone().map(|vc| 
