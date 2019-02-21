@@ -100,8 +100,50 @@ impl EditBuffer {
     fn find_cursor_pair(&self, cursor: Cursor, len: usize) -> Cursor {
         Cursor { row: 0, col: 0 }
     }
-    fn prepare_delete(&mut self, start_cursor: Cursor, end_cursor: Cursor) -> (Vec<BufElem>, Vec<BufElem>) {
-        (vec![], vec![])
+    fn prepare_delete(&mut self, range: &CursorRange) -> (Vec<BufElem>, Vec<BufElem>) {
+        let mut pre_survivors = vec![];
+        let mut post_survivors = vec![];
+        let mut removed = vec![];
+
+        // if the end of the range is some eol then the current line should be joined with the next line
+        //
+        // Before ([] is the range):
+        // xxxx[xxe]
+        // xxe
+        //
+        // After:
+        // xxxxxxe
+        let target_region = if range.end.col == self.buf[range.end.row].len() - 1 && range.end.row != self.buf.len() - 1 {
+            let mut res = self.expand_range(&range);
+            res.push((range.end.row+1, 0..0));
+            res
+        } else {
+            self.expand_range(&range)
+        };
+
+        // the characters in the range will be deleted and
+        // others will survive, be merged and inserted afterward
+        for (row, col_range) in target_region.clone() {
+            for col in 0 .. self.buf[row].len() {
+                if self.is_eof(row, col){
+                    post_survivors.push(self.buf[row][col].clone())
+                } else if col_range.start <= col && col < col_range.end {
+                    removed.push(self.buf[row][col].clone())
+                } else {
+                    let as_cursor = Cursor { row, col };
+                    if as_cursor < range.start {
+                        pre_survivors.push(self.buf[row][col].clone())
+                    } else {
+                        post_survivors.push(self.buf[row][col].clone())
+                    }
+                }
+            }
+        }
+        for (row, _) in target_region.into_iter().rev() {
+            self.buf.remove(row);
+        }
+
+        (pre_survivors, post_survivors)
     }
     pub fn receive(&mut self, act: Action) {
         match act {
@@ -117,47 +159,7 @@ impl EditBuffer {
             Action::Delete => {
                 if self.visual_range().is_none() { return; }
                 let vr = self.visual_range().unwrap();
-                let mut pre_survivors = vec![];
-                let mut post_survivors = vec![];
-                let mut removed = vec![];
-
-                // if the end of the range is some eol then the current line should be joined with the next line
-                //
-                // Before ([] is the range):
-                // xxxx[xxe]
-                // xxe
-                //
-                // After:
-                // xxxxxxe
-                let target_region = if vr.end.col == self.buf[vr.end.row].len() - 1 && vr.end.row != self.buf.len() - 1 {
-                    let mut res = self.expand_range(&vr);
-                    res.push((vr.end.row+1, 0..0));
-                    res
-                } else {
-                    self.expand_range(&vr)
-                };
-
-                // the characters in the range will be deleted and
-                // others will survive, be merged and inserted afterward
-                for (row, col_range) in target_region.clone() {
-                    for col in 0 .. self.buf[row].len() {
-                        if self.is_eof(row, col){
-                            post_survivors.push(self.buf[row][col].clone())
-                        } else if col_range.start <= col && col < col_range.end {
-                            removed.push(self.buf[row][col].clone())
-                        } else {
-                            let as_cursor = Cursor { row, col };
-                            if as_cursor < vr.start {
-                                pre_survivors.push(self.buf[row][col].clone())
-                            } else {
-                                post_survivors.push(self.buf[row][col].clone())
-                            }
-                        }
-                    }
-                }
-                for (row, _) in target_region.into_iter().rev() {
-                    self.buf.remove(row);
-                }
+                let (mut pre_survivors, mut post_survivors) = self.prepare_delete(&vr);
 
                 pre_survivors.append(&mut post_survivors);
                 let survivors = pre_survivors;
