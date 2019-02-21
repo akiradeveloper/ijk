@@ -18,6 +18,7 @@ pub enum Key {
     Ctrl(char),
 
     CharRange(char,char), // only for matcher. inclusive like ...
+    Otherwise,
 }
 
 #[derive(Clone, PartialEq, Debug)]

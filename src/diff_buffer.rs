@@ -1,18 +1,22 @@
 use crate::*;
 
+#[derive(Clone)]
 pub struct DiffBuffer {
-    buf: Vec<BufElem>,
+    pub buf: Vec<BufElem>,
     init_pos: usize,
     pos: usize,
 }
 
 impl DiffBuffer {
-    pub fn new(line: &[BufElem], col: usize) -> DiffBuffer {
+    pub fn new(line: Vec<BufElem>, col: usize) -> DiffBuffer {
         DiffBuffer {
-            buf: line.to_vec(),
+            buf: line,
             init_pos: col,
             pos: col,
         }
+    }
+    pub fn collect_inserted(&self) -> Vec<BufElem> {
+        self.buf[self.init_pos .. self.pos+1].to_vec()
     }
     pub fn input(&mut self, k: Key) -> Option<i8> {
         match k {
@@ -49,7 +53,7 @@ impl DiffBuffer {
 fn test_diff_buffer() {
     use crate::BufElem::*;
 
-    let mut df = DiffBuffer::new(&[Char('a'),Char('b'),Eol], 1);
+    let mut df = DiffBuffer::new(vec![Char('a'),Char('b'),Eol], 1);
     assert_eq!(df.input(Key::Char('a')), Some(0)); // -> aa[b]e
     assert_eq!(df.input(Key::PageUp), None);
     assert_eq!(df.input(Key::Char('\n')), Some(1)); // -> aae[b]e

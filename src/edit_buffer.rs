@@ -35,7 +35,15 @@ pub struct EditBuffer {
     pub cursor: Cursor,
     visual_cursor: Option<Cursor>,
     change_log_buffer: UndoBuffer<ChangeLog>,
-    diff_buffer: Option<DiffBuffer>,
+    edit_state: Option<EditState>,
+}
+
+#[derive(Clone)]
+struct EditState {
+    diff_buffer: DiffBuffer,
+    at: Cursor,
+    removed: Vec<BufElem>,
+    orig_buf: Vec<Vec<BufElem>>,
 }
 
 impl EditBuffer {
@@ -45,7 +53,7 @@ impl EditBuffer {
             cursor: Cursor { row: 0, col: 0 },
             visual_cursor: None,
             change_log_buffer: UndoBuffer::new(20),
-            diff_buffer: None,
+            edit_state: None,
         }
     }
     fn undo(&mut self) -> bool {
@@ -203,11 +211,41 @@ impl EditBuffer {
     pub fn receive(&mut self, act: Action) {
         match act {
             Action::EnterInsertMode => {
+                assert!(self.edit_state.is_none());
+                let delete_range = CursorRange {
+                    start: self.cursor,
+                    end: self.cursor.to_cursor_end()
+                };
+                let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&delete_range);
+                let orig_buf = self.buf.clone();
+                let init_pos = pre_survivors.len();
+                pre_survivors.append(&mut post_survivors);
+                self.edit_state = Some(EditState {
+                    diff_buffer: DiffBuffer::new(pre_survivors, init_pos),
+                    at: self.cursor,
+                    removed: removed,
+                    orig_buf: orig_buf
+                });
             },
-            Action::EditModeKeyInput(k) => {
-
+            Action::EditModeInput(k) => {
+                for es in &mut self.edit_state {
+                    es.diff_buffer.input(k.clone());
+                    self.buf = es.orig_buf.clone();
+                    if !es.diff_buffer.buf.is_empty() {
+                        self.buf.insert(es.at.row, vec![]);
+                        self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf.clone());
+                    }
+                }
             },
             Action::LeaveEditMode => {
+                assert!(self.edit_state.is_some());
+                let edit_state = self.edit_state.clone().unwrap();
+                let change_log = ChangeLog {
+                    at: edit_state.at,
+                    deleted: edit_state.removed,
+                    inserted: edit_state.diff_buffer.collect_inserted(),
+                };
+                self.change_log_buffer.save(change_log);
             },
             Action::Undo => {
                 self.undo();
@@ -275,7 +313,7 @@ impl EditBuffer {
 
 pub enum Action {
     EnterInsertMode,
-    EditModeKeyInput(Key),
+    EditModeInput(Key),
     LeaveEditMode,
     Redo,
     Undo,
@@ -317,14 +355,14 @@ fn mk_automaton() -> AM::Node {
     init.add_trans(AM::Edge::new(Char('0')), &init);
     init.add_trans(AM::Edge::new(Char('$')), &init);
     init.add_trans(AM::Edge::new(CharRange('1','9')), &num);
+    init.add_trans(AM::Edge::new(Esc), &init);
+
     num.add_trans(AM::Edge::new(CharRange('0','9')), &num);
     num.add_trans(AM::Edge::new(Char('G')), &init);
-
-    // edit.add_trans(AM::Edge::new(Char(c)), &edit);
-
-    init.add_trans(AM::Edge::new(Esc), &init);
     num.add_trans(AM::Edge::new(Esc), &init);
+
     edit.add_trans(AM::Edge::new(Esc), &init);
+    edit.add_trans(AM::Edge::new(Otherwise), &edit);
 
     init
 }
@@ -347,7 +385,7 @@ impl KeyReceiver {
             ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
             (_, _, Some(Esc)) => Action::Reset,
             ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
-            ("edit", "edit", Some(k)) => Action::EditModeKeyInput(k),
+            ("edit", "edit", Some(k)) => Action::EditModeInput(k),
             ("init", "init", Some(Ctrl('r'))) => Action::Redo,
             ("init", "init", Some(Char('u'))) => Action::Undo,
             ("init", "init", Some(Char('d'))) => Action::Delete,

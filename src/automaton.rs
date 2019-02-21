@@ -61,7 +61,8 @@ impl Edge {
                 Key::Char(c) => a <= c && c <= b,
                 _ => false
             },
-            mhr => k.clone() == mhr
+            Key::Otherwise => true,
+            mhr => k.clone() == mhr,
         }
     }
 }
