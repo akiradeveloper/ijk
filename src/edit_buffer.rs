@@ -1,5 +1,6 @@
 use crate::BufElem;
 use crate::undo_buffer::UndoBuffer;
+use crate::diff_buffer::DiffBuffer;
 
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub struct Cursor {
@@ -33,7 +34,8 @@ pub struct EditBuffer {
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
     visual_cursor: Option<Cursor>,
-    change_log_buffer: UndoBuffer<ChangeLog>
+    change_log_buffer: UndoBuffer<ChangeLog>,
+    diff_buffer: Option<DiffBuffer>,
 }
 
 impl EditBuffer {
@@ -43,6 +45,7 @@ impl EditBuffer {
             cursor: Cursor { row: 0, col: 0 },
             visual_cursor: None,
             change_log_buffer: UndoBuffer::new(20),
+            diff_buffer: None,
         }
     }
     fn undo(&mut self) -> bool {
@@ -199,6 +202,13 @@ impl EditBuffer {
     }
     pub fn receive(&mut self, act: Action) {
         match act {
+            Action::EnterInsertMode => {
+            },
+            Action::EditModeKeyInput(k) => {
+
+            },
+            Action::LeaveEditMode => {
+            },
             Action::Undo => {
                 self.undo();
             },
@@ -264,6 +274,9 @@ impl EditBuffer {
 }
 
 pub enum Action {
+    EnterInsertMode,
+    EditModeKeyInput(Key),
+    LeaveEditMode,
     Redo,
     Undo,
     Delete,
@@ -289,7 +302,9 @@ pub struct KeyReceiver {
 fn mk_automaton() -> AM::Node {
     let init = AM::Node::new("init");
     let num = AM::Node::new("num");
+    let edit = AM::Node::new("edit");
 
+    init.add_trans(AM::Edge::new(Char('i')), &edit);
     init.add_trans(AM::Edge::new(Ctrl('r')), &init);
     init.add_trans(AM::Edge::new(Char('u')), &init);
     init.add_trans(AM::Edge::new(Char('d')), &init);
@@ -305,8 +320,11 @@ fn mk_automaton() -> AM::Node {
     num.add_trans(AM::Edge::new(CharRange('0','9')), &num);
     num.add_trans(AM::Edge::new(Char('G')), &init);
 
+    // edit.add_trans(AM::Edge::new(Char(c)), &edit);
+
     init.add_trans(AM::Edge::new(Esc), &init);
     num.add_trans(AM::Edge::new(Esc), &init);
+    edit.add_trans(AM::Edge::new(Esc), &init);
 
     init
 }
@@ -326,7 +344,10 @@ impl KeyReceiver {
         let last0 = self.parser.rec.back().cloned();
         let mut reset_parser = true;
         let act = match (prev_node, cur_node, last0) {
+            ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
             (_, _, Some(Esc)) => Action::Reset,
+            ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
+            ("edit", "edit", Some(k)) => Action::EditModeKeyInput(k),
             ("init", "init", Some(Ctrl('r'))) => Action::Redo,
             ("init", "init", Some(Char('u'))) => Action::Undo,
             ("init", "init", Some(Char('d'))) => Action::Delete,

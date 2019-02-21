@@ -1,20 +1,20 @@
 use crate::*;
 
-struct DiffBuffer {
+pub struct DiffBuffer {
     buf: Vec<BufElem>,
     init_pos: usize,
     pos: usize,
 }
 
 impl DiffBuffer {
-    fn new(line: &[BufElem], col: usize) -> DiffBuffer {
+    pub fn new(line: &[BufElem], col: usize) -> DiffBuffer {
         DiffBuffer {
             buf: line.to_vec(),
             init_pos: col,
             pos: col,
         }
     }
-    fn input(&mut self, k: Key) -> Option<i8> {
+    pub fn input(&mut self, k: Key) -> Option<i8> {
         match k {
             Key::Backspace => {
                 if self.pos <= self.init_pos {
