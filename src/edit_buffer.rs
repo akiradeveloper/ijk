@@ -1,4 +1,5 @@
 use crate::BufElem;
+use crate::undo_buffer::UndoBuffer;
 
 #[derive(Clone, PartialOrd, PartialEq)]
 pub struct Cursor {
@@ -12,10 +13,18 @@ pub struct CursorRange {
     pub end: Cursor,
 }
 
+#[derive(Clone)]
+struct ChangeLog {
+    at: Cursor,
+    deleted: Vec<BufElem>,
+    inserted: Vec<BufElem>,
+}
+
 pub struct EditBuffer {
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
     visual_cursor: Option<Cursor>,
+    change_log_buffer: UndoBuffer<ChangeLog>
 }
 
 impl EditBuffer {
@@ -24,7 +33,14 @@ impl EditBuffer {
             buf: vec![vec![]],
             cursor: Cursor { row: 0, col: 0 },
             visual_cursor: None,
+            change_log_buffer: UndoBuffer::new(20),
         }
+    }
+    fn undo(&mut self) -> bool {
+        false
+    }
+    fn redo(&mut self) -> bool {
+        false
     }
     pub fn visual_range(&self) -> Option<CursorRange> {
         self.visual_cursor.clone().map(|vc| 
@@ -67,12 +83,12 @@ impl EditBuffer {
                 should_insert_newline = false;
             }
             match e {
-                BufElem::Eol => {
-                    self.buf[row].insert(col, BufElem::Eol);
+                x @ BufElem::Eol => {
+                    self.buf[row].insert(col, x);
                     should_insert_newline = true;
                 },
-                c @ BufElem::Char(_) => {
-                    self.buf[row].insert(col, c);
+                x @ BufElem::Char(_) => {
+                    self.buf[row].insert(col, x);
                     col += 1;
                 }
             }
@@ -83,6 +99,12 @@ impl EditBuffer {
     }
     pub fn receive(&mut self, act: Action) {
         match act {
+            Action::Undo => {
+
+            },
+            Action::Redo => {
+
+            },
             Action::Reset => {
                 self.visual_cursor = None
             },
@@ -167,6 +189,8 @@ impl EditBuffer {
 }
 
 pub enum Action {
+    Redo,
+    Undo,
     Delete,
     CursorUp,
     CursorDown,
@@ -191,6 +215,8 @@ fn mk_automaton() -> AM::Node {
     let init = AM::Node::new("init");
     let num = AM::Node::new("num");
 
+    init.add_trans(AM::Edge::new(Ctrl('r')), &init);
+    init.add_trans(AM::Edge::new(Char('u')), &init);
     init.add_trans(AM::Edge::new(Char('d')), &init);
     init.add_trans(AM::Edge::new(Char('v')), &init);
     init.add_trans(AM::Edge::new(Char('k')), &init);
@@ -226,6 +252,8 @@ impl KeyReceiver {
         let mut reset_parser = true;
         let act = match (prev_node, cur_node, last0) {
             (_, _, Some(Esc)) => Action::Reset,
+            ("init", "init", Some(Ctrl('r'))) => Action::Redo,
+            ("init", "init", Some(Char('u'))) => Action::Undo,
             ("init", "init", Some(Char('d'))) => Action::Delete,
             ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
             ("init", "init", Some(Char('k'))) => Action::CursorUp,

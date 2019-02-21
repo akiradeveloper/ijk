@@ -7,35 +7,35 @@ use std::collections::VecDeque;
 /// undo_queue: [1,2,3]
 /// redo_stack: [5,4]
 
-struct UndoBuffer<T: Clone> {
+pub struct UndoBuffer<T: Clone> {
     capacity: usize,
     undo_queue: VecDeque<T>,
     redo_stack: Vec<T>,
 }
 
 impl <T: Clone> UndoBuffer<T> {
-    fn new(cap: usize) -> UndoBuffer<T> {
+    pub fn new(cap: usize) -> UndoBuffer<T> {
         UndoBuffer {
             capacity: cap,
             undo_queue: VecDeque::new(),
             redo_stack: Vec::new(),
         }
     }
-    fn save(&mut self, x: T) {
+    pub fn save(&mut self, x: T) {
         self.redo_stack.clear();
         self.undo_queue.push_back(x);
         while self.undo_queue.len() > self.capacity {
             self.undo_queue.pop_front();
         }
     }
-    fn pop_undo(&mut self) -> Option<T> {
+    pub fn pop_undo(&mut self) -> Option<T> {
         let x0 = self.undo_queue.pop_back();
         for x in x0.clone() {
             self.redo_stack.push(x);
         }
         x0
     }
-    fn pop_redo(&mut self) -> Option<T> {
+    pub fn pop_redo(&mut self) -> Option<T> {
         let x0 = self.redo_stack.pop();
         for x in x0.clone() {
             self.undo_queue.push_back(x);
