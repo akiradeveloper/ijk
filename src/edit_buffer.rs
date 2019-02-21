@@ -57,6 +57,9 @@ impl EditBuffer {
         let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
         pre_survivors.append(&mut log.deleted);
         pre_survivors.append(&mut post_survivors);
+        if !pre_survivors.is_empty() {
+            self.buf.insert(log.at.row, vec![])
+        }
         self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
         true
     }
@@ -72,6 +75,9 @@ impl EditBuffer {
         let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
         pre_survivors.append(&mut log.inserted);
         pre_survivors.append(&mut post_survivors);
+        if !pre_survivors.is_empty() {
+            self.buf.insert(log.at.row, vec![])
+        }
         self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
         true
     }
@@ -208,11 +214,10 @@ impl EditBuffer {
                 let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&vr);
 
                 pre_survivors.append(&mut post_survivors);
-                let survivors = pre_survivors;
-                if !survivors.is_empty() {
+                if !pre_survivors.is_empty() {
                     self.buf.insert(vr.start.row, vec![])
                 }
-                self.insert(Cursor { row: vr.start.row, col: 0 }, survivors);
+                self.insert(Cursor { row: vr.start.row, col: 0 }, pre_survivors);
 
                 let log = ChangeLog {
                     at: vr.start.clone(),
