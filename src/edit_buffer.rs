@@ -1,13 +1,22 @@
 use crate::BufElem;
 use crate::undo_buffer::UndoBuffer;
 
-#[derive(Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub struct Cursor {
     pub row: usize,
     pub col: usize,
 }
 
-#[derive(Clone)]
+impl Cursor {
+    fn to_cursor_end(&self) -> Cursor {
+        Cursor {
+            row: self.row,
+            col: self.col+1,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct CursorRange {
     pub start: Cursor,
     pub end: Cursor,
@@ -37,7 +46,19 @@ impl EditBuffer {
         }
     }
     fn undo(&mut self) -> bool {
-        false
+        let log = self.change_log_buffer.pop_undo();
+        if log.is_none() { return false }
+        let mut log = log.unwrap();
+
+        let delete_range = CursorRange {
+            start: log.at,
+            end: self.find_cursor_pair(log.at, log.inserted.len()),
+        };
+        let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
+        pre_survivors.append(&mut log.deleted);
+        pre_survivors.append(&mut post_survivors);
+        self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
+        true
     }
     fn redo(&mut self) -> bool {
         false
@@ -45,9 +66,9 @@ impl EditBuffer {
     pub fn visual_range(&self) -> Option<CursorRange> {
         self.visual_cursor.clone().map(|vc| 
             if self.cursor > vc {
-                CursorRange { start: vc, end: self.cursor.clone() }
+                CursorRange { start: vc, end: self.cursor.to_cursor_end() }
             } else {
-                CursorRange { start: self.cursor.clone(), end: vc }
+                CursorRange { start: self.cursor.clone(), end: vc.to_cursor_end() }
             }
         )
     }
@@ -63,7 +84,7 @@ impl EditBuffer {
                 0
             };
             let col_end = if row == r.end.row {
-                r.end.col + 1
+                r.end.col
             } else {
                 self.buf[row].len()
             };
@@ -108,12 +129,12 @@ impl EditBuffer {
                 col = 0;
                 row += 1;
             } else {
-                col = n - 1;
+                col += n;
             }
         }
         Cursor { row: row, col: col }
     }
-    fn prepare_delete(&mut self, range: &CursorRange) -> (Vec<BufElem>, Vec<BufElem>) {
+    fn prepare_delete(&mut self, range: &CursorRange) -> (Vec<BufElem>, Vec<BufElem>, Vec<BufElem>) {
         let mut pre_survivors = vec![];
         let mut post_survivors = vec![];
         let mut removed = vec![];
@@ -126,7 +147,7 @@ impl EditBuffer {
         //
         // After:
         // xxxxxxe
-        let target_region = if range.end.col == self.buf[range.end.row].len() - 1 && range.end.row != self.buf.len() - 1 {
+        let target_region = if range.end.col == self.buf[range.end.row].len() && range.end.row != self.buf.len() - 1 {
             let mut res = self.expand_range(&range);
             res.push((range.end.row+1, 0..0));
             res
@@ -138,7 +159,7 @@ impl EditBuffer {
         // others will survive, be merged and inserted afterward
         for (row, col_range) in target_region.clone() {
             for col in 0 .. self.buf[row].len() {
-                if self.is_eof(row, col){
+                if self.is_eof(row, col) {
                     post_survivors.push(self.buf[row][col].clone())
                 } else if col_range.start <= col && col < col_range.end {
                     removed.push(self.buf[row][col].clone())
@@ -156,15 +177,15 @@ impl EditBuffer {
             self.buf.remove(row);
         }
 
-        (pre_survivors, post_survivors)
+        (pre_survivors, removed, post_survivors)
     }
     pub fn receive(&mut self, act: Action) {
         match act {
             Action::Undo => {
-
+                self.undo();
             },
             Action::Redo => {
-
+                self.redo();
             },
             Action::Reset => {
                 self.visual_cursor = None
@@ -172,7 +193,7 @@ impl EditBuffer {
             Action::Delete => {
                 if self.visual_range().is_none() { return; }
                 let vr = self.visual_range().unwrap();
-                let (mut pre_survivors, mut post_survivors) = self.prepare_delete(&vr);
+                let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&vr);
 
                 pre_survivors.append(&mut post_survivors);
                 let survivors = pre_survivors;
@@ -180,6 +201,13 @@ impl EditBuffer {
                     self.buf.insert(vr.start.row, vec![])
                 }
                 self.insert(Cursor { row: vr.start.row, col: 0 }, survivors);
+
+                let log = ChangeLog {
+                    at: vr.start.clone(),
+                    deleted: removed,
+                    inserted: vec![],
+                };
+                self.change_log_buffer.save(log);
 
                 self.cursor = vr.start;
                 self.visual_cursor = None;
