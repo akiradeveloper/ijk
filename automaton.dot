@@ -1,0 +1,16 @@
+digraph {
+  rankdir=LR;
+  node [shape = doublecircle]; INIT;
+  node [shape = circle];
+  INIT -> INIT [ label = "..." ];
+  INIT -> NUM [ label = "1..9" ];
+  NUM -> NUM [ label = "0..9" ];
+  NUM -> INIT [ label = "G" ];
+  NUM -> INIT [ label = "Esc" ];
+  INIT -> SEARCH [ label = "/" ];
+  SEARCH -> SEARCH [ label = "char" ];
+  SEARCH -> INIT [ label = "Esc" ];
+  INIT -> EDIT [ label = "i" ];
+  EDIT -> EDIT [ label = "char" ];
+  EDIT -> INIT [ label = "Esc" ];
+}
