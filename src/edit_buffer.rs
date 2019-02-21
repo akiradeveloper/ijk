@@ -98,7 +98,20 @@ impl EditBuffer {
         row == self.buf.len() - 1 && col == self.buf[row].len() - 1
     }
     fn find_cursor_pair(&self, cursor: Cursor, len: usize) -> Cursor {
-        Cursor { row: 0, col: 0 }
+        let mut row = cursor.row;
+        let mut col = cursor.col;
+        let mut remaining = len;
+        while remaining > 0 {
+            let n = std::cmp::min(remaining, self.buf[row].len() - col);
+            remaining -= n;
+            if remaining > 0 {
+                col = 0;
+                row += 1;
+            } else {
+                col = n - 1;
+            }
+        }
+        Cursor { row: row, col: col }
     }
     fn prepare_delete(&mut self, range: &CursorRange) -> (Vec<BufElem>, Vec<BufElem>) {
         let mut pre_survivors = vec![];
