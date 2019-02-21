@@ -29,3 +29,4 @@ pub enum BufElem {
 pub mod automaton;
 pub mod diff_buffer;
 pub mod edit_buffer;
+pub mod undo_buffer;
