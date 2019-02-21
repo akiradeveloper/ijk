@@ -231,10 +231,11 @@ impl EditBuffer {
                 for es in &mut self.edit_state {
                     es.diff_buffer.input(k.clone());
                     self.buf = es.orig_buf.clone();
-                    if !es.diff_buffer.buf.is_empty() {
-                        self.buf.insert(es.at.row, vec![]);
-                        self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf.clone());
-                    }
+                }
+                let es = self.edit_state.clone().unwrap();
+                if !es.diff_buffer.buf.is_empty() {
+                    self.buf.insert(es.at.row, vec![]);
+                    self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf);
                 }
             },
             Action::LeaveEditMode => {
