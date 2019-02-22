@@ -73,7 +73,7 @@ fn main() {
         write!(stdout, "{}", clear::All);
         for row in 0 .. drawable.buf.len() {
             let line = &drawable.buf[row];
-            write!(stdout, "{}", cursor::Goto(window_col,row as u16 + window_row));
+            write!(stdout, "{}", cursor::Goto(window_col, row as u16 + window_row));
             for col in 0 .. line.len() {
                 let e = drawable.buf[row][col].clone();
                 let as_cursor = EB::Cursor { row: row, col: col };

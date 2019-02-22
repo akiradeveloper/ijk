@@ -26,10 +26,14 @@ impl VisibilityFilter {
     pub fn apply(&self, eb: &EditBuffer) -> Drawable {
         let mut buf = vec![vec![None; self.width()]; self.height()];
         for row in self.row_low .. self.row_high+1 {
+            if row >= eb.buf.len() {
+                continue;
+            }
             for col in self.col_low .. self.col_high+1 {
-                if col < eb.buf[row].len() {
-                    buf[row-self.row_low][col-self.col_low] = Some(eb.buf[row][col].clone());
+                if col >= eb.buf[row].len() {
+                    continue;
                 }
+                buf[row-self.row_low][col-self.col_low] = Some(eb.buf[row][col].clone());
             }
         }
         Drawable {
