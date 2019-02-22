@@ -214,7 +214,7 @@ impl EditBuffer {
                 assert!(self.edit_state.is_none());
                 let delete_range = CursorRange {
                     start: self.cursor,
-                    end: self.cursor.to_cursor_end(),
+                    end: self.cursor,
                 };
                 let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&delete_range);
                 let orig_buf = self.buf.clone();
