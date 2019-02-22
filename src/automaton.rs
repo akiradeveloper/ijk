@@ -140,3 +140,19 @@ fn test_vi_command_mode() {
     assert_eq!(parser.cur_node.name(), "init");
     assert_eq!(parser.rec, [Char('7'),Char('0'),Char('G')]);
 }
+
+#[test]
+fn test_otherwise() {
+    use crate::Key::*;
+
+    let init = Node::new("init");
+    let other = Node::new("other");
+    init.add_trans(Edge::new(Char('a')), &init);
+    init.add_trans(Edge::new(Otherwise), &other);
+
+    let mut parser = Parser::new(&init);
+    parser.feed(Char('a'));
+    assert_eq!(parser.cur_node.name(), "init");
+    parser.feed(Char('b'));
+    assert_eq!(parser.cur_node.name(), "other");
+}

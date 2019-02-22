@@ -214,7 +214,7 @@ impl EditBuffer {
                 assert!(self.edit_state.is_none());
                 let delete_range = CursorRange {
                     start: self.cursor,
-                    end: self.cursor.to_cursor_end()
+                    end: self.cursor.to_cursor_end(),
                 };
                 let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&delete_range);
                 let orig_buf = self.buf.clone();
@@ -226,6 +226,7 @@ impl EditBuffer {
                     removed: removed,
                     orig_buf: orig_buf
                 });
+                // TODO write back the initial diff buffer
             },
             Action::EditModeInput(k) => {
                 for es in &mut self.edit_state {
@@ -233,6 +234,7 @@ impl EditBuffer {
                     self.buf = es.orig_buf.clone();
                 }
                 let es = self.edit_state.clone().unwrap();
+                assert!(!es.diff_buffer.buf.is_empty());
                 if !es.diff_buffer.buf.is_empty() {
                     self.buf.insert(es.at.row, vec![]);
                     self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf);
@@ -246,7 +248,9 @@ impl EditBuffer {
                     deleted: edit_state.removed,
                     inserted: edit_state.diff_buffer.collect_inserted(),
                 };
-                self.change_log_buffer.save(change_log);
+                if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
+                    self.change_log_buffer.save(change_log);
+                }
             },
             Action::Undo => {
                 self.undo();
