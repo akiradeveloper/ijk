@@ -1,6 +1,6 @@
 extern crate termion;
 
-use std::io::{stdin, stdout, Write};
+use std::io::{stdin, stdout, BufWriter, Write};
 use termion::clear;
 use termion::cursor;
 use termion::color;
@@ -32,8 +32,7 @@ fn main() {
     // let stdin = stdin();
     let stdin = termion::async_stdin();
 
-    let stdout = stdout();
-    let mut stdout = AlternateScreen::from(stdout.into_raw_mode().unwrap());
+    let mut stdout = AlternateScreen::from(BufWriter::with_capacity(1<<14, stdout()).into_raw_mode().unwrap());
     // let mut stdout = stdout().into_raw_mode().unwrap();
 
     let matches = App::new("ijk")
@@ -67,6 +66,22 @@ fn main() {
     let mut keys = stdin.keys();
 
     loop {
+        let k = match keys.next() {
+            Some(Ok(TermKey::Ctrl('z'))) => break,
+            Some(Ok(TermKey::Ctrl('c'))) => Esc,
+            Some(Ok(TermKey::Backspace)) => Backspace,
+            Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
+            Some(Ok(TermKey::Char(c))) => Char(c),
+            // None, Some(Err), Some(Unknown)
+            _ => {
+                thread::sleep(time::Duration::from_millis(100));
+                continue
+            },
+        };
+
+        let act = kr.receive(k);
+        eb.receive(act);
+        
         vfilter.adjust(eb.cursor);
         let drawable = vfilter.apply(&eb);
 
@@ -92,21 +107,5 @@ fn main() {
         }
         write!(stdout, "{}", cursor::Goto(drawable.cursor.col as u16 + window_col, drawable.cursor.row as u16 + window_row));
         stdout.flush().unwrap(); 
-
-        let k = match keys.next() {
-            Some(Ok(TermKey::Ctrl('z'))) => break,
-            Some(Ok(TermKey::Ctrl('c'))) => Esc,
-            Some(Ok(TermKey::Backspace)) => Backspace,
-            Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
-            Some(Ok(TermKey::Char(c))) => Char(c),
-            // None, Some(Err), Some(Unknown)
-            _ => {
-                thread::sleep(time::Duration::from_millis(10));
-                continue
-            },
-        };
-
-        let act = kr.receive(k);
-        eb.receive(act);
     }
 }
