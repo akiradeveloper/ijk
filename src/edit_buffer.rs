@@ -406,7 +406,9 @@ impl KeyReceiver {
         }
     }
     pub fn receive(&mut self, k: Key) -> Action {
-        self.parser.feed(k);
+        if !self.parser.feed(k) {
+            return Action::None
+        }
         let cur_node: &str = &self.parser.cur_node.name();
         let prev_node: &str = &self.parser.prev_node.clone().unwrap().name();
         let last0 = self.parser.rec.back().cloned();

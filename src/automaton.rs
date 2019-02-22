@@ -83,13 +83,17 @@ impl Parser {
     pub fn clear_rec(&mut self) {
         self.rec = VecDeque::new();
     }
-    pub fn feed(&mut self, k: Key) {
+    pub fn feed(&mut self, k: Key) -> bool {
         let trans0 = self.cur_node.find_trans(&k);
-        let trans = trans0.unwrap(); // hope that user inputs are all perfect
+        if trans0.is_none() {
+            return false
+        }
+        let trans = trans0.unwrap();
         let cur_node = self.cur_node.clone();
         self.cur_node = trans.n;
         self.prev_node = Some(cur_node);
         self.rec.push_back(k);
+        true
     }
 }
 #[test]
