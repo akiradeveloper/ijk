@@ -253,9 +253,9 @@ impl EditBuffer {
             Action::EditModeInput(k) => {
                 for es in &mut self.edit_state {
                     es.diff_buffer.input(k.clone());
-                    self.buf = es.orig_buf.clone();
                 }
                 let es = self.edit_state.clone().unwrap();
+                self.buf = es.orig_buf;
                 assert!(!es.diff_buffer.buf.is_empty());
                 if !es.diff_buffer.buf.is_empty() {
                     self.buf.insert(es.at.row, vec![]);
