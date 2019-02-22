@@ -30,6 +30,7 @@ fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
 fn main() {
     let stdin = stdin();
     let mut stdout = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+    // let mut stdout = stdout().into_raw_mode().unwrap();
 
     let matches = App::new("ijk")
         .about("A toy editor for fun")

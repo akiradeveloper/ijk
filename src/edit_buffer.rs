@@ -385,16 +385,14 @@ impl KeyReceiver {
         let cur_node: &str = &self.parser.cur_node.name();
         let prev_node: &str = &self.parser.prev_node.clone().unwrap().name();
         let last0 = self.parser.rec.back().cloned();
-        let mut reset_parser = true;
+        let mut keep_parser_rec = false;
         let act = match (prev_node, cur_node, last0) {
-            ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
-            (_, _, Some(Esc)) => Action::Reset,
             ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
             ("edit", "edit", Some(k)) => Action::EditModeInput(k),
+            ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
+            ("init", "init", Some(Char('d'))) => Action::Delete,
             ("init", "init", Some(Ctrl('r'))) => Action::Redo,
             ("init", "init", Some(Char('u'))) => Action::Undo,
-            ("init", "init", Some(Char('d'))) => Action::Delete,
-            ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
             ("init", "init", Some(Char('k'))) => Action::CursorUp,
             ("init", "init", Some(Char('j'))) => Action::CursorDown,
             ("init", "init", Some(Char('h'))) => Action::CursorLeft,
@@ -415,13 +413,15 @@ impl KeyReceiver {
                 let n = s.parse::<usize>().unwrap();
                 Action::Jump(n-1) // convert to 0-origin
             },
-            _ => {
-                reset_parser = false;
+            ("num", "num", _) => {
+                keep_parser_rec = true;
                 Action::None
             },
+            (_, _, Some(Esc)) => Action::Reset,
+            _ => Action::None, // hope this is unreachable
         };
-        if reset_parser {
-            self.parser.reset(&self.automaton);
+        if !keep_parser_rec {
+            self.parser.clear_rec()
         }
         act
     }

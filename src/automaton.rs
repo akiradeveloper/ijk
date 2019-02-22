@@ -80,9 +80,7 @@ impl Parser {
             rec: VecDeque::new()
         }
     }
-    pub fn reset(&mut self, init_node: &Node) {
-        self.cur_node = init_node.clone();
-        self.prev_node = None;
+    pub fn clear_rec(&mut self) {
         self.rec = VecDeque::new();
     }
     pub fn feed(&mut self, k: Key) {
