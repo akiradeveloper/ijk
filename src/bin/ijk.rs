@@ -59,11 +59,10 @@ fn main() {
     eb.reset_with(read_buf);
     let mut kr = EB::KeyReceiver::new();
     let mut vfilter = ijk::visibility_filter::VisibilityFilter::new(eb.cursor);
-    let (term_w, term_h) = termion::terminal_size().unwrap();
-    // vfilter.resize(term_w as usize, term_h as usize);
-    vfilter.resize(10, 10);
     let window_col: u16 = 1;
     let window_row: u16 = 1;
+    let (term_w, term_h) = termion::terminal_size().unwrap();
+    vfilter.resize(term_w as usize, term_h as usize);
 
     let mut keys = stdin.keys();
 
@@ -102,7 +101,7 @@ fn main() {
             Some(Ok(TermKey::Char(c))) => Char(c),
             // None, Some(Err), Some(Unknown)
             _ => {
-                thread::sleep(time::Duration::from_millis(100));
+                thread::sleep(time::Duration::from_millis(10));
                 continue
             },
         };
