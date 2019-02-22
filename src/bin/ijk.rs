@@ -63,8 +63,8 @@ fn main() {
 
     loop {
         let k = match keys.next() {
-            Some(Ok(TermKey::Ctrl('c'))) => break,
-            Some(Ok(TermKey::Esc)) => Esc,
+            Some(Ok(TermKey::Ctrl('z'))) => break,
+            Some(Ok(TermKey::Ctrl('c'))) => Esc,
             Some(Ok(TermKey::Backspace)) => Backspace,
             Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
             Some(Ok(TermKey::Char(c))) => Char(c),

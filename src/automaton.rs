@@ -128,7 +128,7 @@ fn test_vi_command_mode() {
     parser.feed(Char('0'));
     parser.feed(Char('G'));
     assert_eq!(parser.cur_node.name(), "init");
-    parser.reset(&init);
+    parser.clear_rec();
 
     parser.feed(Char('7'));
     assert_eq!(parser.cur_node.name(), "num");
