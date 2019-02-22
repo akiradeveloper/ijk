@@ -1,6 +1,7 @@
 use crate::BufElem;
 use crate::undo_buffer::UndoBuffer;
 use crate::diff_buffer::DiffBuffer;
+use crate::diff_buffer::CursorDiff;
 
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub struct Cursor {
@@ -260,6 +261,24 @@ impl EditBuffer {
                     self.buf.insert(es.at.row, vec![]);
                     self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf);
                 }
+                // match cursor_diff {
+                //     CursorDiff::Forward => {
+                //         self.cursor = Cursor {
+                //             row: self.cursor.row,
+                //             col: self.cursor.col+1,
+                //         };
+                //     },
+                //     CursorDiff::Backward => {
+
+                //     },
+                //     CursorDiff::Up => {
+
+                //     },
+                //     CursorDiff::Down => {
+
+                //     }
+                //     _ => {}
+                // }
             },
             Action::LeaveEditMode => {
                 assert!(self.edit_state.is_some());
