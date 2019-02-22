@@ -62,23 +62,6 @@ fn main() {
     let mut keys = stdin.keys();
 
     loop {
-        let k = match keys.next() {
-            Some(Ok(TermKey::Ctrl('z'))) => break,
-            Some(Ok(TermKey::Ctrl('c'))) => Esc,
-            Some(Ok(TermKey::Backspace)) => Backspace,
-            Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
-            Some(Ok(TermKey::Char(c))) => Char(c),
-            // None, Some(Err), Some(Unknown)
-            _ => {
-                thread::sleep(time::Duration::from_millis(100));
-                continue
-            },
-        };
-
-        let act = kr.receive(k);
-        eb.receive(act);
-
-        // draw
         let vr0 = eb.visual_range();
         write!(stdout, "{}", clear::All);
         for row in 0 .. eb.buf.len() {
@@ -100,6 +83,22 @@ fn main() {
             }
         }
         write!(stdout, "{}", cursor::Goto((eb.cursor.col+1) as u16, (eb.cursor.row+1) as u16));
-        stdout.flush().unwrap();
+        stdout.flush().unwrap(); 
+
+        let k = match keys.next() {
+            Some(Ok(TermKey::Ctrl('z'))) => break,
+            Some(Ok(TermKey::Ctrl('c'))) => Esc,
+            Some(Ok(TermKey::Backspace)) => Backspace,
+            Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
+            Some(Ok(TermKey::Char(c))) => Char(c),
+            // None, Some(Err), Some(Unknown)
+            _ => {
+                thread::sleep(time::Duration::from_millis(100));
+                continue
+            },
+        };
+
+        let act = kr.receive(k);
+        eb.receive(act);
     }
 }

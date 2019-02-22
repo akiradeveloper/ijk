@@ -211,6 +211,29 @@ impl EditBuffer {
 
         (pre_survivors, removed, post_survivors)
     }
+    fn enter_update_mode(&mut self, r: &CursorRange) {
+        let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&r);
+        let orig_buf = self.buf.clone();
+        let init_pos = pre_survivors.len();
+        pre_survivors.append(&mut post_survivors);
+        self.edit_state = Some(EditState {
+            diff_buffer: DiffBuffer::new(pre_survivors, init_pos),
+            at: self.cursor,
+            removed: removed,
+            orig_buf: orig_buf
+        });
+
+        // write back the initial diff buffer
+        let es = self.edit_state.clone().unwrap();
+        assert!(!es.diff_buffer.buf.is_empty());
+        if !es.diff_buffer.buf.is_empty() {
+            self.buf.insert(es.at.row, vec![]);
+            self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf);
+        }
+
+        self.cursor = r.start;
+        self.visual_cursor = None;
+    }
     pub fn receive(&mut self, act: Action) {
         match act {
             Action::EnterInsertMode => {
@@ -219,17 +242,12 @@ impl EditBuffer {
                     start: self.cursor,
                     end: self.cursor,
                 };
-                let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&delete_range);
-                let orig_buf = self.buf.clone();
-                let init_pos = pre_survivors.len();
-                pre_survivors.append(&mut post_survivors);
-                self.edit_state = Some(EditState {
-                    diff_buffer: DiffBuffer::new(pre_survivors, init_pos),
-                    at: self.cursor,
-                    removed: removed,
-                    orig_buf: orig_buf
-                });
-                // TODO write back the initial diff buffer
+                self.enter_update_mode(&delete_range);
+            },
+            Action::EnterChangeMode => {
+                if self.visual_range().is_none() { return; }
+                let vr = self.visual_range().unwrap();
+                self.enter_update_mode(&vr);
             },
             Action::EditModeInput(k) => {
                 for es in &mut self.edit_state {
@@ -323,6 +341,7 @@ impl EditBuffer {
 
 pub enum Action {
     EnterInsertMode,
+    EnterChangeMode,
     EditModeInput(Key),
     LeaveEditMode,
     Redo,
@@ -353,6 +372,7 @@ fn mk_automaton() -> AM::Node {
     let edit = AM::Node::new("edit");
 
     init.add_trans(AM::Edge::new(Char('i')), &edit);
+    init.add_trans(AM::Edge::new(Char('c')), &edit);
     init.add_trans(AM::Edge::new(Ctrl('r')), &init);
     init.add_trans(AM::Edge::new(Char('u')), &init);
     init.add_trans(AM::Edge::new(Char('d')), &init);
@@ -419,6 +439,7 @@ impl KeyReceiver {
             },
             ("num", "init", Some(Esc)) => Action::Reset,
             ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
+            ("init", "edit", Some(Char('c'))) => Action::EnterChangeMode,
             ("edit", "edit", Some(k)) => Action::EditModeInput(k),
             ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
             ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
