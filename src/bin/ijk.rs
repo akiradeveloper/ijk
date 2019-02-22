@@ -12,6 +12,7 @@ use termion::screen::AlternateScreen;
 use std::ffi::OsStr;
 use std::path;
 use std::fs;
+use std::{thread, time};
 use clap::{App, Arg};
 
 use ijk::BufElem;
@@ -67,7 +68,11 @@ fn main() {
             Some(Ok(TermKey::Backspace)) => Backspace,
             Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
             Some(Ok(TermKey::Char(c))) => Char(c),
-            _ => continue, // None, Some(Err), Some(Unknown)
+            // None, Some(Err), Some(Unknown)
+            _ => {
+                thread::sleep(time::Duration::from_millis(100));
+                continue
+            },
         };
 
         let act = kr.receive(k);
