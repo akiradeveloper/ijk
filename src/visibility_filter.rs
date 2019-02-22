@@ -2,9 +2,9 @@ use crate::edit_buffer::{Cursor, CursorRange, EditBuffer};
 use crate::BufElem;
 
 pub struct Drawable {
-    buf: Vec<Vec<Option<BufElem>>>,
-    cursor: Cursor,
-    selected: Option<CursorRange>,
+    pub buf: Vec<Vec<Option<BufElem>>>,
+    pub cursor: Cursor,
+    pub selected: Option<CursorRange>,
 }
 
 pub struct VisibilityFilter {
@@ -34,8 +34,8 @@ impl VisibilityFilter {
         }
         Drawable {
             buf: buf,
-            cursor: eb.cursor.translate(-(self.col_low as i32), -(self.row_low as i32)),
-            selected: eb.visual_range().map(|r| r.translate(-(self.col_low as i32), -(self.row_low as i32))),
+            cursor: eb.cursor.translate(-(self.row_low as i32), -(self.col_low as i32)),
+            selected: eb.visual_range().map(|r| r.translate(-(self.row_low as i32), -(self.col_low as i32))),
         }
     }
     pub fn resize(&mut self, width: usize, height: usize) {

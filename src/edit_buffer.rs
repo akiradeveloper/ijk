@@ -16,7 +16,7 @@ impl Cursor {
             col: self.col+1,
         }
     }
-    pub fn translate(&self, diff_col: i32, diff_row: i32) -> Cursor {
+    pub fn translate(&self, diff_row: i32, diff_col: i32) -> Cursor {
         Cursor {
             row: (self.row as i32 + diff_row) as usize,
             col: (self.col as i32 + diff_col) as usize,
@@ -31,10 +31,10 @@ pub struct CursorRange {
 }
 
 impl CursorRange {
-    pub fn translate(&self, diff_col: i32, diff_row: i32) -> CursorRange {
+    pub fn translate(&self, diff_row: i32, diff_col: i32) -> CursorRange {
         CursorRange {
-            start: self.start.translate(diff_col, diff_row),
-            end: self.end.translate(diff_col, diff_row),
+            start: self.start.translate(diff_row, diff_col),
+            end: self.end.translate(diff_row, diff_col),
         }
     }
 }

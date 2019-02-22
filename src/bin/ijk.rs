@@ -61,6 +61,8 @@ fn main() {
     let mut vfilter = ijk::visibility_filter::VisibilityFilter::new(eb.cursor);
     let (term_w, term_h) = termion::terminal_size().unwrap();
     vfilter.resize(term_w as usize, term_h as usize);
+    let window_col: u16 = 1;
+    let window_row: u16 = 1;
 
     let mut keys = stdin.keys();
 
@@ -68,18 +70,18 @@ fn main() {
         vfilter.adjust(eb.cursor);
         let drawable = vfilter.apply(&eb);
 
-        let vr0 = eb.visual_range();
         write!(stdout, "{}", clear::All);
-        for row in 0 .. eb.buf.len() {
-            let line = &eb.buf[row];
-            write!(stdout, "{}", cursor::Goto(1,(row+1) as u16));
+        for row in 0 .. drawable.buf.len() {
+            let line = &drawable.buf[row];
+            write!(stdout, "{}", cursor::Goto(window_col,row as u16 + window_row));
             for col in 0 .. line.len() {
-                let e = eb.buf[row][col].clone();
+                let e = drawable.buf[row][col].clone();
                 let as_cursor = EB::Cursor { row: row, col: col };
-                let in_visual_range = vr0.clone().map(|vr| vr.start <= as_cursor && as_cursor < vr.end).unwrap_or(false);
+                let in_visual_range = drawable.selected.map(|vr| vr.start <= as_cursor && as_cursor < vr.end).unwrap_or(false);
                 let c = match e {
-                    BufElem::Char(c) => c,
-                    BufElem::Eol => ' '
+                    Some(BufElem::Char(c)) => c,
+                    Some(BufElem::Eol) => ' ',
+                    None => ' '
                 };
                 if in_visual_range {
                     write!(stdout, "{}{}", color::Bg(color::Blue), c);
@@ -88,7 +90,7 @@ fn main() {
                 }
             }
         }
-        write!(stdout, "{}", cursor::Goto((eb.cursor.col+1) as u16, (eb.cursor.row+1) as u16));
+        write!(stdout, "{}", cursor::Goto(drawable.cursor.col as u16 + window_col, drawable.cursor.row as u16 + window_row));
         stdout.flush().unwrap(); 
 
         let k = match keys.next() {
