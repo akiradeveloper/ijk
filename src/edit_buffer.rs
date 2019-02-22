@@ -72,6 +72,7 @@ impl EditBuffer {
             self.buf.insert(log.at.row, vec![])
         }
         self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
+        self.cursor = log.at;
         true
     }
     fn redo(&mut self) -> bool {
@@ -84,12 +85,14 @@ impl EditBuffer {
             end: self.find_cursor_pair(log.at, log.deleted.len()),
         };
         let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
+        let n_inserted = log.inserted.len();
         pre_survivors.append(&mut log.inserted);
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
             self.buf.insert(log.at.row, vec![])
         }
         self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
+        self.cursor = self.find_cursor_pair(log.at, n_inserted);
         true
     }
     pub fn visual_range(&self) -> Option<CursorRange> {
