@@ -60,7 +60,8 @@ fn main() {
     let mut kr = EB::KeyReceiver::new();
     let mut vfilter = ijk::visibility_filter::VisibilityFilter::new(eb.cursor);
     let (term_w, term_h) = termion::terminal_size().unwrap();
-    vfilter.resize(term_w as usize, term_h as usize);
+    // vfilter.resize(term_w as usize, term_h as usize);
+    vfilter.resize(10, 10);
     let window_col: u16 = 1;
     let window_row: u16 = 1;
 

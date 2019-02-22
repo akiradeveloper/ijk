@@ -58,6 +58,8 @@ impl VisibilityFilter {
         let prev_cursor = self.cur_cursor;
         self.cur_cursor = cursor;
 
+        let width = self.width();
+        let height = self.height();
         let col_diff: i32 = cursor.col as i32 - prev_cursor.col as i32;
         let row_diff: i32 = cursor.row as i32 - prev_cursor.row as i32;
         let col_ok = self.col_low <= cursor.col && cursor.col <= self.col_high;
@@ -68,19 +70,19 @@ impl VisibilityFilter {
         if !col_ok {
             if col_diff > 0 {
                 self.col_high = cursor.col;
-                self.col_low = cursor.col - self.width() + 1;
+                self.col_low = cursor.col - width + 1;
             } else {
                 self.col_low = cursor.col;
-                self.col_high = cursor.col + self.width() - 1;
+                self.col_high = cursor.col + width - 1;
             }
         }
         if !row_ok {
             if row_diff > 0 {
                 self.row_high = cursor.row;
-                self.row_low = cursor.row - self.height() + 1;
+                self.row_low = cursor.row - height + 1;
             } else {
                 self.row_low = cursor.row;
-                self.row_high = cursor.row + self.height() - 1;
+                self.row_high = cursor.row + height - 1;
             }
         }
     }
