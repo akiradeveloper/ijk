@@ -251,9 +251,9 @@ impl EditBuffer {
                 self.enter_update_mode(&vr);
             },
             Action::EditModeInput(k) => {
-                for es in &mut self.edit_state {
-                    es.diff_buffer.input(k.clone());
-                }
+                let es = self.edit_state.as_mut().unwrap();
+                let cursor_diff = es.diff_buffer.input(k.clone());
+
                 let es = self.edit_state.clone().unwrap();
                 self.buf = es.orig_buf;
                 assert!(!es.diff_buffer.buf.is_empty());
@@ -261,24 +261,34 @@ impl EditBuffer {
                     self.buf.insert(es.at.row, vec![]);
                     self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf);
                 }
-                // match cursor_diff {
-                //     CursorDiff::Forward => {
-                //         self.cursor = Cursor {
-                //             row: self.cursor.row,
-                //             col: self.cursor.col+1,
-                //         };
-                //     },
-                //     CursorDiff::Backward => {
-
-                //     },
-                //     CursorDiff::Up => {
-
-                //     },
-                //     CursorDiff::Down => {
-
-                //     }
-                //     _ => {}
-                // }
+                match cursor_diff {
+                    CursorDiff::Forward => {
+                        self.cursor = Cursor {
+                            row: self.cursor.row,
+                            col: self.cursor.col+1,
+                        };
+                    },
+                    CursorDiff::Backward => {
+                        self.cursor = Cursor {
+                            row: self.cursor.row,
+                            col: self.cursor.col-1,
+                        }
+                    },
+                    CursorDiff::Up => {
+                        let new_row = self.cursor.row-1;
+                        self.cursor = Cursor {
+                            row: new_row,
+                            col: self.buf[new_row].len()-1,
+                        }
+                    },
+                    CursorDiff::Down => {
+                        self.cursor = Cursor {
+                            row: self.cursor.row+1,
+                            col: 0,
+                        }
+                    }
+                    CursorDiff::None => {}
+                }
             },
             Action::LeaveEditMode => {
                 assert!(self.edit_state.is_some());
