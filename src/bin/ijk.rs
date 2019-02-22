@@ -58,10 +58,16 @@ fn main() {
     let mut eb = EB::EditBuffer::new();
     eb.reset_with(read_buf);
     let mut kr = EB::KeyReceiver::new();
+    let mut vfilter = ijk::visibility_filter::VisibilityFilter::new(eb.cursor);
+    let (term_w, term_h) = termion::terminal_size().unwrap();
+    vfilter.resize(term_w as usize, term_h as usize);
 
     let mut keys = stdin.keys();
 
     loop {
+        vfilter.adjust(eb.cursor);
+        let drawable = vfilter.apply(&eb);
+
         let vr0 = eb.visual_range();
         write!(stdout, "{}", clear::All);
         for row in 0 .. eb.buf.len() {

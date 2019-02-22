@@ -16,12 +16,27 @@ impl Cursor {
             col: self.col+1,
         }
     }
+    pub fn translate(&self, diff_col: i32, diff_row: i32) -> Cursor {
+        Cursor {
+            row: (self.row as i32 + diff_row) as usize,
+            col: (self.col as i32 + diff_col) as usize,
+        }
+    }
 }
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
     pub start: Cursor,
     pub end: Cursor,
+}
+
+impl CursorRange {
+    pub fn translate(&self, diff_col: i32, diff_row: i32) -> CursorRange {
+        CursorRange {
+            start: self.start.translate(diff_col, diff_row),
+            end: self.end.translate(diff_col, diff_row),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -219,7 +234,7 @@ impl EditBuffer {
         pre_survivors.append(&mut post_survivors);
         self.edit_state = Some(EditState {
             diff_buffer: DiffBuffer::new(pre_survivors, init_pos),
-            at: self.cursor,
+            at: r.start,
             removed: removed,
             orig_buf: orig_buf
         });
