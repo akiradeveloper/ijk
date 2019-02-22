@@ -66,22 +66,6 @@ fn main() {
     let mut keys = stdin.keys();
 
     loop {
-        let k = match keys.next() {
-            Some(Ok(TermKey::Ctrl('z'))) => break,
-            Some(Ok(TermKey::Ctrl('c'))) => Esc,
-            Some(Ok(TermKey::Backspace)) => Backspace,
-            Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
-            Some(Ok(TermKey::Char(c))) => Char(c),
-            // None, Some(Err), Some(Unknown)
-            _ => {
-                thread::sleep(time::Duration::from_millis(100));
-                continue
-            },
-        };
-
-        let act = kr.receive(k);
-        eb.receive(act);
-        
         vfilter.adjust(eb.cursor);
         let drawable = vfilter.apply(&eb);
 
@@ -107,5 +91,21 @@ fn main() {
         }
         write!(stdout, "{}", cursor::Goto(drawable.cursor.col as u16 + window_col, drawable.cursor.row as u16 + window_row));
         stdout.flush().unwrap(); 
+
+        let k = match keys.next() {
+            Some(Ok(TermKey::Ctrl('z'))) => break,
+            Some(Ok(TermKey::Ctrl('c'))) => Esc,
+            Some(Ok(TermKey::Backspace)) => Backspace,
+            Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
+            Some(Ok(TermKey::Char(c))) => Char(c),
+            // None, Some(Err), Some(Unknown)
+            _ => {
+                thread::sleep(time::Duration::from_millis(100));
+                continue
+            },
+        };
+
+        let act = kr.receive(k);
+        eb.receive(act);
     }
 }
