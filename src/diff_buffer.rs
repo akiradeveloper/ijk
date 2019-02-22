@@ -16,7 +16,7 @@ impl DiffBuffer {
         }
     }
     pub fn collect_inserted(&self) -> Vec<BufElem> {
-        self.buf[self.init_pos .. self.pos+1].to_vec()
+        self.buf[self.init_pos .. self.pos].to_vec()
     }
     pub fn input(&mut self, k: Key) -> Option<i8> {
         match k {

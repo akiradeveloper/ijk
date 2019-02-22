@@ -28,8 +28,11 @@ fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
 }
 
 fn main() {
-    let stdin = stdin();
-    let mut stdout = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+    // let stdin = stdin();
+    let stdin = termion::async_stdin();
+
+    let stdout = stdout();
+    let mut stdout = AlternateScreen::from(stdout.into_raw_mode().unwrap());
     // let mut stdout = stdout().into_raw_mode().unwrap();
 
     let matches = App::new("ijk")
@@ -41,7 +44,6 @@ fn main() {
     let file_path: Option<&OsStr> = matches.value_of_os("file");
     let read_buf: Vec<Vec<BufElem>> = file_path
         .and_then(|file_path| {
-            // エラー処理は適当
             fs::read_to_string(path::Path::new(file_path))
                 .ok()
                 .map(|s| {
@@ -56,15 +58,18 @@ fn main() {
     eb.reset_with(read_buf);
     let mut kr = EB::KeyReceiver::new();
 
-    for c in stdin.keys() {
-        // conversion
-        let k = match c.unwrap() {
-            TermKey::Ctrl('c') => return,
-            TermKey::Ctrl(c) => Ctrl(c),
-            TermKey::Esc => Esc,
-            TermKey::Char(c) => Char(c),
-            _ => return,
+    let mut keys = stdin.keys();
+
+    loop {
+        let k = match keys.next() {
+            Some(Ok(TermKey::Ctrl('c'))) => break,
+            Some(Ok(TermKey::Esc)) => Esc,
+            Some(Ok(TermKey::Backspace)) => Backspace,
+            Some(Ok(TermKey::Ctrl(c))) => Ctrl(c),
+            Some(Ok(TermKey::Char(c))) => Char(c),
+            _ => continue, // None, Some(Err), Some(Unknown)
         };
+
         let act = kr.receive(k);
         eb.receive(act);
 
@@ -89,7 +94,6 @@ fn main() {
                 }
             }
         }
-        // write!(stdout, "{}", color::Fg(color::Blue));
         write!(stdout, "{}", cursor::Goto((eb.cursor.col+1) as u16, (eb.cursor.row+1) as u16));
         stdout.flush().unwrap();
     }

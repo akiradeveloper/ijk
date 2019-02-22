@@ -242,7 +242,9 @@ impl EditBuffer {
             },
             Action::LeaveEditMode => {
                 assert!(self.edit_state.is_some());
-                let edit_state = self.edit_state.clone().unwrap();
+                // take(): replace the memory region with None and take out the owrnership of the object
+                let edit_state = self.edit_state.take().unwrap();
+                assert!(self.edit_state.is_none());
                 let change_log = ChangeLog {
                     at: edit_state.at,
                     deleted: edit_state.removed,
@@ -387,12 +389,6 @@ impl KeyReceiver {
         let last0 = self.parser.rec.back().cloned();
         let mut keep_parser_rec = false;
         let act = match (prev_node, cur_node, last0) {
-            ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
-            ("edit", "edit", Some(k)) => Action::EditModeInput(k),
-            ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
-            ("init", "init", Some(Char('d'))) => Action::Delete,
-            ("init", "init", Some(Ctrl('r'))) => Action::Redo,
-            ("init", "init", Some(Char('u'))) => Action::Undo,
             ("init", "init", Some(Char('k'))) => Action::CursorUp,
             ("init", "init", Some(Char('j'))) => Action::CursorDown,
             ("init", "init", Some(Char('h'))) => Action::CursorLeft,
@@ -417,7 +413,14 @@ impl KeyReceiver {
                 keep_parser_rec = true;
                 Action::None
             },
-            (_, _, Some(Esc)) => Action::Reset,
+            ("num", "init", Some(Esc)) => Action::Reset,
+            ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
+            ("edit", "edit", Some(k)) => Action::EditModeInput(k),
+            ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
+            ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
+            ("init", "init", Some(Char('d'))) => Action::Delete,
+            ("init", "init", Some(Ctrl('r'))) => Action::Redo,
+            ("init", "init", Some(Char('u'))) => Action::Undo,
             _ => Action::None, // hope this is unreachable
         };
         if !keep_parser_rec {
