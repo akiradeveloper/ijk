@@ -18,6 +18,7 @@ use clap::{App, Arg};
 use ijk::BufElem;
 use ijk::Key::*;
 use ijk::edit_buffer as EB;
+use ijk::screen::*;
 
 fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
     let mut r = vec![];
@@ -32,8 +33,9 @@ fn main() {
     // let stdin = stdin();
     let stdin = termion::async_stdin();
 
-    let mut stdout = AlternateScreen::from(BufWriter::with_capacity(1<<14, stdout()).into_raw_mode().unwrap());
-    // let mut stdout = stdout().into_raw_mode().unwrap();
+    let (term_w, term_h) = termion::terminal_size().unwrap();
+    // let (term_w, term_h) = (15, 15);
+    let mut screen = Screen::new(term_w as usize, term_h as usize);
 
     let matches = App::new("ijk")
         .about("A toy editor for fun")
@@ -58,10 +60,9 @@ fn main() {
     eb.reset_with(read_buf);
     let mut kr = EB::KeyReceiver::new();
     let mut vfilter = ijk::visibility_filter::VisibilityFilter::new(eb.cursor);
-    let window_col: u16 = 1; let window_row: u16 = 1;
+    let window_col: u16 = 0; let window_row: u16 = 0;
     // let window_col: u16 = 5; let window_row: u16 = 5;
-    let (term_w, term_h) = termion::terminal_size().unwrap();
-    // let (term_w, term_h) = (15, 15);
+
     vfilter.resize(term_w as usize, term_h as usize);
 
     let mut keys = stdin.keys();
@@ -70,28 +71,31 @@ fn main() {
         vfilter.adjust(eb.cursor);
         let drawable = vfilter.apply(&eb);
 
-        write!(stdout, "{}", clear::All);
+        screen.clear();
         for row in 0 .. drawable.buf.len() {
             let line = &drawable.buf[row];
-            write!(stdout, "{}", cursor::Goto(window_col, row as u16 + window_row));
             for col in 0 .. line.len() {
                 let e = drawable.buf[row][col].clone();
                 let as_cursor = EB::Cursor { row: row, col: col };
                 let in_visual_range = drawable.selected.map(|vr| vr.start <= as_cursor && as_cursor < vr.end).unwrap_or(false);
-                let c = match e {
-                    Some(BufElem::Char(c)) => c,
-                    Some(BufElem::Eol) => ' ',
-                    None => ' '
+                let c0 = match e {
+                    Some(BufElem::Char(c)) => Some(c),
+                    Some(BufElem::Eol) => Some(' '),
+                    None => None
                 };
-                if in_visual_range {
-                    write!(stdout, "{}{}", color::Bg(color::Blue), c);
+                let fg = Color::White;
+                let bg = if in_visual_range {
+                    Color::Blue
                 } else {
-                    write!(stdout, "{}{}", color::Bg(color::Reset), c);
+                    Color::Black
+                };
+                for c in c0 {
+                    screen.draw(col, row, c, Style(fg, bg));
                 }
             }
         }
-        write!(stdout, "{}", cursor::Goto(drawable.cursor.col as u16 + window_col, drawable.cursor.row as u16 + window_row));
-        stdout.flush().unwrap(); 
+        screen.move_cursor(drawable.cursor.col, drawable.cursor.row);
+        screen.present();
 
         let k = match keys.next() {
             Some(Ok(TermKey::Ctrl('z'))) => break,

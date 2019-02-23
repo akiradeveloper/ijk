@@ -8,18 +8,19 @@ use termion::color;
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::AlternateScreen;
 
-pub(crate) struct Screen {
+pub struct Screen {
     out: RefCell<AlternateScreen<RawTerminal<BufWriter<io::Stdout>>>>,
     buf: RefCell<Vec<Option<(Style, char)>>>,
     w: usize,
     h: usize,
+    cursor_pos: (usize, usize),
+    cursor_visible: bool
 }
 
-static empty: char = ' ';
+static EMPTY: char = ' ';
 
 impl Screen {
-    pub(crate) fn new() -> Self {
-        let (w, h) = termion::terminal_size().unwrap();
+    pub fn new(w: usize, h: usize) -> Self {
         let buf = std::iter::repeat(None)
             .take(w as usize * h as usize)
             .collect();
@@ -30,26 +31,20 @@ impl Screen {
                     .unwrap(),
             )),
             buf: RefCell::new(buf),
-            w: w as usize,
-            h: h as usize,
+            w: w,
+            h: h,
+            cursor_pos: (0, 0),
+            cursor_visible: true
         }
     }
 
-    pub(crate) fn clear(&self, col: Color) {
+    pub fn clear(&self) {
         for cell in self.buf.borrow_mut().iter_mut() {
-            match *cell {
-                Some((ref mut style, ref mut c)) => {
-                    *style = Style(col, col);
-                    *c = empty;
-                }
-                _ => {
-                    *cell = Some((Style(col, col), empty));
-                }
-            }
+            *cell = None;
         }
     }
 
-    pub(crate) fn resize(&mut self, w: usize, h: usize) {
+    pub fn resize(&mut self, w: usize, h: usize) {
         self.w = w;
         self.h = h;
         self.buf
@@ -57,7 +52,7 @@ impl Screen {
             .resize(w * h, None);
     }
 
-    pub(crate) fn present(&self) {
+    pub fn present(&self) {
         let mut out = self.out.borrow_mut();
         let buf = self.buf.borrow();
 
@@ -81,10 +76,22 @@ impl Screen {
             }
         }
 
+        if self.cursor_visible {
+            let (cx, cy) = self.cursor_pos;
+            write!(
+                out,
+                "{}{}",
+                termion::cursor::Goto(1 + cx as u16, 1 + cy as u16),
+                termion::cursor::Show,
+            )
+            .unwrap();
+        }
+
+
         out.flush().unwrap();
     }
 
-    pub(crate) fn draw(&self, x: usize, y: usize, c: char, style: Style) {
+    pub fn draw(&self, x: usize, y: usize, c: char, style: Style) {
         if x < self.w && y < self.h {
             let mut buf = self.buf.borrow_mut();
             if x < self.w {
@@ -93,12 +100,16 @@ impl Screen {
         }
     }
 
-    pub(crate) fn hide_cursor(&self) {
-        write!(self.out.borrow_mut(), "{}", termion::cursor::Hide).unwrap();
+    pub fn hide_cursor(&mut self) {
+        self.cursor_visible = false;
     }
 
-    pub(crate) fn show_cursor(&self) {
-        write!(self.out.borrow_mut(), "{}", termion::cursor::Show).unwrap();
+    pub fn show_cursor(&mut self) {
+        self.cursor_visible = true;
+    }
+
+    pub fn move_cursor(&mut self, x: usize, y: usize) {
+        self.cursor_pos = (x, y);
     }
 }
 
@@ -116,7 +127,7 @@ impl Drop for Screen {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum Color {
+pub enum Color {
     Black,
     Blue,
     Cyan,
@@ -137,7 +148,7 @@ pub(crate) enum Color {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct Style(pub Color, pub Color); // Fg, Bg
+pub struct Style(pub Color, pub Color); // Fg, Bg
 
 impl std::fmt::Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
