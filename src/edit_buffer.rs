@@ -1,7 +1,6 @@
 use crate::BufElem;
 use crate::undo_buffer::UndoBuffer;
 use crate::diff_buffer::DiffBuffer;
-use crate::diff_buffer::CursorDiff;
 
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub struct Cursor {
@@ -140,7 +139,7 @@ impl EditBuffer {
         }
         res
     }
-    fn insert(&mut self, at: Cursor, buf: Vec<BufElem>) {
+    fn insert(&mut self, at: Cursor, buf: Vec<BufElem>) -> Cursor {
         let mut row = at.row;
         let mut col = at.col;
         let mut should_insert_newline = false;
@@ -162,6 +161,7 @@ impl EditBuffer {
                 }
             }
         }
+        Cursor { row: row, col: col }
     }
     fn is_eof(&self, row: usize, col: usize) -> bool {
         row == self.buf.len() - 1 && col == self.buf[row].len() - 1
@@ -227,13 +227,11 @@ impl EditBuffer {
 
         (pre_survivors, removed, post_survivors)
     }
-    fn enter_update_mode(&mut self, r: &CursorRange) {
-        let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&r);
+    fn enter_update_mode(&mut self, r: &CursorRange, init_diff: Vec<BufElem>) {
+        let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
         let orig_buf = self.buf.clone();
-        let init_pos = pre_survivors.len();
-        pre_survivors.append(&mut post_survivors);
         self.edit_state = Some(EditState {
-            diff_buffer: DiffBuffer::new(pre_survivors, init_pos),
+            diff_buffer: DiffBuffer { pre_buf: pre_survivors, diff_buf: init_diff, post_buf: post_survivors },
             at: r.start,
             removed: removed,
             orig_buf: orig_buf
@@ -241,29 +239,44 @@ impl EditBuffer {
 
         // write back the initial diff buffer
         let es = self.edit_state.clone().unwrap();
-        assert!(!es.diff_buffer.buf.is_empty());
-        if !es.diff_buffer.buf.is_empty() {
-            self.buf.insert(es.at.row, vec![]);
-            self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf);
-        }
-
-        self.cursor = r.start;
+        assert!(!es.diff_buffer.is_empty());
+        self.buf.insert(es.at.row, vec![]);
+        let after_pre_inserted = self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.pre_buf);
+        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf);
+        self.insert(after_diff_inserted, es.diff_buffer.post_buf);
+        self.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
     pub fn receive(&mut self, act: Action) {
         match act {
+            Action::EnterInsertLineAbove => {
+                let row = self.cursor.row;
+                let delete_range = CursorRange {
+                    start: Cursor { row: row, col: 0 },
+                    end: Cursor { row: row, col: 0 },
+                };
+                self.enter_update_mode(&delete_range, vec![BufElem::Eol]);
+            },
+            Action::EnterInsertLineBelow => {
+                let row = self.cursor.row;
+                let delete_range = CursorRange {
+                    start: Cursor { row: row, col: self.buf[row].len() },
+                    end: Cursor { row: row, col: self.buf[row].len() },
+                };
+                self.enter_update_mode(&delete_range, vec![BufElem::Eol]);
+            },
             Action::EnterInsertMode => {
                 assert!(self.edit_state.is_none());
                 let delete_range = CursorRange {
                     start: self.cursor,
                     end: self.cursor,
                 };
-                self.enter_update_mode(&delete_range);
+                self.enter_update_mode(&delete_range, vec![]);
             },
             Action::EnterChangeMode => {
                 if self.visual_range().is_none() { return; }
                 let vr = self.visual_range().unwrap();
-                self.enter_update_mode(&vr);
+                self.enter_update_mode(&vr, vec![]);
             },
             Action::EditModeInput(k) => {
                 let es = self.edit_state.as_mut().unwrap();
@@ -271,39 +284,12 @@ impl EditBuffer {
 
                 let es = self.edit_state.clone().unwrap();
                 self.buf = es.orig_buf;
-                assert!(!es.diff_buffer.buf.is_empty());
-                if !es.diff_buffer.buf.is_empty() {
-                    self.buf.insert(es.at.row, vec![]);
-                    self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.buf);
-                }
-                match cursor_diff {
-                    CursorDiff::Forward => {
-                        self.cursor = Cursor {
-                            row: self.cursor.row,
-                            col: self.cursor.col+1,
-                        };
-                    },
-                    CursorDiff::Backward => {
-                        self.cursor = Cursor {
-                            row: self.cursor.row,
-                            col: self.cursor.col-1,
-                        }
-                    },
-                    CursorDiff::Up => {
-                        let new_row = self.cursor.row-1;
-                        self.cursor = Cursor {
-                            row: new_row,
-                            col: self.buf[new_row].len()-1,
-                        }
-                    },
-                    CursorDiff::Down => {
-                        self.cursor = Cursor {
-                            row: self.cursor.row+1,
-                            col: 0,
-                        }
-                    }
-                    CursorDiff::None => {}
-                }
+                assert!(!es.diff_buffer.is_empty());
+                self.buf.insert(es.at.row, vec![]);
+                let after_pre_inserted = self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.pre_buf);
+                let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf);
+                self.insert(after_diff_inserted, es.diff_buffer.post_buf);
+                self.cursor = after_diff_inserted;
             },
             Action::LeaveEditMode => {
                 assert!(self.edit_state.is_some());
@@ -313,7 +299,7 @@ impl EditBuffer {
                 let change_log = ChangeLog {
                     at: edit_state.at,
                     deleted: edit_state.removed,
-                    inserted: edit_state.diff_buffer.collect_inserted(),
+                    inserted: edit_state.diff_buffer.diff_buf,
                 };
                 if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
                     self.change_log_buffer.save(change_log);
@@ -386,6 +372,8 @@ impl EditBuffer {
 pub enum Action {
     EnterInsertMode,
     EnterChangeMode,
+    EnterInsertLineBelow,
+    EnterInsertLineAbove,
     EditModeInput(Key),
     LeaveEditMode,
     Redo,
@@ -415,6 +403,8 @@ fn mk_automaton() -> AM::Node {
     let num = AM::Node::new("num");
     let edit = AM::Node::new("edit");
 
+    init.add_trans(AM::Edge::new(Char('o')), &edit);
+    init.add_trans(AM::Edge::new(Char('O')), &edit);
     init.add_trans(AM::Edge::new(Char('i')), &edit);
     init.add_trans(AM::Edge::new(Char('c')), &edit);
     init.add_trans(AM::Edge::new(Ctrl('r')), &init);
@@ -490,6 +480,8 @@ impl KeyReceiver {
             ("num", "init", Some(Esc)) => Action::Reset,
             ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
             ("init", "edit", Some(Char('c'))) => Action::EnterChangeMode,
+            ("init", "edit", Some(Char('o'))) => Action::EnterInsertLineBelow,
+            ("init", "edit", Some(Char('O'))) => Action::EnterInsertLineAbove,
             ("edit", "edit", Some(k)) => Action::EditModeInput(k),
             ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
             ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
