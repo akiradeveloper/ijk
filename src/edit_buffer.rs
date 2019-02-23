@@ -466,6 +466,10 @@ impl KeyReceiver {
             ("init", "init", Some(Char('$'))) => Action::JumpLineLast,
             ("init", "init", Some(Char('G'))) => Action::JumpLast,
             ("init", "init", Some(Esc)) => Action::Reset,
+            ("init", "num", _) => {
+                keep_parser_rec = true;
+                Action::None
+            },
             ("num", "init", Some(Char('G'))) => {
                 self.parser.rec.pop_back(); // eliminate EOL
                 let cs = self.parser.rec.iter().map(|k| match k.clone() {

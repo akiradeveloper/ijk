@@ -58,9 +58,10 @@ fn main() {
     eb.reset_with(read_buf);
     let mut kr = EB::KeyReceiver::new();
     let mut vfilter = ijk::visibility_filter::VisibilityFilter::new(eb.cursor);
-    let window_col: u16 = 1;
-    let window_row: u16 = 1;
+    let window_col: u16 = 1; let window_row: u16 = 1;
+    // let window_col: u16 = 5; let window_row: u16 = 5;
     let (term_w, term_h) = termion::terminal_size().unwrap();
+    // let (term_w, term_h) = (15, 15);
     vfilter.resize(term_w as usize, term_h as usize);
 
     let mut keys = stdin.keys();
