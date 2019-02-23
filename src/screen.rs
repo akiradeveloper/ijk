@@ -10,7 +10,7 @@ use termion::screen::AlternateScreen;
 
 pub struct Screen {
     out: RefCell<AlternateScreen<RawTerminal<BufWriter<io::Stdout>>>>,
-    buf: RefCell<Vec<Option<(Style, char)>>>,
+    buf: RefCell<Vec<(Style, char)>>,
     w: usize,
     h: usize,
     cursor_pos: (usize, usize),
@@ -18,10 +18,11 @@ pub struct Screen {
 }
 
 static EMPTY: char = ' ';
+static DEFAULT: (Style, char) = (Style(Color::Black, Color::Black), EMPTY);
 
 impl Screen {
     pub fn new(w: usize, h: usize) -> Self {
-        let buf = std::iter::repeat(None)
+        let buf = std::iter::repeat(DEFAULT)
             .take(w as usize * h as usize)
             .collect();
         Screen {
@@ -40,7 +41,7 @@ impl Screen {
 
     pub fn clear(&self) {
         for cell in self.buf.borrow_mut().iter_mut() {
-            *cell = None;
+            *cell = DEFAULT;
         }
     }
 
@@ -49,30 +50,26 @@ impl Screen {
         self.h = h;
         self.buf
             .borrow_mut()
-            .resize(w * h, None);
+            .resize(w * h, DEFAULT);
     }
 
     pub fn present(&self) {
         let mut out = self.out.borrow_mut();
         let buf = self.buf.borrow();
 
-        let mut last_style = Style(Color::Black, Color::Black);
+        let mut last_style = DEFAULT.0;
         write!(out, "{}", last_style).unwrap();
 
         for y in 0..self.h {
             let mut x = 0;
             write!(out, "{}", termion::cursor::Goto(1, y as u16 + 1)).unwrap();
-            while x < self.w {
-                if let Some((style, ref c)) = buf[y * self.w + x] {
-                    if style != last_style {
-                        write!(out, "{}", style).unwrap();
-                        last_style = style;
-                    }
-                    write!(out, "{}", c).unwrap();
-                    x += 1;
-                } else {
-                    x += 1;
+            for x in 0..self.w {
+                let (style, ref c) = buf[y * self.w + x];
+                if style != last_style {
+                    write!(out, "{}", style).unwrap();
+                    last_style = style;
                 }
+                write!(out, "{}", c).unwrap();
             }
         }
 
@@ -87,7 +84,6 @@ impl Screen {
             .unwrap();
         }
 
-
         out.flush().unwrap();
     }
 
@@ -95,7 +91,7 @@ impl Screen {
         if x < self.w && y < self.h {
             let mut buf = self.buf.borrow_mut();
             if x < self.w {
-                buf[y * self.w + x] = Some((style, c));
+                buf[y * self.w + x] = (style, c);
             }
         }
     }

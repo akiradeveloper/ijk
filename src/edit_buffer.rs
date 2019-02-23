@@ -86,7 +86,8 @@ impl EditBuffer {
         if !pre_survivors.is_empty() {
             self.buf.insert(log.at.row, vec![])
         }
-        self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
+        let mut b = false;
+        self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors, &mut b);
         self.cursor = log.at;
         true
     }
@@ -106,7 +107,8 @@ impl EditBuffer {
         if !pre_survivors.is_empty() {
             self.buf.insert(log.at.row, vec![])
         }
-        self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors);
+        let mut b = false;
+        self.insert(Cursor { row: log.at.row, col: 0 }, pre_survivors, &mut b);
         self.cursor = self.find_cursor_pair(log.at, n_inserted);
         true
     }
@@ -139,21 +141,20 @@ impl EditBuffer {
         }
         res
     }
-    fn insert(&mut self, at: Cursor, buf: Vec<BufElem>) -> Cursor {
+    fn insert(&mut self, at: Cursor, buf: Vec<BufElem>, should_insert_newline: &mut bool) -> Cursor {
         let mut row = at.row;
         let mut col = at.col;
-        let mut should_insert_newline = false;
         for e in buf {
-            if should_insert_newline {
-                row += 1;
-                col = 0;
+            if *should_insert_newline {
                 self.buf.insert(row, vec![]);
-                should_insert_newline = false;
+                *should_insert_newline = false;
             }
             match e {
                 x @ BufElem::Eol => {
                     self.buf[row].insert(col, x);
-                    should_insert_newline = true;
+                    *should_insert_newline = true;
+                    row += 1;
+                    col = 0;
                 },
                 x @ BufElem::Char(_) => {
                     self.buf[row].insert(col, x);
@@ -241,9 +242,10 @@ impl EditBuffer {
         let es = self.edit_state.clone().unwrap();
         assert!(!es.diff_buffer.is_empty());
         self.buf.insert(es.at.row, vec![]);
-        let after_pre_inserted = self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.pre_buf);
-        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf);
-        self.insert(after_diff_inserted, es.diff_buffer.post_buf);
+        let mut b = false;
+        let after_pre_inserted = self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.pre_buf, &mut b);
+        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
+        self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
         self.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
@@ -286,9 +288,10 @@ impl EditBuffer {
                 self.buf = es.orig_buf;
                 assert!(!es.diff_buffer.is_empty());
                 self.buf.insert(es.at.row, vec![]);
-                let after_pre_inserted = self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.pre_buf);
-                let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf);
-                self.insert(after_diff_inserted, es.diff_buffer.post_buf);
+                let mut b = false;
+                let after_pre_inserted = self.insert(Cursor { row: es.at.row, col: 0 }, es.diff_buffer.pre_buf, &mut b);
+                let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
+                self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
                 self.cursor = after_diff_inserted;
             },
             Action::LeaveEditMode => {
@@ -323,7 +326,8 @@ impl EditBuffer {
                 if !pre_survivors.is_empty() {
                     self.buf.insert(vr.start.row, vec![])
                 }
-                self.insert(Cursor { row: vr.start.row, col: 0 }, pre_survivors);
+                let mut b = false;
+                self.insert(Cursor { row: vr.start.row, col: 0 }, pre_survivors, &mut b);
 
                 let log = ChangeLog {
                     at: vr.start.clone(),
