@@ -251,15 +251,7 @@ impl EditBuffer {
     }
     pub fn receive(&mut self, act: Action) {
         match act {
-            Action::EnterInsertLineAbove => {
-                let row = self.cursor.row;
-                let delete_range = CursorRange {
-                    start: Cursor { row: row, col: 0 },
-                    end: Cursor { row: row, col: 0 },
-                };
-                self.enter_update_mode(&delete_range, vec![BufElem::Eol]);
-            },
-            Action::EnterInsertLineBelow => {
+            Action::EnterInsertNewLine => {
                 let row = self.cursor.row;
                 let delete_range = CursorRange {
                     start: Cursor { row: row, col: self.buf[row].len() - 1 },
@@ -376,8 +368,7 @@ impl EditBuffer {
 pub enum Action {
     EnterInsertMode,
     EnterChangeMode,
-    EnterInsertLineBelow,
-    EnterInsertLineAbove,
+    EnterInsertNewLine,
     EditModeInput(Key),
     LeaveEditMode,
     Redo,
@@ -408,7 +399,6 @@ fn mk_automaton() -> AM::Node {
     let edit = AM::Node::new("edit");
 
     init.add_trans(AM::Edge::new(Char('o')), &edit);
-    init.add_trans(AM::Edge::new(Char('O')), &edit);
     init.add_trans(AM::Edge::new(Char('i')), &edit);
     init.add_trans(AM::Edge::new(Char('c')), &edit);
     init.add_trans(AM::Edge::new(Ctrl('r')), &init);
@@ -484,8 +474,7 @@ impl KeyReceiver {
             ("num", "init", Some(Esc)) => Action::Reset,
             ("init", "edit", Some(Char('i'))) => Action::EnterInsertMode,
             ("init", "edit", Some(Char('c'))) => Action::EnterChangeMode,
-            ("init", "edit", Some(Char('o'))) => Action::EnterInsertLineBelow,
-            ("init", "edit", Some(Char('O'))) => Action::EnterInsertLineAbove,
+            ("init", "edit", Some(Char('o'))) => Action::EnterInsertNewLine,
             ("edit", "edit", Some(k)) => Action::EditModeInput(k),
             ("edit", "init", Some(Esc)) => Action::LeaveEditMode,
             ("init", "init", Some(Char('v'))) => Action::EnterVisualMode,
