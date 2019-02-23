@@ -262,8 +262,8 @@ impl EditBuffer {
             Action::EnterInsertLineBelow => {
                 let row = self.cursor.row;
                 let delete_range = CursorRange {
-                    start: Cursor { row: row, col: self.buf[row].len() },
-                    end: Cursor { row: row, col: self.buf[row].len() },
+                    start: Cursor { row: row, col: self.buf[row].len() - 1 },
+                    end: Cursor { row: row, col: self.buf[row].len() - 1 },
                 };
                 self.enter_update_mode(&delete_range, vec![BufElem::Eol]);
             },
