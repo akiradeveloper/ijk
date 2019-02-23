@@ -55,6 +55,8 @@ impl Screen {
 
     pub fn present(&self) {
         let mut out = self.out.borrow_mut();
+        write!(out, "{}", termion::cursor::Hide).unwrap();
+
         let buf = self.buf.borrow();
 
         let mut last_style = DEFAULT.0;
