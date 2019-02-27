@@ -27,9 +27,11 @@ pub enum BufElem {
     Eol,
 }
 
+pub mod editor;
 pub mod automaton;
 pub mod diff_buffer;
 pub mod edit_buffer;
 pub mod undo_buffer;
 pub mod visibility_filter;
 pub mod screen;
+pub mod controller;

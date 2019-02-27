@@ -249,7 +249,35 @@ impl EditBuffer {
         self.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
-    pub fn receive(&mut self, act: Action) {
+}
+
+#[derive(Clone)]
+pub enum Action {
+    EnterInsertMode,
+    EnterChangeMode,
+    EnterInsertNewLine,
+    EditModeInput(Key),
+    LeaveEditMode,
+    Redo,
+    Undo,
+    Delete,
+    CursorUp,
+    CursorDown,
+    CursorLeft,
+    CursorRight,
+    JumpLineHead,
+    JumpLineLast,
+    Jump(usize),
+    JumpLast,
+    EnterVisualMode,
+    Reset,
+    None,
+}
+
+use crate::controller::ActionController;
+impl ActionController for EditBuffer {
+    type Action = Action;
+    fn receive(&mut self, act: Action) -> bool {
         match act {
             Action::EnterInsertNewLine => {
                 let row = self.cursor.row;
@@ -268,7 +296,7 @@ impl EditBuffer {
                 self.enter_update_mode(&delete_range, vec![]);
             },
             Action::EnterChangeMode => {
-                if self.visual_range().is_none() { return; }
+                if self.visual_range().is_none() { return true }
                 let vr = self.visual_range().unwrap();
                 self.enter_update_mode(&vr, vec![]);
             },
@@ -310,7 +338,7 @@ impl EditBuffer {
                 self.visual_cursor = None
             },
             Action::Delete => {
-                if self.visual_range().is_none() { return; }
+                if self.visual_range().is_none() { return true }
                 let vr = self.visual_range().unwrap();
                 let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&vr);
 
@@ -360,36 +388,15 @@ impl EditBuffer {
                 self.cursor.row = self.buf.len() - 1;
                 self.cursor.col = 0;
             },
-            Action::None => {}
+            Action::None => { return false }
         }
+        true
     }
-}
-
-pub enum Action {
-    EnterInsertMode,
-    EnterChangeMode,
-    EnterInsertNewLine,
-    EditModeInput(Key),
-    LeaveEditMode,
-    Redo,
-    Undo,
-    Delete,
-    CursorUp,
-    CursorDown,
-    CursorLeft,
-    CursorRight,
-    JumpLineHead,
-    JumpLineLast,
-    Jump(usize),
-    JumpLast,
-    EnterVisualMode,
-    Reset,
-    None,
 }
 
 use crate::automaton as AM; use crate::Key;
 use crate::Key::*;
-pub struct KeyReceiver {
+struct ActionGen {
     automaton: AM::Node,
     parser: AM::Parser,
 }
@@ -425,15 +432,15 @@ fn mk_automaton() -> AM::Node {
     init
 }
 use std::str::FromStr;
-impl KeyReceiver {
-    pub fn new() -> KeyReceiver {
+impl ActionGen {
+    fn new() -> ActionGen {
         let init = mk_automaton();
-        KeyReceiver {
+        ActionGen {
             parser: AM::Parser::new(&init),
             automaton: init,
         }
     }
-    pub fn receive(&mut self, k: Key) -> Action {
+    fn receive(&mut self, k: Key) -> Action {
         if !self.parser.feed(k) {
             return Action::None
         }
@@ -487,5 +494,29 @@ impl KeyReceiver {
             self.parser.clear_rec()
         }
         act
+    }
+}
+
+use std::rc::Rc;
+use std::cell::RefCell;
+pub struct Controller {
+    action_gen : ActionGen,
+    action_ctrl: Rc<RefCell<EditBuffer>>,
+}
+
+impl Controller {
+    pub fn new(ctrl: Rc<RefCell<EditBuffer>>) -> Self {
+        Self {
+            action_gen: ActionGen::new(),
+            action_ctrl: ctrl,
+        }
+    }
+}
+
+use crate::controller::KeyController;
+impl KeyController for Controller {
+    fn receive(&mut self, key: crate::Key) {
+        let act = self.action_gen.receive(key);
+        self.action_ctrl.borrow_mut().receive(act);
     }
 }
