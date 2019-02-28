@@ -503,7 +503,6 @@ pub struct Controller {
     action_gen : ActionGen,
     action_ctrl: Rc<RefCell<EditBuffer>>,
 }
-
 impl Controller {
     pub fn new(ctrl: Rc<RefCell<EditBuffer>>) -> Self {
         Self {
@@ -512,11 +511,27 @@ impl Controller {
         }
     }
 }
-
 use crate::controller::KeyController;
 impl KeyController for Controller {
     fn receive(&mut self, key: crate::Key) {
         let act = self.action_gen.receive(key);
         self.action_ctrl.borrow_mut().receive(act);
+    }
+}
+
+use crate::visibility_filter::VisibilityFilter;
+struct ViewGen {
+    buf: Rc<RefCell<EditBuffer>>,
+    filter: VisibilityFilter,
+    old_region: view::ViewRegion,
+}
+use crate::view;
+impl view::ViewGen for ViewGen {
+    fn apply(&mut self, region: &view::ViewRegion) ->  Box<view::View> {
+        if self.old_region != *region {
+            self.filter.resize(region.width, region.height);
+        }
+        self.filter.adjust(self.buf.borrow().cursor);
+        unimplemented!()
     }
 }

@@ -35,3 +35,4 @@ pub mod undo_buffer;
 pub mod visibility_filter;
 pub mod screen;
 pub mod controller;
+pub mod view;
