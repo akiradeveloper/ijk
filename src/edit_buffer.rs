@@ -544,9 +544,10 @@ impl ViewGen {
 }
 use crate::view;
 impl view::ViewGen for ViewGen {
-    fn gen(&mut self, region: &view::ViewRegion) -> Box<view::View> {
-        if self.old_region != *region {
+    fn gen(&mut self, region: view::ViewRegion) -> Box<view::View> {
+        if self.old_region != region {
             self.filter.resize(region.width, region.height);
+            self.old_region = region;
         }
         self.filter.adjust(self.buf.borrow().cursor);
         let view = view::ToView::new(self.buf.borrow().buf.clone());

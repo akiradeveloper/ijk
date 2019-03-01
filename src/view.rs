@@ -3,7 +3,7 @@ use crate::screen::Color;
 use crate::edit_buffer::Cursor;
 use crate::edit_buffer::CursorRange;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Copy)]
 pub struct ViewRegion {
     pub col: usize,
     pub row: usize,
@@ -14,7 +14,7 @@ type ViewElem = (char, Color, Color);
 type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
 
 pub trait ViewGen {
-    fn gen(&mut self, region: &ViewRegion) -> Box<View>;
+    fn gen(&mut self, region: ViewRegion) -> Box<View>;
 }
 
 pub trait View {

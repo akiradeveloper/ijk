@@ -48,7 +48,7 @@ impl Editor {
                 width: term_w as usize,
                 height: term_h as usize,
             };
-            let view = self.view_gen.borrow_mut().gen(&region);
+            let view = self.view_gen.borrow_mut().gen(region);
             screen.clear();
             for row in 0 .. region.height {
                 for col in 0 .. region.width {
