@@ -45,20 +45,23 @@ impl View for ToView {
 }
 impl ToView {
     pub fn new(x: Vec<Vec<BufElem>>) -> Self {
-        Self {
-            x: x
-        }
+        Self { x }
     }
 }
 
 pub struct AddCursor<V> {
     x: V,
-    cursor: Cursor,
+    cursor: Option<Cursor>,
 }
 impl <V> View for AddCursor<V> where V: View {
     fn get(&self, col: usize, row: usize) -> ViewElem { self.x.get(col, row) }
     fn get_cursor_pos(&self) -> Option<Cursor> {
-        Some(self.cursor)
+        self.cursor
+    }
+}
+impl <V> AddCursor<V> {
+    pub fn new(x: V, cursor: Option<Cursor>) -> Self {
+        Self { x, cursor }
     }
 }
 
@@ -80,6 +83,11 @@ impl <V> View for TranslateView<V> where V: View {
                 col: (cur.col as i32 - self.diff_col) as usize,
             }
         )
+    }
+}
+impl <V> TranslateView<V> {
+    pub fn new(x: V, diff_col: i32, diff_row: i32) -> Self {
+        Self { x, diff_col, diff_row }
     }
 }
 
@@ -124,7 +132,7 @@ pub struct OverlayView<V, D> {
     d: D,
 }
 impl <V, D> OverlayView<V, D> where V: View, D: DiffView {
-    fn new(v: V, d: D) -> Self {
+    pub fn new(v: V, d: D) -> Self {
         Self { v, d }
     }
 }
@@ -138,17 +146,22 @@ impl <V, D> View for OverlayView<V, D> where V: View, D: DiffView {
 }
 
 pub struct VisualRangeDiffView {
-    range: CursorRange,
+    range: Option<CursorRange>, // doubtful design to have option here
 }
 impl DiffView for VisualRangeDiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff {
         let as_cursor = Cursor { row, col };
-        let in_visual_range = self.range.start <= as_cursor && as_cursor < self.range.end;
+        let in_visual_range = self.range.map(|r| r.start <= as_cursor && as_cursor < r.end).unwrap_or(false);
         if in_visual_range {
             (None, None, Some(Color::Blue))
         } else {
             (None, None, None)
         }
+    }
+}
+impl VisualRangeDiffView {
+    pub fn new(range: Option<CursorRange>) -> Self {
+        Self { range }
     }
 }
 

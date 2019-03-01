@@ -23,6 +23,12 @@ impl VisibilityFilter {
         self.row_low = self.cur_cursor.row;
         self.row_high = self.cur_cursor.row + height - 1;
     }
+    pub fn col(&self) -> usize {
+        self.col_low
+    }
+    pub fn row(&self) -> usize {
+        self.row_low
+    }
     fn width(&self) -> usize {
         self.col_high - self.col_low + 1
     }

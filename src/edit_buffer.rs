@@ -550,6 +550,19 @@ impl view::ViewGen for ViewGen {
         }
         self.filter.adjust(self.buf.borrow().cursor);
         let view = view::ToView::new(self.buf.borrow().buf.clone());
+        let view = view::OverlayView::new(
+            view,
+            view::VisualRangeDiffView::new(self.buf.borrow().visual_range())
+        );
+        let view = view::AddCursor::new(
+            view,
+            Some(self.buf.borrow().cursor), // tmp: the cursor is always visible
+        );
+        let view = view::TranslateView::new(
+            view,
+            region.col as i32 - self.filter.col() as i32,
+            region.row as i32 - self.filter.row() as i32,
+        );
         Box::new(view)
     }
 }
