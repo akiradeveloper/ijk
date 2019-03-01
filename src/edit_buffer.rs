@@ -527,7 +527,7 @@ struct ViewGen {
 }
 use crate::view;
 impl view::ViewGen for ViewGen {
-    fn apply(&mut self, region: &view::ViewRegion) ->  Box<view::View> {
+    fn apply(&mut self, region: &view::ViewRegion) -> Box<view::View> {
         if self.old_region != *region {
             self.filter.resize(region.width, region.height);
         }
