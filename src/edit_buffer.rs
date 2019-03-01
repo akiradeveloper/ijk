@@ -520,18 +520,36 @@ impl KeyController for Controller {
 }
 
 use crate::visibility_filter::VisibilityFilter;
-struct ViewGen {
+pub struct ViewGen {
     buf: Rc<RefCell<EditBuffer>>,
     filter: VisibilityFilter,
     old_region: view::ViewRegion,
 }
+impl ViewGen {
+    pub fn new(buf: Rc<RefCell<EditBuffer>>) -> Self {
+        Self {
+            buf: buf,
+            filter: VisibilityFilter::new(Cursor{
+                col: 0,
+                row: 0,
+            }),
+            old_region: view::ViewRegion {
+                col: 0,
+                row: 0,
+                width: 0,
+                height: 0,
+            }
+        }
+    }
+}
 use crate::view;
 impl view::ViewGen for ViewGen {
-    fn apply(&mut self, region: &view::ViewRegion) -> Box<view::View> {
+    fn gen(&mut self, region: &view::ViewRegion) -> Box<view::View> {
         if self.old_region != *region {
             self.filter.resize(region.width, region.height);
         }
         self.filter.adjust(self.buf.borrow().cursor);
-        unimplemented!()
+        let view = view::ToView::new(self.buf.borrow().buf.clone());
+        Box::new(view)
     }
 }

@@ -5,8 +5,8 @@ use crate::edit_buffer::CursorRange;
 
 #[derive(PartialEq, Clone)]
 pub struct ViewRegion {
-    col: usize,
-    row: usize,
+    pub col: usize,
+    pub row: usize,
     pub width: usize,
     pub height: usize,
 }
@@ -14,7 +14,7 @@ type ViewElem = (char, Color, Color);
 type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
 
 pub trait ViewGen {
-    fn apply(&mut self, region: &ViewRegion) -> Box<View>;
+    fn gen(&mut self, region: &ViewRegion) -> Box<View>;
 }
 
 pub trait View {
@@ -26,11 +26,14 @@ pub trait DiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }
 
-struct ToView <'a> {
-    x: &'a [Vec<BufElem>]
+pub struct ToView {
+    x: Vec<Vec<BufElem>>
 }
-impl <'a> View for ToView<'a> {
+impl View for ToView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
+        if row >= self.x.len() || col >= self.x[row].len() {
+            return (' ', Color::Black, Color::Black)
+        }
         let e: &BufElem = &self.x[row][col];
         let c = match *e {
             BufElem::Char(c) => c,
@@ -40,8 +43,15 @@ impl <'a> View for ToView<'a> {
     }
     fn get_cursor_pos(&self) -> Option<Cursor> { None }
 }
+impl ToView {
+    pub fn new(x: Vec<Vec<BufElem>>) -> Self {
+        Self {
+            x: x
+        }
+    }
+}
 
-struct AddCursor<V> {
+pub struct AddCursor<V> {
     x: V,
     cursor: Cursor,
 }
@@ -52,7 +62,7 @@ impl <V> View for AddCursor<V> where V: View {
     }
 }
 
-struct TranslateView<V> {
+pub struct TranslateView<V> {
     x: V,
     diff_col: i32,
     diff_row: i32,
@@ -73,7 +83,7 @@ impl <V> View for TranslateView<V> where V: View {
     }
 }
 
-struct MergeVertical<V1,V2> {
+pub struct MergeVertical<V1,V2> {
     a: V1,
     b: V2,
     offset_row: usize,
@@ -91,7 +101,7 @@ impl <V1,V2> View for MergeVertical<V1,V2> where V1: View, V2: View {
     }
 }
 
-struct MergeHorizontal<V1,V2> {
+pub struct MergeHorizontal<V1,V2> {
     a: V1,
     b: V2,
     offset_col: usize,
@@ -109,7 +119,7 @@ impl <V1,V2> View for MergeHorizontal<V1,V2> where V1: View, V2: View {
     }
 }
 
-struct OverlayView<V, D> {
+pub struct OverlayView<V, D> {
     v: V,
     d: D,
 }
@@ -127,7 +137,7 @@ impl <V, D> View for OverlayView<V, D> where V: View, D: DiffView {
     fn get_cursor_pos(&self) -> Option<Cursor> { self.v.get_cursor_pos() }
 }
 
-struct VisualRangeDiffView {
+pub struct VisualRangeDiffView {
     range: CursorRange,
 }
 impl DiffView for VisualRangeDiffView {
@@ -152,7 +162,7 @@ impl DiffView for TestDiffView {
 #[test]
 fn test_view_overlay() {
     let buf = vec![vec![BufElem::Eol]];
-    let v0 = ToView { x: &buf };
+    let v0 = ToView { x: buf };
     let d0 = TestDiffView {};
     let v1 = OverlayView { v: v0, d: d0 };
 

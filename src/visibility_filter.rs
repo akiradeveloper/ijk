@@ -1,12 +1,6 @@
 use crate::edit_buffer::{Cursor, CursorRange, EditBuffer}; 
 use crate::BufElem;
 
-pub struct Drawable {
-    pub buf: Vec<Vec<Option<BufElem>>>,
-    pub cursor: Cursor,
-    pub selected: Option<CursorRange>,
-}
-
 pub struct VisibilityFilter {
     cur_cursor: Cursor,
     col_low: usize,
@@ -23,27 +17,8 @@ impl VisibilityFilter {
             row_low: 0, row_high: 0,
         }
     }
-    pub fn apply(&self, eb: &EditBuffer) -> Drawable {
-        let mut buf = vec![vec![None; self.width()]; self.height()];
-        for row in self.row_low .. self.row_high+1 {
-            if row >= eb.buf.len() {
-                continue;
-            }
-            for col in self.col_low .. self.col_high+1 {
-                if col >= eb.buf[row].len() {
-                    continue;
-                }
-                buf[row-self.row_low][col-self.col_low] = Some(eb.buf[row][col].clone());
-            }
-        }
-        Drawable {
-            buf: buf,
-            cursor: eb.cursor.translate(-(self.row_low as i32), -(self.col_low as i32)),
-            selected: eb.visual_range().map(|r| r.translate(-(self.row_low as i32), -(self.col_low as i32))),
-        }
-    }
     pub fn resize(&mut self, width: usize, height: usize) {
-        self.col_low = self.cur_cursor.col;
+        self.col_low = self.cur_cursor.col; // TODO should be able to be any value like 0
         self.col_high = self.cur_cursor.col + width - 1;
         self.row_low = self.cur_cursor.row;
         self.row_high = self.cur_cursor.row + height - 1;

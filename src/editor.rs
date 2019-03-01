@@ -15,17 +15,20 @@ use crate::Key::*;
 use crate::edit_buffer as EB;
 use crate::screen::*;
 use crate::BufElem;
+use crate::view;
+use crate::view::View;
+use crate::view::ViewGen;
 
 pub struct Editor {
     cur_ctrl: Rc<RefCell<EB::Controller>>,
-    eb: Rc<RefCell<EB::EditBuffer>>, // tmp instead of view
+    view_gen: Rc<RefCell<EB::ViewGen>>, // tmp instead of view
 }
 
 impl Editor {
-    pub fn new(ctrl: Rc<RefCell<EB::Controller>>, edit_buffer: Rc<RefCell<EB::EditBuffer>>) -> Self {
+    pub fn new(ctrl: Rc<RefCell<EB::Controller>>, view_gen: Rc<RefCell<EB::ViewGen>>) -> Self {
         Self {
             cur_ctrl: ctrl,
-            eb: edit_buffer,
+            view_gen: view_gen,
         }
     }
     // fn draw() {}
@@ -36,44 +39,28 @@ impl Editor {
         let (term_w, term_h) = termion::terminal_size().unwrap();
         // let (term_w, term_h) = (15, 15);
         let mut screen = Screen::new(term_w as usize, term_h as usize);
-        let mut vfilter = crate::visibility_filter::VisibilityFilter::new(self.eb.borrow().cursor);
         let window_col: u16 = 0; let window_row: u16 = 0;
         // let window_col: u16 = 5; let window_row: u16 = 5;
-
-        vfilter.resize(term_w as usize, term_h as usize);
 
         let mut keys = stdin.keys();
 
         loop {
-            // draw
-            vfilter.adjust(self.eb.borrow().cursor);
-
-            let drawable = vfilter.apply(&self.eb.borrow());
-
+            let region = view::ViewRegion {
+                col: 0,
+                row: 0,
+                width: term_w as usize,
+                height: term_h as usize,
+            };
+            let view = self.view_gen.borrow_mut().gen(&region);
             screen.clear();
-            for row in 0 .. drawable.buf.len() {
-                let line = &drawable.buf[row];
-                for col in 0 .. line.len() {
-                    let e = drawable.buf[row][col].clone();
-                    let as_cursor = EB::Cursor { row: row, col: col };
-                    let in_visual_range = drawable.selected.map(|vr| vr.start <= as_cursor && as_cursor < vr.end).unwrap_or(false);
-                    let c0 = match e {
-                        Some(BufElem::Char(c)) => Some(c),
-                        Some(BufElem::Eol) => Some(' '),
-                        None => None
-                    };
-                    let fg = Color::White;
-                    let bg = if in_visual_range {
-                        Color::Blue
-                    } else {
-                        Color::Black
-                    };
-                    for c in c0 {
-                        screen.draw(col, row, c, Style(fg, bg));
-                    }
+            for row in 0 .. region.width {
+                for col in 0 .. region.height {
+                    let (c,fg,bg) = view.get(col,row);
+                    screen.draw(col, row, c, Style(fg,bg))
                 }
             }
-            screen.move_cursor(drawable.cursor.col, drawable.cursor.row);
+            let cursor = view.get_cursor_pos().unwrap();
+            screen.move_cursor(cursor.col, cursor.row);
             screen.present();
 
             match keys.next() {
