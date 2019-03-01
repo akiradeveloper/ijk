@@ -20,16 +20,13 @@ use crate::view::View;
 use crate::view::ViewGen;
 
 pub struct Editor {
-    cur_ctrl: Rc<RefCell<EB::Controller>>,
+    ctrl: Rc<RefCell<EB::Controller>>,
     view_gen: Rc<RefCell<EB::ViewGen>>, // tmp instead of view
 }
 
 impl Editor {
     pub fn new(ctrl: Rc<RefCell<EB::Controller>>, view_gen: Rc<RefCell<EB::ViewGen>>) -> Self {
-        Self {
-            cur_ctrl: ctrl,
-            view_gen: view_gen,
-        }
+        Self { ctrl: ctrl, view_gen: view_gen }
     }
     // fn draw() {}
     pub fn run(&mut self) {
@@ -53,8 +50,8 @@ impl Editor {
             };
             let view = self.view_gen.borrow_mut().gen(&region);
             screen.clear();
-            for row in 0 .. region.width {
-                for col in 0 .. region.height {
+            for row in 0 .. region.height {
+                for col in 0 .. region.width {
                     let (c,fg,bg) = view.get(col,row);
                     screen.draw(col, row, c, Style(fg,bg))
                 }
@@ -77,7 +74,7 @@ impl Editor {
                             continue
                         },
                     };
-                    self.cur_ctrl.borrow_mut().receive(kk);
+                    self.ctrl.borrow_mut().receive(kk);
                 }
             }
         }

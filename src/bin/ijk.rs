@@ -53,6 +53,7 @@ fn main() {
 
     let mut eb = Rc::new(RefCell::new(EB::EditBuffer::new()));
     eb.borrow_mut().reset_with(read_buf);
+
     let mut ctrl = Rc::new(RefCell::new(EB::Controller::new(eb.clone())));
     let mut view_gen = Rc::new(RefCell::new(EB::ViewGen::new(eb.clone())));
     let mut editor = ijk::editor::Editor::new(ctrl, view_gen);

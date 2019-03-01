@@ -79,8 +79,8 @@ impl <V> View for TranslateView<V> where V: View {
     fn get_cursor_pos(&self) -> Option<Cursor> { 
         self.x.get_cursor_pos().map(|cur|
             Cursor {
-                row: (cur.row as i32 - self.diff_row) as usize,
-                col: (cur.col as i32 - self.diff_col) as usize,
+                row: (cur.row as i32 + self.diff_row) as usize,
+                col: (cur.col as i32 + self.diff_col) as usize,
             }
         )
     }
