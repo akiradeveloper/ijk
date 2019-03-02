@@ -152,8 +152,12 @@ pub struct LineNumber {
 impl View for LineNumber {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         let n = self.from + row;
-        let line: Vec<char> = format!("{0:>5} ", n).chars().collect();
-        let c = line[col];
+        let c = if n <= self.to {
+            let line: Vec<char> = format!("{0:>5} ", n).chars().collect();
+            line[col]
+        } else {
+            ' '
+        };
         (c, Color::White, Color::Black)
     }
     fn get_cursor_pos(&self) -> Option<Cursor> { None }

@@ -537,7 +537,8 @@ impl view::ViewGen for ViewGen {
             self.old_region = region;
         }
         self.filter.adjust(self.buf.borrow().cursor);
-        let lineno_view = view::LineNumber { from: self.filter.row_low+1, to: self.filter.row_high+1 };
+        let max_lineno = std::cmp::min(self.filter.row_high, self.buf.borrow().buf.len()-1) + 1;
+        let lineno_view = view::LineNumber { from: self.filter.row_low+1, to: max_lineno };
         let lineno_view = view::TranslateView::new(
             lineno_view,
             lineno_reg.col as i32,
