@@ -26,6 +26,21 @@ impl ViewRegion {
         };
         (left, right)
     }
+    pub fn split_vertical(&self, top_height: usize) -> (ViewRegion, ViewRegion) {
+        let top = Self {
+            col: self.col,
+            row: self.row,
+            width: self.width,
+            height: top_height,
+        };
+        let bottom = Self {
+            col: self.col,
+            row: self.row,
+            width: self.width,
+            height: self.height - top_height,
+        };
+        (top, bottom)
+    }
 }
 
 type ViewElem = (char, Color, Color);
@@ -110,20 +125,20 @@ impl <V> TranslateView<V> {
 }
 
 pub struct MergeVertical<V1,V2> {
-    a: V1,
-    b: V2,
-    offset_row: usize,
+    pub top: V1,
+    pub bottom: V2,
+    pub row_offset: usize,
 }
 impl <V1,V2> View for MergeVertical<V1,V2> where V1: View, V2: View {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        if row < self.offset_row {
-            self.a.get(col, row)
+        if row < self.row_offset {
+            self.top.get(col, row)
         } else {
-            self.b.get(col, row)
+            self.bottom.get(col, row)
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
-        self.a.get_cursor_pos().or(self.b.get_cursor_pos())
+        self.top.get_cursor_pos().or(self.bottom.get_cursor_pos())
     }
 }
 
