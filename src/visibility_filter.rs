@@ -3,10 +3,10 @@ use crate::BufElem;
 
 pub struct VisibilityFilter {
     cur_cursor: Cursor,
-    col_low: usize,
-    col_high: usize,
-    row_low: usize,
-    row_high: usize,
+    pub col_low: usize,
+    pub col_high: usize,
+    pub row_low: usize,
+    pub row_high: usize,
 }
 
 impl VisibilityFilter {

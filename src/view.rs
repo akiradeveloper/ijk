@@ -10,6 +10,24 @@ pub struct ViewRegion {
     pub width: usize,
     pub height: usize,
 }
+impl ViewRegion {
+    pub fn split_horizontal(&self, left_width: usize) -> (ViewRegion, ViewRegion) {
+        let left = Self {
+            col: self.col,
+            row: self.row,
+            width: left_width,
+            height: self.height,
+        };
+        let right = Self {
+            col: self.col + left_width,
+            row: self.row,
+            width: self.width - left_width,
+            height: self.height,
+        };
+        (left, right)
+    }
+}
+
 type ViewElem = (char, Color, Color);
 type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
 
@@ -110,20 +128,41 @@ impl <V1,V2> View for MergeVertical<V1,V2> where V1: View, V2: View {
 }
 
 pub struct MergeHorizontal<V1,V2> {
-    a: V1,
-    b: V2,
-    offset_col: usize,
+    pub left: V1,
+    pub right: V2,
+    pub col_offset: usize,
 }
 impl <V1,V2> View for MergeHorizontal<V1,V2> where V1: View, V2: View {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        if col < self.offset_col {
-            self.a.get(col, row)
+        if col < self.col_offset {
+            self.left.get(col, row)
         } else {
-            self.b.get(col, row)
+            self.right.get(col, row)
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
-        self.a.get_cursor_pos().or(self.b.get_cursor_pos())
+        self.left.get_cursor_pos().or(self.right.get_cursor_pos())
+    }
+}
+
+pub struct LineNumber {
+    pub from: usize,
+    pub to: usize,
+}
+impl View for LineNumber {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        let n = self.from + row;
+        let line: Vec<char> = format!("{0:>5} ", n).chars().collect();
+        let c = line[col];
+        (c, Color::White, Color::Black)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> { None }
+}
+#[test]
+fn test_lineno() {
+    let view = LineNumber { from: 15, to: 15 };
+    for (i, &c) in [' ', ' ', ' ', '1', '5', ' '].iter().enumerate() {
+        assert_eq!(view.get(i,0).0, c);
     }
 }
 
@@ -164,7 +203,6 @@ impl VisualRangeDiffView {
         Self { range }
     }
 }
-
 struct TestDiffView {}
 impl DiffView for TestDiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff { 

@@ -530,25 +530,41 @@ impl ViewGen {
 use crate::view;
 impl view::ViewGen for ViewGen {
     fn gen(&mut self, region: view::ViewRegion) -> Box<view::View> {
+        let (lineno_reg, buf_reg) = region.split_horizontal(6);
+
         if self.old_region != region {
             self.filter.resize(region.width, region.height);
             self.old_region = region;
         }
         self.filter.adjust(self.buf.borrow().cursor);
-        let view = view::ToView::new(self.buf.borrow().buf.clone());
-        let view = view::OverlayView::new(
-            view,
+        let lineno_view = view::LineNumber { from: self.filter.row_low+1, to: self.filter.row_high+1 };
+        let lineno_view = view::TranslateView::new(
+            lineno_view,
+            lineno_reg.col as i32,
+            lineno_reg.row as i32,
+        );
+
+        let buf_view = view::ToView::new(self.buf.borrow().buf.clone());
+        let buf_view = view::OverlayView::new(
+            buf_view,
             view::VisualRangeDiffView::new(self.buf.borrow().visual_range())
         );
-        let view = view::AddCursor::new(
-            view,
+        let buf_view = view::AddCursor::new(
+            buf_view,
             Some(self.buf.borrow().cursor), // tmp: the cursor is always visible
         );
-        let view = view::TranslateView::new(
-            view,
-            region.col as i32 - self.filter.col() as i32,
-            region.row as i32 - self.filter.row() as i32,
+        let buf_view = view::TranslateView::new(
+            buf_view,
+            buf_reg.col as i32 - self.filter.col() as i32,
+            buf_reg.row as i32 - self.filter.row() as i32,
         );
+
+        let view = view::MergeHorizontal {
+            left: lineno_view,
+            right: buf_view,
+            col_offset: buf_reg.col,
+        };
+
         Box::new(view)
     }
 }
