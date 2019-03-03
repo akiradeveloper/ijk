@@ -261,8 +261,7 @@ pub enum Action {
 
 use crate::controller::ActionController;
 impl ActionController for EditBuffer {
-    type Action = Action;
-    fn receive(&mut self, act: Action) -> bool {
+    type Action = Action; fn receive(&mut self, act: Action) -> bool {
         match act {
             Action::EnterInsertNewLine => {
                 let row = self.cursor.row;

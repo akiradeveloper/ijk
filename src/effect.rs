@@ -1,5 +1,5 @@
 use crate::Key;
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 
 trait Effect {
     fn run(&self) -> ();
@@ -10,29 +10,54 @@ struct Edge {
     eff: Rc<Effect>,
     to: String,
 }
+impl Edge {
+    fn matches(&self, k: Key) -> bool {
+        match self.matcher.clone() {
+            Key::CharRange(a,b) => match k {
+                Key::Char(c) => a <= c && c <= b,
+                _ => false
+            },
+            Key::Otherwise => true,
+            mhr => k.clone() == mhr,
+        }
+    }
+}
 
 trait Graph {
     fn find_effect(&self, from: &str, k: Key) -> Option<(Rc<Effect>, String)>;
 }
 
 struct GraphImpl {
-    nodes: Vec<String>,
     edges: HashMap<String, Vec<Edge>>,
 }
 impl GraphImpl {
     fn new() -> Self {
         Self {
-            nodes: Vec::new(),
             edges: HashMap::new(),
         }
     }
-    fn add_node(&mut self, id: &str) {
+    fn ensure_edge_vec(&mut self, from: &str) {
+        if !self.edges.contains_key(from) {
+            self.edges.insert(from.to_owned(), vec![]);
+        }
     }
-    fn add_edge(&mut self, from: &str, to: &str, eff: Rc<Effect>) { }
+    fn add_edge(&mut self, from: &str, to: &str, matcher: Key, eff: Rc<Effect>) { 
+        self.ensure_edge_vec(from);
+        let v = self.edges.get_mut(from).unwrap();
+        v.push(Edge {
+            matcher: matcher,
+            eff: eff,
+            to: to.to_owned(),
+        });
+    }
 }
 impl Graph for GraphImpl {
     fn find_effect(&self, from: &str, k: Key) -> Option<(Rc<Effect>, String)> {
-        unimplemented!()
+        if !self.edges.contains_key(from) {
+            return None;
+        }
+        let v = self.edges.get(from).unwrap();
+        v.iter().find(|e| e.matches(k.clone())).map(|x| (x.eff.clone(), x.to.clone()))
     }
 }
 
@@ -87,13 +112,16 @@ fn test_controller() {
     use crate::Key::*;
 
     let buf = Rc::new(RefCell::new(vec![]));
+
     let append_y = AppendY(buf.clone());
+    let mut g1 = GraphImpl::new();
+    g1.add_edge("yes", "no", Char('y'), Rc::new(append_y));
+
     let append_n = AppendN(buf.clone());
-    let mut g = GraphImpl::new();
-    g.add_node("yes");
-    g.add_node("no");
-    g.add_edge("yes", "no", Rc::new(append_y));
-    g.add_edge("no", "yes", Rc::new(append_n));
+    let mut g2 = GraphImpl::new();
+    g2.add_edge("no", "yes", Char('n'), Rc::new(append_n));
+
+    let g = compose(g1, g2);
 
     let mut ctrl = Controller {
         cur: "yes".to_owned(),
