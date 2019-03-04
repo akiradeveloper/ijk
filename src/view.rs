@@ -1,6 +1,6 @@
 use crate::BufElem;
 use crate::screen::Color;
-use crate::edit_buffer::Cursor;
+use crate::read_buffer::Cursor;
 use crate::edit_buffer::CursorRange;
 
 #[derive(PartialEq, Clone, Copy)]

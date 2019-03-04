@@ -28,6 +28,7 @@ pub enum BufElem {
 }
 
 pub mod editor;
+pub mod read_buffer;
 pub mod diff_buffer;
 pub mod edit_buffer;
 pub mod undo_buffer;

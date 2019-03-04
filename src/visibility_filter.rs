@@ -1,4 +1,5 @@
-use crate::edit_buffer::{Cursor, CursorRange, EditBuffer}; 
+use crate::read_buffer::Cursor;
+use crate::edit_buffer::{CursorRange, EditBuffer}; 
 use crate::BufElem;
 
 pub struct VisibilityFilter {
