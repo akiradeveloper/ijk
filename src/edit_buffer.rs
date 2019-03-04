@@ -475,11 +475,11 @@ def_effect!(EditModeInput, EditBuffer, edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
 def_effect!(DeleteEff, EditBuffer, delete);
 def_effect!(ToggleVisualMode, EditBuffer, toggle_visual_mode);
+
 def_effect!(CursorUp, EditBuffer, cursor_up);
 def_effect!(CursorDown, EditBuffer, cursor_down);
 def_effect!(CursorLeft, EditBuffer, cursor_left);
 def_effect!(CursorRight, EditBuffer, cursor_right);
-
 def_effect!(JumpLineHead, EditBuffer, jump_line_head);
 def_effect!(JumpLineLast, EditBuffer, jump_line_last);
 def_effect!(EnterJumpMode, EditBuffer, enter_jump_mode);
@@ -505,7 +505,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "init", Ctrl('r'), Rc::new(Redo(eb.clone())));
     g.add_edge("init", "init", Char('u'), Rc::new(Undo(eb.clone())));
 
-    // imutable
+    // immutable
     g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(eb.clone())));
     g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(eb.clone())));
     g.add_edge("init", "init", Char('h'), Rc::new(CursorLeft(eb.clone())));
