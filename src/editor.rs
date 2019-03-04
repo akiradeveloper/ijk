@@ -1,6 +1,5 @@
 use termion::event::Key as TermKey;
 use crate::Key as Key;
-use crate::controller::KeyController;
 use termion::clear;
 use termion::cursor;
 use termion::color;
@@ -16,16 +15,17 @@ use crate::edit_buffer as EB;
 use crate::screen::*;
 use crate::BufElem;
 use crate::view;
+use crate::controller;
 use crate::view::View;
 use crate::view::ViewGen;
 
 pub struct Editor {
-    ctrl: Rc<RefCell<EB::Controller>>,
+    ctrl: Rc<RefCell<controller::Controller>>,
     view_gen: Rc<RefCell<EB::ViewGen>>, // tmp instead of view
 }
 
 impl Editor {
-    pub fn new(ctrl: Rc<RefCell<EB::Controller>>, view_gen: Rc<RefCell<EB::ViewGen>>) -> Self {
+    pub fn new(ctrl: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<EB::ViewGen>>) -> Self {
         Self { ctrl: ctrl, view_gen: view_gen }
     }
     // fn draw() {}
