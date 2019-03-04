@@ -352,10 +352,6 @@ impl EditBuffer {
             self.change_log_buffer.save(change_log);
         }
     }
-
-    pub fn reset(&mut self, _: Key) {
-        self.visual_cursor = None
-    }
     pub fn delete(&mut self, _: Key) {
         if self.visual_range().is_none() {
             return;
@@ -385,10 +381,16 @@ impl EditBuffer {
         self.change_log_buffer.save(log);
 
         self.cursor = vr.start;
+        // this ensures visual mode is cancelled whenever it starts insertion mode.
         self.visual_cursor = None;
     }
-    pub fn enter_visual_mode(&mut self, _: Key) {
-        self.visual_cursor = Some(self.cursor.clone())
+    pub fn toggle_visual_mode(&mut self, _: Key) {
+        let cur0 = self.visual_cursor;
+        if cur0.is_some() {
+            self.visual_cursor = None;
+        } else {
+            self.visual_cursor = Some(self.cursor.clone());
+        }
     }
     pub fn cursor_up(&mut self, _: Key) {
         if self.cursor.row > 0 {
@@ -464,19 +466,52 @@ macro_rules! def_effect {
         }
     };
 }
+def_effect!(Undo, EditBuffer, undo);
+def_effect!(Redo, EditBuffer, redo);
+def_effect!(EnterInsertNewline, EditBuffer, enter_insert_newline);
+def_effect!(EnterInsertMode, EditBuffer, enter_insert_mode);
+def_effect!(EnterChangeMode, EditBuffer, enter_change_mode);
+def_effect!(EditModeInput, EditBuffer, edit_mode_input);
+def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
+def_effect!(DeleteEff, EditBuffer, delete);
+def_effect!(ToggleVisualMode, EditBuffer, toggle_visual_mode);
+def_effect!(CursorUp, EditBuffer, cursor_up);
+def_effect!(CursorDown, EditBuffer, cursor_down);
+def_effect!(CursorLeft, EditBuffer, cursor_left);
+def_effect!(CursorRight, EditBuffer, cursor_right);
+
+def_effect!(JumpLineHead, EditBuffer, jump_line_head);
+def_effect!(JumpLineLast, EditBuffer, jump_line_last);
 def_effect!(EnterJumpMode, EditBuffer, enter_jump_mode);
 def_effect!(AccJumpNum, EditBuffer, acc_jump_num);
 def_effect!(Jump, EditBuffer, jump);
 def_effect!(CancelJump, EditBuffer, cancel_jump);
 def_effect!(JumpLast, EditBuffer, jump_last);
 
-def_effect!(EnterInsertMode, EditBuffer, enter_insert_mode);
-def_effect!(EditModeInput, EditBuffer, edit_mode_input);
-
 use crate::controller;
 pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     use crate::Key::*;
     let mut g = controller::GraphImpl::new();
+
+    // mutable
+    g.add_edge("init", "init", Char('v'), Rc::new(ToggleVisualMode(eb.clone())));
+    g.add_edge("init", "init", Char('d'), Rc::new(DeleteEff(eb.clone())));
+    g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(eb.clone())));
+    g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(eb.clone())));
+    g.add_edge("init", "insert", Char('c'), Rc::new(EnterChangeMode(eb.clone())));
+    g.add_edge("insert", "init", Esc, Rc::new(LeaveEditMode(eb.clone())));
+    g.add_edge("insert", "insert", Otherwise, Rc::new(EditModeInput(eb.clone())));
+
+    g.add_edge("init", "init", Ctrl('r'), Rc::new(Redo(eb.clone())));
+    g.add_edge("init", "init", Char('u'), Rc::new(Undo(eb.clone())));
+
+    // imutable
+    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(eb.clone())));
+    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(eb.clone())));
+    g.add_edge("init", "init", Char('h'), Rc::new(CursorLeft(eb.clone())));
+    g.add_edge("init", "init", Char('l'), Rc::new(CursorRight(eb.clone())));
+    g.add_edge("init", "init", Char('0'), Rc::new(JumpLineHead(eb.clone())));
+    g.add_edge("init", "init", Char('g'), Rc::new(JumpLineLast(eb.clone())));
     g.add_edge("init", "jump", CharRange('1','9'), Rc::new(EnterJumpMode(eb.clone())));
     g.add_edge("jump", "jump", CharRange('0','9'), Rc::new(AccJumpNum(eb.clone())));
     g.add_edge("jump", "init", Char('G'), Rc::new(Jump(eb.clone())));
