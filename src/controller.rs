@@ -41,7 +41,7 @@ impl GraphImpl {
             self.edges.insert(from.to_owned(), vec![]);
         }
     }
-    fn add_edge(&mut self, from: &str, to: &str, matcher: Key, eff: Rc<Effect>) { 
+    pub fn add_edge(&mut self, from: &str, to: &str, matcher: Key, eff: Rc<Effect>) { 
         self.ensure_edge_vec(from);
         let v = self.edges.get_mut(from).unwrap();
         v.push(Edge {

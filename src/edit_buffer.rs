@@ -352,19 +352,7 @@ impl EditBuffer {
             self.change_log_buffer.save(change_log);
         }
     }
-    pub fn enter_jump_mode(&mut self, k: Key) {
-        self.num_buffer.clear();
-        match k {
-            Key::Char(c) => self.num_buffer.push(c),
-            _ => panic!(),
-        }
-    }
-    pub fn acc_jump_lineno(&mut self, k: Key) {
-        match k {
-            Key::Char(c) => self.num_buffer.push(c),
-            _ => panic!(),
-        }
-    }
+
     pub fn reset(&mut self, _: Key) {
         self.visual_cursor = None
     }
@@ -428,6 +416,19 @@ impl EditBuffer {
     pub fn jump_line_last(&mut self, _: Key) {
         self.cursor.col = self.buf[self.cursor.row].len() - 1;
     }
+    pub fn enter_jump_mode(&mut self, k: Key) {
+        self.num_buffer.clear();
+        match k {
+            Key::Char(c) => self.num_buffer.push(c),
+            _ => panic!(),
+        }
+    }
+    pub fn acc_jump_num(&mut self, k: Key) {
+        match k {
+            Key::Char(c) => self.num_buffer.push(c),
+            _ => panic!(),
+        }
+    }
     pub fn jump(&mut self, _: Key) {
         let mut s = String::new();
         for c in self.num_buffer.clone() {
@@ -437,6 +438,9 @@ impl EditBuffer {
         let row = n-1;
         self.cursor.row = row;
         self.cursor.col = 0;
+    }
+    pub fn cancel_jump(&mut self, _: Key) {
+        self.num_buffer.clear();
     }
     pub fn jump_last(&mut self, _: Key) {
         self.cursor.row = self.buf.len() - 1;
@@ -460,35 +464,25 @@ macro_rules! def_effect {
         }
     };
 }
+def_effect!(EnterJumpMode, EditBuffer, enter_jump_mode);
+def_effect!(AccJumpNum, EditBuffer, acc_jump_num);
+def_effect!(Jump, EditBuffer, jump);
+def_effect!(CancelJump, EditBuffer, cancel_jump);
+def_effect!(JumpLast, EditBuffer, jump_last);
+
 def_effect!(EnterInsertMode, EditBuffer, enter_insert_mode);
 def_effect!(EditModeInput, EditBuffer, edit_mode_input);
 
-#[derive(Clone)]
-pub enum Action {
-    EnterInsertMode,
-    EnterChangeMode,
-    EnterInsertNewLine,
-    EditModeInput(Key),
-    LeaveEditMode,
-    Redo,
-    Undo,
-    Delete,
-    CursorUp,
-    CursorDown,
-    CursorLeft,
-    CursorRight,
-    JumpLineHead,
-    JumpLineLast,
-    Jump(usize),
-    JumpLast,
-    EnterVisualMode,
-    Reset,
-    None,
-}
-
 use crate::controller;
 pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
-    let g = controller::GraphImpl::new();
+    use crate::Key::*;
+    let mut g = controller::GraphImpl::new();
+    g.add_edge("init", "jump", CharRange('1','9'), Rc::new(EnterJumpMode(eb.clone())));
+    g.add_edge("jump", "jump", CharRange('0','9'), Rc::new(AccJumpNum(eb.clone())));
+    g.add_edge("jump", "init", Char('G'), Rc::new(Jump(eb.clone())));
+    g.add_edge("jump", "init", Esc, Rc::new(CancelJump(eb.clone())));
+    g.add_edge("init", "init", Char('G'), Rc::new(JumpLast(eb.clone())));
+
     controller::Controller {
         cur: "init".to_owned(),
         g: Box::new(g),
