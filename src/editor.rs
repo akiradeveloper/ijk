@@ -21,11 +21,11 @@ use crate::view::ViewGen;
 
 pub struct Editor {
     ctrl: Rc<RefCell<controller::Controller>>,
-    view_gen: Rc<RefCell<EB::ViewGen>>, // tmp instead of view
+    view_gen: Rc<RefCell<view::ViewGen>>, // tmp instead of view
 }
 
 impl Editor {
-    pub fn new(ctrl: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<EB::ViewGen>>) -> Self {
+    pub fn new(ctrl: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<view::ViewGen>>) -> Self {
         Self { ctrl: ctrl, view_gen: view_gen }
     }
     // fn draw() {}
