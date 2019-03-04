@@ -44,6 +44,9 @@ impl ReadBuffer {
             num_buffer: vec![],
         }
     }
+    pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
+        self.buf = new_buf;
+    }
     pub fn cursor_up(&mut self, _: Key) {
         if self.cursor.row > 0 {
             self.cursor.row -= 1;
@@ -103,9 +106,7 @@ impl ReadBuffer {
 }
 
 pub struct EditBuffer {
-    pub buf: Vec<Vec<BufElem>>,
-    pub cursor: Cursor,
-    num_buffer: Vec<char>,
+    pub rb: ReadBuffer,
     visual_cursor: Option<Cursor>,
     change_log_buffer: UndoBuffer<ChangeLog>,
     edit_state: Option<EditState>,
@@ -122,9 +123,7 @@ struct EditState {
 impl EditBuffer {
     pub fn new() -> EditBuffer {
         EditBuffer {
-            buf: vec![vec![]],
-            cursor: Cursor { row: 0, col: 0 },
-            num_buffer: vec![],
+            rb: ReadBuffer::new(),
             visual_cursor: None,
             change_log_buffer: UndoBuffer::new(20),
             edit_state: None,
@@ -145,7 +144,7 @@ impl EditBuffer {
         pre_survivors.append(&mut log.deleted);
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
-            self.buf.insert(log.at.row, vec![])
+            self.rb.buf.insert(log.at.row, vec![])
         }
         let mut b = false;
         self.insert(
@@ -156,7 +155,7 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
-        self.cursor = log.at;
+        self.rb.cursor = log.at;
         true
     }
     fn _redo(&mut self) -> bool {
@@ -175,7 +174,7 @@ impl EditBuffer {
         pre_survivors.append(&mut log.inserted);
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
-            self.buf.insert(log.at.row, vec![])
+            self.rb.buf.insert(log.at.row, vec![])
         }
         let mut b = false;
         self.insert(
@@ -186,26 +185,26 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
-        self.cursor = self.find_cursor_pair(log.at, n_inserted);
+        self.rb.cursor = self.find_cursor_pair(log.at, n_inserted);
         true
     }
     pub fn visual_range(&self) -> Option<CursorRange> {
         self.visual_cursor.clone().map(|vc| {
-            if self.cursor > vc {
+            if self.rb.cursor > vc {
                 CursorRange {
                     start: vc,
-                    end: self.cursor.to_cursor_end(),
+                    end: self.rb.cursor.to_cursor_end(),
                 }
             } else {
                 CursorRange {
-                    start: self.cursor.clone(),
+                    start: self.rb.cursor.clone(),
                     end: vc.to_cursor_end(),
                 }
             }
         })
     }
     pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
-        self.buf = new_buf;
+        self.rb.reset_with(new_buf);
     }
     fn expand_range(&self, r: &CursorRange) -> Vec<(usize, std::ops::Range<usize>)> {
         let mut res = vec![];
@@ -214,7 +213,7 @@ impl EditBuffer {
             let col_end = if row == r.end.row {
                 r.end.col
             } else {
-                self.buf[row].len()
+                self.rb.buf[row].len()
             };
             res.push((row, col_start..col_end));
         }
@@ -230,18 +229,18 @@ impl EditBuffer {
         let mut col = at.col;
         for e in buf {
             if *should_insert_newline {
-                self.buf.insert(row, vec![]);
+                self.rb.buf.insert(row, vec![]);
                 *should_insert_newline = false;
             }
             match e {
                 x @ BufElem::Eol => {
-                    self.buf[row].insert(col, x);
+                    self.rb.buf[row].insert(col, x);
                     *should_insert_newline = true;
                     row += 1;
                     col = 0;
                 }
                 x @ BufElem::Char(_) => {
-                    self.buf[row].insert(col, x);
+                    self.rb.buf[row].insert(col, x);
                     col += 1;
                 }
             }
@@ -249,14 +248,14 @@ impl EditBuffer {
         Cursor { row: row, col: col }
     }
     fn is_eof(&self, row: usize, col: usize) -> bool {
-        row == self.buf.len() - 1 && col == self.buf[row].len() - 1
+        row == self.rb.buf.len() - 1 && col == self.rb.buf[row].len() - 1
     }
     fn find_cursor_pair(&self, cursor: Cursor, len: usize) -> Cursor {
         let mut row = cursor.row;
         let mut col = cursor.col;
         let mut remaining = len;
         while remaining > 0 {
-            let n = std::cmp::min(remaining, self.buf[row].len() - col);
+            let n = std::cmp::min(remaining, self.rb.buf[row].len() - col);
             remaining -= n;
             if remaining > 0 {
                 col = 0;
@@ -283,8 +282,8 @@ impl EditBuffer {
         //
         // After:
         // xxxxxxe
-        let target_region = if range.end.col == self.buf[range.end.row].len()
-            && range.end.row != self.buf.len() - 1
+        let target_region = if range.end.col == self.rb.buf[range.end.row].len()
+            && range.end.row != self.rb.buf.len() - 1
         {
             let mut res = self.expand_range(&range);
             res.push((range.end.row + 1, 0..0));
@@ -296,30 +295,30 @@ impl EditBuffer {
         // the characters in the range will be deleted and
         // others will survive, be merged and inserted afterward
         for (row, col_range) in target_region.clone() {
-            for col in 0..self.buf[row].len() {
+            for col in 0..self.rb.buf[row].len() {
                 if self.is_eof(row, col) {
-                    post_survivors.push(self.buf[row][col].clone())
+                    post_survivors.push(self.rb.buf[row][col].clone())
                 } else if col_range.start <= col && col < col_range.end {
-                    removed.push(self.buf[row][col].clone())
+                    removed.push(self.rb.buf[row][col].clone())
                 } else {
                     let as_cursor = Cursor { row, col };
                     if as_cursor < range.start {
-                        pre_survivors.push(self.buf[row][col].clone())
+                        pre_survivors.push(self.rb.buf[row][col].clone())
                     } else {
-                        post_survivors.push(self.buf[row][col].clone())
+                        post_survivors.push(self.rb.buf[row][col].clone())
                     }
                 }
             }
         }
         for (row, _) in target_region.into_iter().rev() {
-            self.buf.remove(row);
+            self.rb.buf.remove(row);
         }
 
         (pre_survivors, removed, post_survivors)
     }
     fn enter_update_mode(&mut self, r: &CursorRange, init_diff: Vec<BufElem>) {
         let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
-        let orig_buf = self.buf.clone();
+        let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
             diff_buffer: DiffBuffer {
                 pre_buf: pre_survivors,
@@ -334,7 +333,7 @@ impl EditBuffer {
         // write back the initial diff buffer
         let es = self.edit_state.clone().unwrap();
         assert!(!es.diff_buffer.is_empty());
-        self.buf.insert(es.at.row, vec![]);
+        self.rb.buf.insert(es.at.row, vec![]);
         let mut b = false;
         let after_pre_inserted = self.insert(
             Cursor {
@@ -346,7 +345,7 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
-        self.cursor = after_diff_inserted;
+        self.rb.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
 
@@ -361,15 +360,15 @@ impl EditBuffer {
         self._redo();
     }
     pub fn enter_insert_newline(&mut self, _: Key) {
-        let row = self.cursor.row;
+        let row = self.rb.cursor.row;
         let delete_range = CursorRange {
             start: Cursor {
                 row: row,
-                col: self.buf[row].len() - 1,
+                col: self.rb.buf[row].len() - 1,
             },
             end: Cursor {
                 row: row,
-                col: self.buf[row].len() - 1,
+                col: self.rb.buf[row].len() - 1,
             },
         };
         self.enter_update_mode(&delete_range, vec![BufElem::Eol]);
@@ -377,8 +376,8 @@ impl EditBuffer {
     pub fn enter_insert_mode(&mut self, _: Key) {
         assert!(self.edit_state.is_none());
         let delete_range = CursorRange {
-            start: self.cursor,
-            end: self.cursor,
+            start: self.rb.cursor,
+            end: self.rb.cursor,
         };
         self.enter_update_mode(&delete_range, vec![]);
     }
@@ -394,9 +393,9 @@ impl EditBuffer {
         let cursor_diff = es.diff_buffer.input(k.clone());
 
         let es = self.edit_state.clone().unwrap();
-        self.buf = es.orig_buf;
+        self.rb.buf = es.orig_buf;
         assert!(!es.diff_buffer.is_empty());
-        self.buf.insert(es.at.row, vec![]);
+        self.rb.buf.insert(es.at.row, vec![]);
         let mut b = false;
         let after_pre_inserted = self.insert(
             Cursor {
@@ -408,7 +407,7 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
-        self.cursor = after_diff_inserted;
+        self.rb.cursor = after_diff_inserted;
     }
     pub fn leave_edit_mode(&mut self, _: Key) {
         assert!(self.edit_state.is_some());
@@ -433,7 +432,7 @@ impl EditBuffer {
 
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
-            self.buf.insert(vr.start.row, vec![])
+            self.rb.buf.insert(vr.start.row, vec![])
         }
         let mut b = false;
         self.insert(
@@ -452,7 +451,7 @@ impl EditBuffer {
         };
         self.change_log_buffer.save(log);
 
-        self.cursor = vr.start;
+        self.rb.cursor = vr.start;
         // this ensures visual mode is cancelled whenever it starts insertion mode.
         self.visual_cursor = None;
     }
@@ -461,64 +460,41 @@ impl EditBuffer {
         if cur0.is_some() {
             self.visual_cursor = None;
         } else {
-            self.visual_cursor = Some(self.cursor.clone());
+            self.visual_cursor = Some(self.rb.cursor.clone());
         }
     }
-    pub fn cursor_up(&mut self, _: Key) {
-        if self.cursor.row > 0 {
-            self.cursor.row -= 1;
-        }
+    pub fn cursor_up(&mut self, k: Key) {
+        self.rb.cursor_up(k);
     }
-    pub fn cursor_down(&mut self, _: Key) {
-        if self.cursor.row < self.buf.len() - 1 {
-            self.cursor.row += 1;
-        }
+    pub fn cursor_down(&mut self, k: Key) {
+        self.rb.cursor_down(k);
     }
-    pub fn cursor_left(&mut self, _: Key) {
-        if self.cursor.col > 0 {
-            self.cursor.col -= 1;
-        }
+    pub fn cursor_left(&mut self, k: Key) {
+        self.rb.cursor_left(k);
     }
-    pub fn cursor_right(&mut self, _: Key) {
-        if self.cursor.col < self.buf[self.cursor.row].len() - 1 {
-            self.cursor.col += 1;
-        }
+    pub fn cursor_right(&mut self, k: Key) {
+        self.rb.cursor_right(k);
     }
-    pub fn jump_line_head(&mut self, _: Key) {
-        self.cursor.col = 0;
+    pub fn jump_line_head(&mut self, k: Key) {
+        self.rb.jump_line_head(k);
     }
-    pub fn jump_line_last(&mut self, _: Key) {
-        self.cursor.col = self.buf[self.cursor.row].len() - 1;
+    pub fn jump_line_last(&mut self, k: Key) {
+        self.rb.jump_line_last(k);
     }
     pub fn enter_jump_mode(&mut self, k: Key) {
-        self.num_buffer.clear();
-        match k {
-            Key::Char(c) => self.num_buffer.push(c),
-            _ => panic!(),
-        }
+        self.rb.enter_jump_mode(k);
     }
     pub fn acc_jump_num(&mut self, k: Key) {
-        match k {
-            Key::Char(c) => self.num_buffer.push(c),
-            _ => panic!(),
-        }
+        self.rb.acc_jump_num(k);
     }
-    pub fn jump(&mut self, _: Key) {
-        let mut s = String::new();
-        for c in self.num_buffer.clone() {
-            s.push(c);
-        }
-        let n = s.parse::<usize>().unwrap();
-        let row = n-1;
-        self.cursor.row = row;
-        self.cursor.col = 0;
+    pub fn jump(&mut self, k: Key) {
+        self.rb.jump(k);
     }
-    pub fn cancel_jump(&mut self, _: Key) {
-        self.num_buffer.clear();
+    pub fn cancel_jump(&mut self, k: Key) {
+        self.rb.cancel_jump(k)
     }
-    pub fn jump_last(&mut self, _: Key) {
-        self.cursor.row = self.buf.len() - 1;
-        self.cursor.col = 0;
+    pub fn jump_last(&mut self, k: Key) {
+        self.rb.jump_last(k);
     }
 }
 
@@ -625,8 +601,8 @@ impl view::ViewGen for ViewGen {
             self.filter.resize(region.width, region.height);
             self.old_region = region;
         }
-        self.filter.adjust(self.buf.borrow().cursor);
-        let max_lineno = std::cmp::min(self.filter.row_high, self.buf.borrow().buf.len() - 1) + 1;
+        self.filter.adjust(self.buf.borrow().rb.cursor);
+        let max_lineno = std::cmp::min(self.filter.row_high, self.buf.borrow().rb.buf.len() - 1) + 1;
         let lineno_view = view::LineNumber {
             from: self.filter.row_low + 1,
             to: max_lineno,
@@ -634,14 +610,14 @@ impl view::ViewGen for ViewGen {
         let lineno_view =
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
 
-        let buf_view = view::ToView::new(self.buf.borrow().buf.clone());
+        let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
         let buf_view = view::OverlayView::new(
             buf_view,
             view::VisualRangeDiffView::new(self.buf.borrow().visual_range()),
         );
         let buf_view = view::AddCursor::new(
             buf_view,
-            Some(self.buf.borrow().cursor), // tmp: the cursor is always visible
+            Some(self.buf.borrow().rb.cursor), // tmp: the cursor is always visible
         );
         let buf_view = view::TranslateView::new(
             buf_view,
