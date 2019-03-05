@@ -1,5 +1,6 @@
 use crate::BufElem;
 use crate::Key;
+use crate::visibility_filter::VisibilityFilter;
 
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub struct Cursor {
@@ -11,6 +12,7 @@ pub struct ReadBuffer {
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
     num_buffer: Vec<char>,
+    pub filter: VisibilityFilter,
 }
 
 impl ReadBuffer {
@@ -19,6 +21,7 @@ impl ReadBuffer {
             buf: vec![vec![]],
             cursor: Cursor { row: 0, col: 0 },
             num_buffer: vec![],
+            filter: VisibilityFilter::new(Cursor { col: 0, row: 0 }),
         }
     }
     pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {

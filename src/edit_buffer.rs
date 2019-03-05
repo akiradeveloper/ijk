@@ -518,14 +518,12 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
 use crate::visibility_filter::VisibilityFilter;
 pub struct ViewGen {
     buf: Rc<RefCell<EditBuffer>>,
-    filter: VisibilityFilter,
     old_region: view::ViewRegion,
 }
 impl ViewGen {
     pub fn new(buf: Rc<RefCell<EditBuffer>>) -> Self {
         Self {
             buf: buf,
-            filter: VisibilityFilter::new(Cursor { col: 0, row: 0 }),
             old_region: view::ViewRegion {
                 col: 0,
                 row: 0,
@@ -541,13 +539,14 @@ impl view::ViewGen for ViewGen {
         let (lineno_reg, buf_reg) = region.split_horizontal(6);
 
         if self.old_region != region {
-            self.filter.resize(region.width, region.height);
+            self.buf.borrow_mut().rb.filter.resize(region.width, region.height);
             self.old_region = region;
         }
-        self.filter.adjust(self.buf.borrow().rb.cursor);
-        let max_lineno = std::cmp::min(self.filter.row_high, self.buf.borrow().rb.buf.len() - 1) + 1;
+        let cur_cursor = self.buf.borrow().rb.cursor;
+        self.buf.borrow_mut().rb.filter.adjust(cur_cursor);
+        let max_lineno = std::cmp::min(self.buf.borrow().rb.filter.row_high, self.buf.borrow().rb.buf.len() - 1) + 1;
         let lineno_view = view::LineNumber {
-            from: self.filter.row_low + 1,
+            from: self.buf.borrow().rb.filter.row_low + 1,
             to: max_lineno,
         };
         let lineno_view =
@@ -564,8 +563,8 @@ impl view::ViewGen for ViewGen {
         );
         let buf_view = view::TranslateView::new(
             buf_view,
-            buf_reg.col as i32 - self.filter.col() as i32,
-            buf_reg.row as i32 - self.filter.row() as i32,
+            buf_reg.col as i32 - self.buf.borrow().rb.filter.col() as i32,
+            buf_reg.row as i32 - self.buf.borrow().rb.filter.row() as i32,
         );
 
         let view = view::MergeHorizontal {
