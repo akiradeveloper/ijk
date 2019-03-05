@@ -476,7 +476,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "init", Char('h'), Rc::new(CursorLeft(eb.clone())));
     g.add_edge("init", "init", Char('l'), Rc::new(CursorRight(eb.clone())));
     g.add_edge("init", "init", Char('0'), Rc::new(JumpLineHead(eb.clone())));
-    g.add_edge("init", "init", Char('g'), Rc::new(JumpLineLast(eb.clone())));
+    g.add_edge("init", "init", Char('$'), Rc::new(JumpLineLast(eb.clone())));
     g.add_edge("init", "jump", CharRange('1','9'), Rc::new(EnterJumpMode(eb.clone())));
     g.add_edge("jump", "jump", CharRange('0','9'), Rc::new(AccJumpNum(eb.clone())));
     g.add_edge("jump", "init", Char('G'), Rc::new(Jump(eb.clone())));
