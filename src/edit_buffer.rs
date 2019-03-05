@@ -290,6 +290,30 @@ impl EditBuffer {
         };
         self.enter_update_mode(&delete_range, vec![BufElem::Eol]);
     }
+    pub fn join_next_line(&mut self, _: Key) {
+        let row = self.rb.cursor.row;
+        if row == self.rb.buf.len() - 1 {
+            return;
+        }
+        let mut next_line_first_nonspace_pos = 0;
+        for x in &self.rb.buf[row+1] {
+            match *x {
+                BufElem::Char(' ') | BufElem::Char('\t') => next_line_first_nonspace_pos += 1,
+                _ => break
+            }
+        }
+        let delete_range = CursorRange {
+            start: Cursor {
+                row: row,
+                col: self.rb.buf[row].len() - 1,
+            },
+            end: Cursor {
+                row: row + 1,
+                col: next_line_first_nonspace_pos,
+            }
+        };
+        self.enter_update_mode(&delete_range, vec![]);
+    }
     pub fn enter_insert_mode(&mut self, _: Key) {
         assert!(self.edit_state.is_none());
         let delete_range = CursorRange {
@@ -433,6 +457,7 @@ macro_rules! def_effect {
 }
 def_effect!(Undo, EditBuffer, undo);
 def_effect!(Redo, EditBuffer, redo);
+def_effect!(JoinNextLine, EditBuffer, join_next_line);
 def_effect!(EnterInsertNewline, EditBuffer, enter_insert_newline);
 def_effect!(EnterInsertMode, EditBuffer, enter_insert_mode);
 def_effect!(EnterChangeMode, EditBuffer, enter_change_mode);
@@ -461,6 +486,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     // mutable
     g.add_edge("init", "init", Char('v'), Rc::new(ToggleVisualMode(eb.clone())));
     g.add_edge("init", "init", Char('d'), Rc::new(DeleteEff(eb.clone())));
+    g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(eb.clone())));
     g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(eb.clone())));
     g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(eb.clone())));
     g.add_edge("init", "insert", Char('c'), Rc::new(EnterChangeMode(eb.clone())));
@@ -550,4 +576,4 @@ impl view::ViewGen for ViewGen {
 
         Box::new(view)
     }
-}
+} 
