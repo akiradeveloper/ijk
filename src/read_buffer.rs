@@ -24,15 +24,22 @@ impl ReadBuffer {
     pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
         self.buf = new_buf;
     }
+    fn stabilize_cursor(&mut self) {
+        if self.cursor.col > self.buf[self.cursor.row].len() - 1 {
+            self.cursor.col = self.buf[self.cursor.row].len() - 1;
+        }
+    }
     pub fn cursor_up(&mut self, _: Key) {
         if self.cursor.row > 0 {
             self.cursor.row -= 1;
         }
+        self.stabilize_cursor()
     }
     pub fn cursor_down(&mut self, _: Key) {
         if self.cursor.row < self.buf.len() - 1 {
             self.cursor.row += 1;
         }
+        self.stabilize_cursor()
     }
     pub fn cursor_left(&mut self, _: Key) {
         if self.cursor.col > 0 {
