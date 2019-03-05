@@ -539,7 +539,7 @@ impl view::ViewGen for ViewGen {
         let (lineno_reg, buf_reg) = region.split_horizontal(6);
 
         if self.old_region != region {
-            self.buf.borrow_mut().rb.filter.resize(region.width, region.height);
+            self.buf.borrow_mut().rb.filter.resize(region.width - 6, region.height);
             self.old_region = region;
         }
         let cur_cursor = self.buf.borrow().rb.cursor;
