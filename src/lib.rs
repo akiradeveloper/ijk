@@ -36,3 +36,4 @@ pub mod visibility_filter;
 pub mod screen;
 pub mod controller;
 pub mod view;
+pub mod search;

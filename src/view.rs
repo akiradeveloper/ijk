@@ -43,8 +43,8 @@ impl ViewRegion {
     }
 }
 
-type ViewElem = (char, Color, Color);
-type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
+pub type ViewElem = (char, Color, Color);
+pub type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
 
 pub trait ViewGen {
     fn gen(&mut self, region: ViewRegion) -> Box<View>;
