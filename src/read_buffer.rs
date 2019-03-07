@@ -60,6 +60,26 @@ impl ReadBuffer {
     pub fn jump_line_last(&mut self, _: Key) {
         self.cursor.col = self.buf[self.cursor.row].len() - 1;
     }
+    pub fn jump_page_forward(&mut self, k: Key) {
+        let dist_from_window_bottom = self.filter.row_high - self.cursor.row;
+        for _ in 0 .. self.filter.height() + dist_from_window_bottom {
+            self.cursor_down(k.clone());
+        }
+        self.filter.adjust(self.cursor);
+        for _ in 0 .. dist_from_window_bottom {
+            self.cursor_up(k.clone());
+        }
+    }
+    pub fn jump_page_backward(&mut self, k: Key) {
+        let dist_from_window_top = self.cursor.row - self.filter.row_low;
+        for _ in 0 .. self.filter.height() + dist_from_window_top {
+            self.cursor_up(k.clone());
+        }
+        self.filter.adjust(self.cursor);
+        for _ in 0 .. dist_from_window_top {
+            self.cursor_down(k.clone());
+        }
+    }
     pub fn enter_jump_mode(&mut self, k: Key) {
         self.num_buffer.clear();
         match k {

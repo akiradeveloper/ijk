@@ -30,10 +30,10 @@ impl VisibilityFilter {
     pub fn row(&self) -> usize {
         self.row_low
     }
-    fn width(&self) -> usize {
+    pub fn width(&self) -> usize {
         self.col_high - self.col_low + 1
     }
-    fn height(&self) -> usize {
+    pub fn height(&self) -> usize {
         self.row_high - self.row_low + 1
     }
     pub fn adjust(&mut self, cursor: Cursor) {

@@ -422,6 +422,12 @@ impl EditBuffer {
     pub fn jump_line_last(&mut self, k: Key) {
         self.rb.jump_line_last(k);
     }
+    pub fn jump_page_forward(&mut self, k: Key) {
+        self.rb.jump_page_forward(k);
+    }
+    pub fn jump_page_backward(&mut self, k: Key) {
+        self.rb.jump_page_backward(k);
+    }
     pub fn enter_jump_mode(&mut self, k: Key) {
         self.rb.enter_jump_mode(k);
     }
@@ -472,6 +478,8 @@ def_effect!(CursorLeft, EditBuffer, cursor_left);
 def_effect!(CursorRight, EditBuffer, cursor_right);
 def_effect!(JumpLineHead, EditBuffer, jump_line_head);
 def_effect!(JumpLineLast, EditBuffer, jump_line_last);
+def_effect!(JumpPageForward, EditBuffer, jump_page_forward);
+def_effect!(JumpPageBackward, EditBuffer, jump_page_backward);
 def_effect!(EnterJumpMode, EditBuffer, enter_jump_mode);
 def_effect!(AccJumpNum, EditBuffer, acc_jump_num);
 def_effect!(Jump, EditBuffer, jump);
@@ -503,6 +511,8 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "init", Char('l'), Rc::new(CursorRight(eb.clone())));
     g.add_edge("init", "init", Char('0'), Rc::new(JumpLineHead(eb.clone())));
     g.add_edge("init", "init", Char('$'), Rc::new(JumpLineLast(eb.clone())));
+    g.add_edge("init", "init", Ctrl('f'), Rc::new(JumpPageForward(eb.clone())));
+    g.add_edge("init", "init", Ctrl('b'), Rc::new(JumpPageBackward(eb.clone())));
     g.add_edge("init", "jump", CharRange('1','9'), Rc::new(EnterJumpMode(eb.clone())));
     g.add_edge("jump", "jump", CharRange('0','9'), Rc::new(AccJumpNum(eb.clone())));
     g.add_edge("jump", "init", Char('G'), Rc::new(Jump(eb.clone())));
