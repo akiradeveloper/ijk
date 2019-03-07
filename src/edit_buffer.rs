@@ -405,28 +405,28 @@ impl EditBuffer {
         }
     }
     pub fn cursor_up(&mut self, k: Key) {
-        self.rb.cursor_up(k);
+        self.rb.cursor_up();
     }
     pub fn cursor_down(&mut self, k: Key) {
-        self.rb.cursor_down(k);
+        self.rb.cursor_down();
     }
     pub fn cursor_left(&mut self, k: Key) {
-        self.rb.cursor_left(k);
+        self.rb.cursor_left();
     }
     pub fn cursor_right(&mut self, k: Key) {
-        self.rb.cursor_right(k);
+        self.rb.cursor_right();
     }
     pub fn jump_line_head(&mut self, k: Key) {
-        self.rb.jump_line_head(k);
+        self.rb.jump_line_head();
     }
     pub fn jump_line_last(&mut self, k: Key) {
-        self.rb.jump_line_last(k);
+        self.rb.jump_line_last();
     }
     pub fn jump_page_forward(&mut self, k: Key) {
-        self.rb.jump_page_forward(k);
+        self.rb.jump_page_forward();
     }
     pub fn jump_page_backward(&mut self, k: Key) {
-        self.rb.jump_page_backward(k);
+        self.rb.jump_page_backward();
     }
     pub fn enter_jump_mode(&mut self, k: Key) {
         self.rb.enter_jump_mode(k);
@@ -435,13 +435,13 @@ impl EditBuffer {
         self.rb.acc_jump_num(k);
     }
     pub fn jump(&mut self, k: Key) {
-        self.rb.jump(k);
+        self.rb.jump();
     }
     pub fn cancel_jump(&mut self, k: Key) {
-        self.rb.cancel_jump(k)
+        self.rb.cancel_jump();
     }
     pub fn jump_last(&mut self, k: Key) {
-        self.rb.jump_last(k);
+        self.rb.jump_last();
     }
 }
 

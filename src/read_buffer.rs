@@ -32,52 +32,52 @@ impl ReadBuffer {
             self.cursor.col = self.buf[self.cursor.row].len() - 1;
         }
     }
-    pub fn cursor_up(&mut self, _: Key) {
+    pub fn cursor_up(&mut self) {
         if self.cursor.row > 0 {
             self.cursor.row -= 1;
         }
         self.stabilize_cursor()
     }
-    pub fn cursor_down(&mut self, _: Key) {
+    pub fn cursor_down(&mut self) {
         if self.cursor.row < self.buf.len() - 1 {
             self.cursor.row += 1;
         }
         self.stabilize_cursor()
     }
-    pub fn cursor_left(&mut self, _: Key) {
+    pub fn cursor_left(&mut self) {
         if self.cursor.col > 0 {
             self.cursor.col -= 1;
         }
     }
-    pub fn cursor_right(&mut self, _: Key) {
+    pub fn cursor_right(&mut self) {
         if self.cursor.col < self.buf[self.cursor.row].len() - 1 {
             self.cursor.col += 1;
         }
     }
-    pub fn jump_line_head(&mut self, _: Key) {
+    pub fn jump_line_head(&mut self) {
         self.cursor.col = 0;
     }
-    pub fn jump_line_last(&mut self, _: Key) {
+    pub fn jump_line_last(&mut self) {
         self.cursor.col = self.buf[self.cursor.row].len() - 1;
     }
-    pub fn jump_page_forward(&mut self, k: Key) {
+    pub fn jump_page_forward(&mut self) {
         let dist_from_window_bottom = self.filter.row_high - self.cursor.row;
         for _ in 0 .. self.filter.height() + dist_from_window_bottom {
-            self.cursor_down(k.clone());
+            self.cursor_down();
         }
         self.filter.adjust(self.cursor);
         for _ in 0 .. dist_from_window_bottom {
-            self.cursor_up(k.clone());
+            self.cursor_up();
         }
     }
-    pub fn jump_page_backward(&mut self, k: Key) {
+    pub fn jump_page_backward(&mut self) {
         let dist_from_window_top = self.cursor.row - self.filter.row_low;
         for _ in 0 .. self.filter.height() + dist_from_window_top {
-            self.cursor_up(k.clone());
+            self.cursor_up();
         }
         self.filter.adjust(self.cursor);
         for _ in 0 .. dist_from_window_top {
-            self.cursor_down(k.clone());
+            self.cursor_down();
         }
     }
     pub fn enter_jump_mode(&mut self, k: Key) {
@@ -93,7 +93,7 @@ impl ReadBuffer {
             _ => panic!(),
         }
     }
-    pub fn jump(&mut self, _: Key) {
+    pub fn jump(&mut self) {
         let mut s = String::new();
         for c in self.num_buffer.clone() {
             s.push(c);
@@ -103,10 +103,10 @@ impl ReadBuffer {
         self.cursor.row = row;
         self.cursor.col = 0;
     }
-    pub fn cancel_jump(&mut self, _: Key) {
+    pub fn cancel_jump(&mut self) {
         self.num_buffer.clear();
     }
-    pub fn jump_last(&mut self, _: Key) {
+    pub fn jump_last(&mut self) {
         self.cursor.row = self.buf.len() - 1;
         self.cursor.col = 0;
     }
