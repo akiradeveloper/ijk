@@ -34,6 +34,8 @@ impl EditBuffer {
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
+        self.rb.search.update(&log);
+
         let delete_range = CursorRange {
             start: log.at,
             end: self.find_cursor_pair(log.at, log.deleted.len()),
@@ -53,7 +55,6 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
-        self.rb.search.update(&log);
     }
     fn _undo(&mut self) -> bool {
         let log = self.change_log_buffer.pop_undo();
@@ -71,7 +72,6 @@ impl EditBuffer {
             return false;
         }
         let mut log = log.unwrap();
-        self.rb.search.update(&log);
         let n_inserted = log.inserted.len();
         self.apply_log(&mut log);
         self.rb.cursor = self.find_cursor_pair(log.at, n_inserted);
