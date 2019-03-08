@@ -68,6 +68,9 @@ impl Hit {
 fn test_hit() {
     use crate::BufElem::*;
     let mut hit = Hit::new();
+    assert_eq!(hit.rollback_search(&[]), 0);
+    assert_eq!(hit.hits_pos(), &[]);
+
     let line = [Char('a'),Char('b'),Char('a'),Char('b'),Char('a'),Eol];
     let sw = ['a','b','a','b'];
     hit.inc_search('a', &line);
@@ -84,6 +87,9 @@ fn test_hit() {
 
     assert_eq!(hit.rollback_search(&['a']), 1);
     assert_eq!(hit.hits_pos(), &[0,2,4]);
+
+    assert_eq!(hit.rollback_search(&[]), 0);
+    assert_eq!(hit.hits_pos(), &[]);
 }
 #[derive(PartialEq, Debug)]
 enum AffectRange {
@@ -139,6 +145,8 @@ impl Search {
     pub fn pop_search_word(&mut self) {
         self.cur_word.pop();
     }
+    // TODO
+    // optimized version
     pub fn update(&mut self, log: &ChangeLog) {
         let (deleted, inserted) = Self::calc_n_rows_affected(&log.deleted, &log.inserted);
         for _ in 0..deleted {
@@ -147,6 +155,11 @@ impl Search {
         for _ in 0..inserted {
             self.hits.insert(log.at.row, Hit::new());
         }
+    }
+    // tmp: instead of update
+    // slow version. clear the data on every change
+    pub fn clear(&mut self, n_rows_after_change: usize) {
+        self.hits = vec![Hit::new(); n_rows_after_change];
     }
     /// ensure:
     /// L(this) == L(buf)

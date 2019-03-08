@@ -34,7 +34,7 @@ impl EditBuffer {
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
-        self.rb.search.update(&log);
+        // self.rb.search.update(&log);
 
         let delete_range = CursorRange {
             start: log.at,
@@ -55,6 +55,7 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
+        self.rb.search.clear(self.rb.buf.len()); // tmp
     }
     fn _undo(&mut self) -> bool {
         let log = self.change_log_buffer.pop_undo();
@@ -335,7 +336,8 @@ impl EditBuffer {
             deleted: edit_state.removed,
             inserted: edit_state.diff_buffer.diff_buf,
         };
-        self.rb.search.update(&change_log);
+        // self.rb.search.update(&change_log);
+        self.rb.search.clear(self.rb.buf.len()); // tmp
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
             self.change_log_buffer.save(change_log);
         }
@@ -366,7 +368,8 @@ impl EditBuffer {
             deleted: removed,
             inserted: vec![],
         };
-        self.rb.search.update(&log);
+        // self.rb.search.update(&log);
+        self.rb.search.clear(self.rb.buf.len()); // tmp
         self.change_log_buffer.save(log);
 
         self.rb.cursor = vr.start;
