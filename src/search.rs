@@ -106,12 +106,20 @@ impl Search {
     pub fn pop_search_word(&mut self) {
         self.cur_word.pop();
     }
-    pub fn update(&mut self, log: ChangeLog) {
-
+    fn to_n_row_affected(buf: &[BufElem]) -> usize {
+        0
+    }
+    pub fn update(&mut self, log: &ChangeLog) {
+        for _ in 0..Self::to_n_row_affected(&log.deleted) {
+            self.hits.remove(log.at.row);
+        }
+        for _ in 0..Self::to_n_row_affected(&log.inserted) {
+            self.hits.insert(log.at.row, Hit::new());
+        }
     }
     /// ensure:
     /// L(this) == L(buf)
-    pub fn refresh_search(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
+    pub fn refresh_search_results(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
         for i in range {
             let n = self.hits[i].rollback_search(&self.cur_word);
             // if L(cur_word) == n this slice is empty

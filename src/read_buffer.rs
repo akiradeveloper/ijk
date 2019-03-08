@@ -7,7 +7,7 @@ pub struct ReadBuffer {
     pub cursor: Cursor,
     num_buffer: Vec<char>,
     pub filter: VisibilityFilter,
-    search: Search,
+    pub search: Search,
 }
 
 impl ReadBuffer {

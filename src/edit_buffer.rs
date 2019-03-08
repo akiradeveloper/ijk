@@ -53,6 +53,7 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
+        self.rb.search.update(&log);
     }
     fn _undo(&mut self) -> bool {
         let log = self.change_log_buffer.pop_undo();
@@ -70,6 +71,7 @@ impl EditBuffer {
             return false;
         }
         let mut log = log.unwrap();
+        self.rb.search.update(&log);
         let n_inserted = log.inserted.len();
         self.apply_log(&mut log);
         self.rb.cursor = self.find_cursor_pair(log.at, n_inserted);
@@ -336,6 +338,7 @@ impl EditBuffer {
             deleted: edit_state.removed,
             inserted: edit_state.diff_buffer.diff_buf,
         };
+        self.rb.search.update(&change_log);
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
             self.change_log_buffer.save(change_log);
         }
@@ -366,6 +369,7 @@ impl EditBuffer {
             deleted: removed,
             inserted: vec![],
         };
+        self.rb.search.update(&log);
         self.change_log_buffer.save(log);
 
         self.rb.cursor = vr.start;
