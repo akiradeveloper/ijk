@@ -39,7 +39,7 @@ fn main() {
         .get_matches();
 
     let file_path: Option<&OsStr> = matches.value_of_os("file");
-    let read_buf: Vec<Vec<BufElem>> = file_path
+    let init_buf: Vec<Vec<BufElem>> = file_path
         .and_then(|file_path| {
             fs::read_to_string(path::Path::new(file_path))
                 .ok()
@@ -51,8 +51,7 @@ fn main() {
         })
         .unwrap_or(vec![vec![BufElem::Eol]]);
 
-    let mut eb = Rc::new(RefCell::new(EB::EditBuffer::new()));
-    eb.borrow_mut().reset_with(read_buf);
+    let mut eb = Rc::new(RefCell::new(EB::EditBuffer::new(init_buf)));
 
     let mut ctrl = Rc::new(RefCell::new(EB::mk_controller(eb.clone())));
     let mut view_gen = Rc::new(RefCell::new(EB::ViewGen::new(eb.clone())));

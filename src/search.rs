@@ -127,14 +127,11 @@ impl Search {
             (EndEol(n), EndEol(m)) => (n+1, m+1),
         }
     }
-    pub fn new() -> Self {
+    pub fn new(n_rows: usize) -> Self {
         Self {
             cur_word: vec![],
-            hits: vec![],
+            hits: vec![Hit::new(); n_rows],
         }
-    }
-    fn cur_gen(&self) -> usize {
-        self.cur_word.len() - 1
     }
     pub fn push_search_word(&mut self, c: char) {
         self.cur_word.push(c);

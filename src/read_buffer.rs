@@ -11,17 +11,15 @@ pub struct ReadBuffer {
 }
 
 impl ReadBuffer {
-    pub fn new() -> Self {
+    pub fn new(init_buf: Vec<Vec<BufElem>>) -> Self {
+        let n_rows = init_buf.len();
         Self {
-            buf: vec![vec![]],
+            buf: init_buf,
             cursor: Cursor { row: 0, col: 0 },
             num_buffer: vec![],
             filter: VisibilityFilter::new(Cursor { col: 0, row: 0 }),
-            search: Search::new(),
+            search: Search::new(n_rows),
         }
-    }
-    pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
-        self.buf = new_buf;
     }
     fn stabilize_cursor(&mut self) {
         if self.cursor.col > self.buf[self.cursor.row].len() - 1 {

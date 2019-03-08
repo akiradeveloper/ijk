@@ -25,9 +25,9 @@ struct EditState {
 }
 
 impl EditBuffer {
-    pub fn new() -> EditBuffer {
+    pub fn new(init_buf: Vec<Vec<BufElem>>) -> EditBuffer {
         EditBuffer {
-            rb: ReadBuffer::new(),
+            rb: ReadBuffer::new(init_buf),
             visual_cursor: None,
             change_log_buffer: UndoBuffer::new(20),
             edit_state: None,
@@ -97,9 +97,6 @@ impl EditBuffer {
                 }
             }
         })
-    }
-    pub fn reset_with(&mut self, new_buf: Vec<Vec<BufElem>>) {
-        self.rb.reset_with(new_buf);
     }
     fn expand_range(&self, r: &CursorRange) -> Vec<(usize, std::ops::Range<usize>)> {
         let mut res = vec![];
