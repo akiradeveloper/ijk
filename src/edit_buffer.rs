@@ -1,19 +1,12 @@
 use crate::diff_buffer::DiffBuffer;
 use crate::undo_buffer::UndoBuffer;
-use crate::BufElem;
+use crate::{BufElem, Cursor, ChangeLog};
 use crate::read_buffer::*;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
     pub start: Cursor,
     pub end: Cursor,
-}
-
-#[derive(Clone)]
-struct ChangeLog {
-    at: Cursor,
-    deleted: Vec<BufElem>,
-    inserted: Vec<BufElem>,
 }
 
 pub struct EditBuffer {
@@ -443,6 +436,15 @@ impl EditBuffer {
     pub fn jump_last(&mut self, k: Key) {
         self.rb.jump_last();
     }
+    pub fn enter_search_mode(&mut self, k: Key) {
+        self.rb.enter_search_mode();
+    }
+    pub fn search_mode_input(&mut self, k: Key) {
+        self.rb.search_mode_input(k);
+    }
+    pub fn leave_search_mode(&mut self, k: Key) {
+        self.rb.leave_search_mode();
+    }
 }
 
 use crate::Key;
@@ -486,6 +488,10 @@ def_effect!(Jump, EditBuffer, jump);
 def_effect!(CancelJump, EditBuffer, cancel_jump);
 def_effect!(JumpLast, EditBuffer, jump_last);
 
+def_effect!(EnterSearchMode, EditBuffer, enter_search_mode);
+def_effect!(SearchModeInput, EditBuffer, search_mode_input);
+def_effect!(LeaveSearchMode, EditBuffer, leave_search_mode);
+
 use crate::controller;
 pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     use crate::Key::*;
@@ -518,6 +524,11 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("jump", "init", Char('G'), Rc::new(Jump(eb.clone())));
     g.add_edge("jump", "init", Esc, Rc::new(CancelJump(eb.clone())));
     g.add_edge("init", "init", Char('G'), Rc::new(JumpLast(eb.clone())));
+
+    // search
+    g.add_edge("init", "search", Char('/'), Rc::new(EnterSearchMode(eb.clone())));
+    g.add_edge("search", "init", Esc, Rc::new(LeaveSearchMode(eb.clone())));
+    g.add_edge("search", "search", Otherwise, Rc::new(SearchModeInput(eb.clone())));
 
     controller::Controller {
         cur: "init".to_owned(),

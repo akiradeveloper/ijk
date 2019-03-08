@@ -27,6 +27,19 @@ pub enum BufElem {
     Eol,
 }
 
+#[derive(Copy, Clone, PartialOrd, PartialEq)]
+pub struct Cursor {
+    pub row: usize,
+    pub col: usize,
+}
+
+#[derive(Clone)]
+pub struct ChangeLog {
+    at: Cursor,
+    deleted: Vec<BufElem>,
+    inserted: Vec<BufElem>,
+}
+
 pub mod editor;
 pub mod read_buffer;
 pub mod diff_buffer;

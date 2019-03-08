@@ -1,6 +1,6 @@
 use crate::view;
 use crate::screen;
-use crate::BufElem;
+use crate::{BufElem, ChangeLog};
 use std::ops::Range;
 
 #[derive(Clone, Debug)]
@@ -86,28 +86,35 @@ fn test_hit() {
     assert_eq!(hit.hits_pos(), &[0,2,4]);
 }
 
-struct Search {
+pub struct Search {
     cur_word: Vec<char>,
     hits: Vec<Hit>,
 }
 impl Search {
-    fn new(n_row: usize) -> Self {
+    pub fn new() -> Self {
         Self {
             cur_word: vec![],
-            hits: vec![Hit::new(); n_row], }
+            hits: vec![],
+        }
     }
     fn cur_gen(&self) -> usize {
         self.cur_word.len() - 1
     }
-    fn push_search_word(&mut self, c: char) {
+    pub fn push_search_word(&mut self, c: char) {
         self.cur_word.push(c);
     }
-    fn pop_search_word(&mut self, c: char) {
+    pub fn pop_search_word(&mut self) {
         self.cur_word.pop();
     }
-    fn refresh_search(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
+    pub fn update(&mut self, log: ChangeLog) {
+
+    }
+    /// ensure:
+    /// L(this) == L(buf)
+    pub fn refresh_search(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
         for i in range {
             let n = self.hits[i].rollback_search(&self.cur_word);
+            // if L(cur_word) == n this slice is empty
             for c in &self.cur_word[n..] {
                 self.hits[i].inc_search(*c, &buf[i]);
             }
