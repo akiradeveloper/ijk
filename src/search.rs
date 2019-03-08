@@ -106,14 +106,15 @@ impl Search {
     pub fn pop_search_word(&mut self) {
         self.cur_word.pop();
     }
-    fn to_n_row_affected(buf: &[BufElem]) -> usize {
-        0
+    fn calc_n_row_affected(log: &ChangeLog) -> (usize, usize) {
+        unimplemented!()
     }
     pub fn update(&mut self, log: &ChangeLog) {
-        for _ in 0..Self::to_n_row_affected(&log.deleted) {
+        let (deleted, inserted) = Self::calc_n_row_affected(log);
+        for _ in 0..deleted {
             self.hits.remove(log.at.row);
         }
-        for _ in 0..Self::to_n_row_affected(&log.inserted) {
+        for _ in 0..inserted {
             self.hits.insert(log.at.row, Hit::new());
         }
     }
