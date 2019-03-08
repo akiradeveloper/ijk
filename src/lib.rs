@@ -39,6 +39,15 @@ pub struct ChangeLog {
     deleted: Vec<BufElem>,
     inserted: Vec<BufElem>,
 }
+impl ChangeLog {
+    pub fn swap(&self) -> Self {
+        Self {
+            at: self.at,
+            deleted: self.inserted.clone(),
+            inserted: self.deleted.clone(),
+        }
+    }
+}
 
 pub mod editor;
 pub mod read_buffer;

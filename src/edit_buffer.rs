@@ -33,48 +33,12 @@ impl EditBuffer {
             edit_state: None,
         }
     }
-    fn _undo(&mut self) -> bool {
-        let log = self.change_log_buffer.pop_undo();
-        if log.is_none() {
-            return false;
-        }
-        let mut log = log.unwrap();
-
-        let delete_range = CursorRange {
-            start: log.at,
-            end: self.find_cursor_pair(log.at, log.inserted.len()),
-        };
-        let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
-        pre_survivors.append(&mut log.deleted);
-        pre_survivors.append(&mut post_survivors);
-        if !pre_survivors.is_empty() {
-            self.rb.buf.insert(log.at.row, vec![])
-        }
-        let mut b = false;
-        self.insert(
-            Cursor {
-                row: log.at.row,
-                col: 0,
-            },
-            pre_survivors,
-            &mut b,
-        );
-        self.rb.cursor = log.at;
-        true
-    }
-    fn _redo(&mut self) -> bool {
-        let log = self.change_log_buffer.pop_redo();
-        if log.is_none() {
-            return false;
-        }
-        let mut log = log.unwrap();
-
+    fn apply_log(&mut self, log: &mut ChangeLog) {
         let delete_range = CursorRange {
             start: log.at,
             end: self.find_cursor_pair(log.at, log.deleted.len()),
         };
         let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
-        let n_inserted = log.inserted.len();
         pre_survivors.append(&mut log.inserted);
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
@@ -89,6 +53,25 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
+    }
+    fn _undo(&mut self) -> bool {
+        let log = self.change_log_buffer.pop_undo();
+        if log.is_none() {
+            return false;
+        }
+        let mut log = log.unwrap().swap();
+        self.apply_log(&mut log);
+        self.rb.cursor = log.at;
+        true
+    }
+    fn _redo(&mut self) -> bool {
+        let log = self.change_log_buffer.pop_redo();
+        if log.is_none() {
+            return false;
+        }
+        let mut log = log.unwrap();
+        let n_inserted = log.inserted.len();
+        self.apply_log(&mut log);
         self.rb.cursor = self.find_cursor_pair(log.at, n_inserted);
         true
     }
