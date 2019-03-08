@@ -17,7 +17,7 @@ impl Hit {
             results: vec![],
         }
     }
-    pub fn rollback_search(&mut self, new_search_word: &[char]) -> usize {
+    fn rollback_search(&mut self, new_search_word: &[char]) -> usize {
         let mut i = 0;
         while self.search_word.len() > i && new_search_word.len() > i && self.search_word[i] == new_search_word[i] {
             i += 1;
@@ -33,7 +33,7 @@ impl Hit {
         }
         i
     }
-    pub fn inc_search(&mut self, new_c: char, line: &[BufElem]) {
+    fn inc_search(&mut self, new_c: char, line: &[BufElem]) {
         let mut v = vec![];
         let n_sw = self.search_word.len();
         if n_sw == 0 {
