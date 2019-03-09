@@ -414,7 +414,23 @@ impl EditBuffer {
         }
     }
     pub fn save_to_file(&self, _: Key) {
-
+        use std::io::Write;
+        if self.path.is_none() {
+            return;
+        }
+        let path = self.path.clone().unwrap();
+        if let Ok(mut file) = fs::File::create(path) {
+            let buf = &self.rb.buf;
+            for i in 0..buf.len() {
+                for j in 0..buf[i].len() {
+                    let e = &buf[i][j];
+                    match *e {
+                        BufElem::Char(c) => write!(file, "{}", c).unwrap(),
+                        BufElem::Eol => writeln!(file).unwrap(),
+                    }
+                }
+            }
+        }
     }
     pub fn cursor_up(&mut self, k: Key) {
         self.rb.cursor_up();
