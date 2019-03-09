@@ -135,7 +135,7 @@ impl ReadBuffer {
         self.search.clear_struct(self.buf.len())
     }
     pub fn update_search_results(&mut self) {
-        let row_range = std::cmp::max(0, self.filter.row_low) .. std::cmp::min(self.filter.row_high+1, self.buf.len());
+        let row_range = self.filter.row_low .. std::cmp::min(self.filter.row_high+1, self.buf.len());
         self.search.update_results(row_range, &self.buf)
     }
 }
