@@ -54,7 +54,7 @@ impl Hit {
         self.search_word.push(new_c);
         self.results.push(v);
     }
-    fn hits_pos(&self) -> Vec<usize> {
+    fn result(&self) -> Vec<usize> {
         let n_sw = self.search_word.len();
         if n_sw == 0 {
             vec![]
@@ -65,17 +65,17 @@ impl Hit {
     fn next(&self, i: Option<usize>) -> Option<usize> {
         match i {
             Some(i) => {
-                self.hits_pos().into_iter().find(|j| *j > i)
+                self.result().into_iter().find(|j| *j > i)
             },
-            None => self.hits_pos().first().cloned()
+            None => self.result().first().cloned()
         }
     }
     fn prev(&self, i: Option<usize>) -> Option<usize> {
         match i {
             Some(i) => {
-                self.hits_pos().into_iter().find(|j| *j < i)
+                self.result().into_iter().find(|j| *j < i)
             },
-            None => self.hits_pos().last().cloned()
+            None => self.result().last().cloned()
         }
     }
 }
@@ -85,27 +85,27 @@ fn test_hit() {
     use crate::BufElem::*;
     let mut hit = Hit::new();
     assert_eq!(hit.rollback_search(&[]), 0);
-    assert_eq!(hit.hits_pos(), &[]);
+    assert_eq!(hit.result(), &[]);
 
     let line = [Char('a'),Char('b'),Char('a'),Char('b'),Char('a'),Eol];
     let sw = ['a','b','a','b'];
     hit.inc_search('a', &line);
     dbg!(&hit);
-    assert_eq!(hit.hits_pos(), &[0,2,4]);
+    assert_eq!(hit.result(), &[0,2,4]);
     hit.inc_search('b', &line);
     dbg!(&hit);
-    assert_eq!(hit.hits_pos(), &[0,2]);
+    assert_eq!(hit.result(), &[0,2]);
     hit.inc_search('a', &line);
     dbg!(&hit);
-    assert_eq!(hit.hits_pos(), &[0,2]);
+    assert_eq!(hit.result(), &[0,2]);
     hit.inc_search('b', &line);
-    assert_eq!(hit.hits_pos(), &[0]);
+    assert_eq!(hit.result(), &[0]);
 
     assert_eq!(hit.rollback_search(&['a']), 1);
-    assert_eq!(hit.hits_pos(), &[0,2,4]);
+    assert_eq!(hit.result(), &[0,2,4]);
 
     assert_eq!(hit.rollback_search(&[]), 0);
-    assert_eq!(hit.hits_pos(), &[]);
+    assert_eq!(hit.result(), &[]);
 }
 #[derive(PartialEq, Debug)]
 enum AffectRange {
@@ -113,6 +113,7 @@ enum AffectRange {
     Mid(usize),
     EndEol(usize),
 }
+#[derive(Clone)]
 pub struct Search {
     cur_word: Vec<char>,
     hits: Vec<Hit>,
@@ -163,7 +164,7 @@ impl Search {
     }
     // TODO
     // optimized version
-    pub fn update(&mut self, log: &ChangeLog) {
+    pub fn update_struct(&mut self, log: &ChangeLog) {
         let (deleted, inserted) = Self::calc_n_rows_affected(&log.deleted, &log.inserted);
         for _ in 0..deleted {
             self.hits.remove(log.at.row);
@@ -174,12 +175,12 @@ impl Search {
     }
     // tmp: instead of update
     // slow version. clear the data on every change
-    pub fn clear(&mut self, n_rows_after_change: usize) {
+    pub fn clear_struct(&mut self, n_rows_after_change: usize) {
         self.hits = vec![Hit::new(); n_rows_after_change];
     }
     /// ensure:
     /// L(this) == L(buf)
-    pub fn refresh_search_results(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
+    pub fn update_results(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
         for i in range {
             let n = self.hits[i].rollback_search(&self.cur_word);
             // if L(cur_word) == n this slice is empty
@@ -229,14 +230,20 @@ fn test_affect_range() {
     assert_eq!(Search::affect_range_of(&[Char(' '),BufElem::Eol,Char('a'),Eol]), EndEol(2));
 }
 
-struct SearchView<'a> {
-    model: &'a Search,
+pub struct DiffView {
+    model: Search,
 }
-
-impl <'a> view::DiffView for SearchView<'a> {
-   fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
+impl DiffView {
+    pub fn new(search: Search) -> Self {
+        Self {
+            model: search
+        }
+    }
+}
+impl view::DiffView for DiffView {
+    fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
         let search_word_len = self.model.cur_word.len();
-        if self.model.hits[row].hits_pos().iter().any(|&s| s <= col && col < s+search_word_len) {
+        if self.model.hits[row].result().iter().any(|&s| s <= col && col < s+search_word_len) {
             (None, None, Some(screen::Color::Green))
         } else {
             (None, None, None)

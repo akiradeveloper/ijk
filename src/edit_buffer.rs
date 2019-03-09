@@ -2,6 +2,7 @@ use crate::diff_buffer::DiffBuffer;
 use crate::undo_buffer::UndoBuffer;
 use crate::{BufElem, Cursor, ChangeLog};
 use crate::read_buffer::*;
+use crate::search;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
@@ -55,7 +56,7 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
-        self.rb.search.clear(self.rb.buf.len()); // tmp
+        self.rb.clear_search_struct(); // tmp
     }
     fn _undo(&mut self) -> bool {
         let log = self.change_log_buffer.pop_undo();
@@ -337,7 +338,7 @@ impl EditBuffer {
             inserted: edit_state.diff_buffer.diff_buf,
         };
         // self.rb.search.update(&change_log);
-        self.rb.search.clear(self.rb.buf.len()); // tmp
+        self.rb.clear_search_struct(); // tmp
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
             self.change_log_buffer.save(change_log);
         }
@@ -369,7 +370,7 @@ impl EditBuffer {
             inserted: vec![],
         };
         // self.rb.search.update(&log);
-        self.rb.search.clear(self.rb.buf.len()); // tmp
+        self.rb.clear_search_struct(); // tmp
         self.change_log_buffer.save(log);
 
         self.rb.cursor = vr.start;
@@ -557,11 +558,12 @@ impl view::ViewGen for ViewGen {
         let (lineno_reg, buf_reg) = region.split_horizontal(6);
 
         if self.old_region != region {
-            self.buf.borrow_mut().rb.filter.resize(region.width - 6, region.height);
+            self.buf.borrow_mut().rb.resize_window(region.width - 6, region.height);
             self.old_region = region;
         }
-        let cur_cursor = self.buf.borrow().rb.cursor;
-        self.buf.borrow_mut().rb.filter.adjust(cur_cursor);
+        self.buf.borrow_mut().rb.adjust_window();
+        self.buf.borrow_mut().rb.update_search_results();
+
         let max_lineno = std::cmp::min(self.buf.borrow().rb.filter.row_high, self.buf.borrow().rb.buf.len() - 1) + 1;
         let lineno_view = view::LineNumber {
             from: self.buf.borrow().rb.filter.row_low + 1,
@@ -571,6 +573,10 @@ impl view::ViewGen for ViewGen {
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
 
         let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
+        let buf_view = view::OverlayView::new(
+            buf_view,
+            search::DiffView::new(self.buf.borrow().rb.search.clone()),
+        );
         let buf_view = view::OverlayView::new(
             buf_view,
             view::VisualRangeDiffView::new(self.buf.borrow().visual_range()),

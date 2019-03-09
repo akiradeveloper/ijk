@@ -125,4 +125,17 @@ impl ReadBuffer {
             self.cursor = x;
         }
     }
+    pub fn resize_window(&mut self, w: usize, h: usize) {
+        self.filter.resize(w, h)
+    }
+    pub fn adjust_window(&mut self) {
+        self.filter.adjust(self.cursor)
+    }
+    pub fn clear_search_struct(&mut self) {
+        self.search.clear_struct(self.buf.len())
+    }
+    pub fn update_search_results(&mut self) {
+        let row_range = self.filter.row_low .. self.filter.row_high+1;
+        self.search.update_results(row_range, &self.buf)
+    }
 }
