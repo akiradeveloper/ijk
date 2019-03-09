@@ -73,7 +73,7 @@ impl Hit {
     fn prev(&self, i: Option<usize>) -> Option<usize> {
         match i {
             Some(i) => {
-                self.result().into_iter().find(|j| *j < i)
+                self.result().into_iter().rev().find(|j| *j < i)
             },
             None => self.result().last().cloned()
         }
