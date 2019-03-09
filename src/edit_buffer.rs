@@ -265,6 +265,7 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
+        self.rb.clear_search_struct();
         self.rb.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
@@ -334,7 +335,7 @@ impl EditBuffer {
     }
     pub fn edit_mode_input(&mut self, k: Key) {
         let es = self.edit_state.as_mut().unwrap();
-        let cursor_diff = es.diff_buffer.input(k.clone());
+        es.diff_buffer.input(k.clone());
 
         let es = self.edit_state.clone().unwrap();
         self.rb.buf = es.orig_buf;
@@ -351,8 +352,8 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
+        self.rb.clear_search_struct(); // tmp (too slow)
         self.rb.cursor = after_diff_inserted;
-        self.rb.clear_search_struct(); // tmp (too bad workaround)
     }
     pub fn leave_edit_mode(&mut self, _: Key) {
         assert!(self.edit_state.is_some());
@@ -397,8 +398,8 @@ impl EditBuffer {
             inserted: vec![],
         };
         // self.rb.search.update(&log);
-        self.rb.clear_search_struct(); // tmp
         self.change_log_buffer.save(log);
+        self.rb.clear_search_struct(); // tmp
 
         self.rb.cursor = vr.start;
         // this ensures visual mode is cancelled whenever it starts insertion mode.
