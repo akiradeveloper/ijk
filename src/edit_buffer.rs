@@ -326,6 +326,10 @@ impl EditBuffer {
         };
         self.enter_update_mode(&delete_range, vec![]);
     }
+    pub fn enter_append_mode(&mut self, k: Key) {
+        self.cursor_right(k.clone());
+        self.enter_insert_mode(k);
+    }
     pub fn enter_change_mode(&mut self, _: Key) {
         if self.visual_range().is_none() {
             return;
@@ -509,6 +513,7 @@ def_effect!(Redo, EditBuffer, redo);
 def_effect!(JoinNextLine, EditBuffer, join_next_line);
 def_effect!(EnterInsertNewline, EditBuffer, enter_insert_newline);
 def_effect!(EnterInsertMode, EditBuffer, enter_insert_mode);
+def_effect!(EnterAppendMode, EditBuffer, enter_append_mode);
 def_effect!(EnterChangeMode, EditBuffer, enter_change_mode);
 def_effect!(EditModeInput, EditBuffer, edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
@@ -548,6 +553,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(eb.clone())));
     g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(eb.clone())));
     g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(eb.clone())));
+    g.add_edge("init", "insert", Char('a'), Rc::new(EnterAppendMode(eb.clone())));
     g.add_edge("init", "insert", Char('c'), Rc::new(EnterChangeMode(eb.clone())));
     g.add_edge("insert", "init", Esc, Rc::new(LeaveEditMode(eb.clone())));
     g.add_edge("insert", "insert", Otherwise, Rc::new(EditModeInput(eb.clone())));
@@ -661,4 +667,4 @@ impl view::ViewGen for ViewGen {
 
         Box::new(view)
     }
-} 
+}
