@@ -352,6 +352,7 @@ impl EditBuffer {
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
         self.rb.cursor = after_diff_inserted;
+        self.rb.clear_search_struct(); // tmp (too bad workaround)
     }
     pub fn leave_edit_mode(&mut self, _: Key) {
         assert!(self.edit_state.is_some());
