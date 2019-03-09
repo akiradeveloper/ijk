@@ -126,7 +126,7 @@ impl ReadBuffer {
         }
     }
     pub fn resize_window(&mut self, w: usize, h: usize) {
-        self.filter.resize(w, h)
+        self.filter.resize(self.cursor, w, h)
     }
     pub fn adjust_window(&mut self) {
         self.filter.adjust(self.cursor)

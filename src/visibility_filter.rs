@@ -16,11 +16,12 @@ impl VisibilityFilter {
             row_low: 0, row_high: 0,
         }
     }
-    pub fn resize(&mut self, width: usize, height: usize) {
-        self.col_low = self.cur_cursor.col; // TODO should be able to be any value like 0
-        self.col_high = self.cur_cursor.col + width - 1;
-        self.row_low = self.cur_cursor.row;
-        self.row_high = self.cur_cursor.row + height - 1;
+    pub fn resize(&mut self, cursor: Cursor, width: usize, height: usize) {
+        self.col_low = cursor.col; // TODO should be able to be any value like 0
+        self.col_high = cursor.col + width - 1;
+        self.row_low = cursor.row;
+        self.row_high = cursor.row + height - 1;
+        self.cur_cursor = cursor;
     }
     pub fn col(&self) -> usize {
         self.col_low
