@@ -35,7 +35,7 @@ impl ViewRegion {
         };
         let bottom = Self {
             col: self.col,
-            row: self.row,
+            row: self.row + top_height,
             width: self.width,
             height: self.height - top_height,
         };
@@ -183,6 +183,34 @@ fn test_lineno() {
     for (i, &c) in [' ', ' ', ' ', '1', '5', ' '].iter().enumerate() {
         assert_eq!(view.get(i,0).0, c);
     }
+}
+
+pub struct SearchBar {
+    s: Vec<char>
+}
+impl SearchBar {
+    pub fn new(s: &str) -> Self {
+        let mut v = vec!['/'];
+        for c in s.chars() {
+            v.push(c);
+        }
+        Self { s: v }
+    }
+}
+impl View for SearchBar {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        if row == 0 {
+            let c = if 0 <= col && col < self.s.len() {
+                self.s[col]
+            } else {
+                ' '
+            };
+            (c, Color::White, Color::Black)
+        } else {
+            (' ', Color::White, Color::Black)
+        }
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> { None }
 }
 
 pub struct OverlayView<V, D> {

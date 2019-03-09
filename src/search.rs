@@ -115,7 +115,7 @@ enum AffectRange {
 }
 #[derive(Clone)]
 pub struct Search {
-    cur_word: Vec<char>,
+    pub cur_word: Vec<char>,
     hits: Vec<Hit>,
 }
 impl Search {

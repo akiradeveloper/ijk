@@ -555,7 +555,8 @@ impl ViewGen {
 use crate::view;
 impl view::ViewGen for ViewGen {
     fn gen(&mut self, region: view::ViewRegion) -> Box<view::View> {
-        let (lineno_reg, buf_reg) = region.split_horizontal(6);
+        let (edit_reg, search_reg) = region.split_vertical(region.height-1);
+        let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
 
         if self.old_region != region {
             self.buf.borrow_mut().rb.resize_window(region.width - 6, region.height);
@@ -595,6 +596,18 @@ impl view::ViewGen for ViewGen {
             left: lineno_view,
             right: buf_view,
             col_offset: buf_reg.col,
+        };
+
+        let search_bar = view::SearchBar::new(&self.buf.borrow().rb.current_search_word());
+        let search_bar = view::TranslateView::new(
+            search_bar,
+            search_reg.col as i32,
+            search_reg.row as i32,
+        );
+        let view = view::MergeVertical {
+            top: view,
+            bottom: search_bar,
+            row_offset: search_reg.row,
         };
 
         Box::new(view)
