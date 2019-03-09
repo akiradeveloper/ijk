@@ -1,6 +1,6 @@
 use crate::view;
 use crate::screen;
-use crate::{BufElem, ChangeLog};
+use crate::{Cursor, BufElem, ChangeLog};
 use std::ops::Range;
 
 #[derive(Clone, Debug)]
@@ -60,6 +60,22 @@ impl Hit {
             vec![]
         } else {
             self.results[n_sw-1].clone()
+        }
+    }
+    fn next(&self, i: Option<usize>) -> Option<usize> {
+        match i {
+            Some(i) => {
+                self.hits_pos().into_iter().find(|j| *j > i)
+            },
+            None => self.hits_pos().first().cloned()
+        }
+    }
+    fn prev(&self, i: Option<usize>) -> Option<usize> {
+        match i {
+            Some(i) => {
+                self.hits_pos().into_iter().find(|j| *j < i)
+            },
+            None => self.hits_pos().last().cloned()
         }
     }
 }
@@ -169,6 +185,34 @@ impl Search {
             // if L(cur_word) == n this slice is empty
             for c in &self.cur_word[n..] {
                 self.hits[i].inc_search(*c, &buf[i]);
+            }
+        }
+    }
+    pub fn next(&self, cur: Cursor) -> Option<Cursor> {
+        match self.hits[cur.row].next(Some(cur.col)) {
+            Some(next_col) => Some(Cursor { row: cur.row, col: next_col }),
+            None => {
+                (cur.row+1..self.hits.len()).map(|row| {
+                    let first0 = self.hits[row].next(None);
+                    match first0 {
+                        Some(first) => Some(Cursor { row: row, col: first }),
+                        None => None,
+                    }
+                }).find(|x| x.is_some()).unwrap_or(None)
+            }
+        }
+    }
+    pub fn prev(&self, cur: Cursor) -> Option<Cursor> {
+        match self.hits[cur.row].prev(Some(cur.col)) {
+            Some(prev_col) => Some(Cursor { row: cur.row, col: prev_col }),
+            None => {
+                (0..cur.row).rev().map(|row| {
+                    let last0 = self.hits[row].prev(None);
+                    match last0 {
+                        Some(last) => Some(Cursor { row: row, col: last }),
+                        None => None,
+                    }
+                }).find(|x| x.is_some()).unwrap_or(None)
             }
         }
     }

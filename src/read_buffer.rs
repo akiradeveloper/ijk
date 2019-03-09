@@ -113,4 +113,16 @@ impl ReadBuffer {
         }
     }
     pub fn leave_search_mode(&mut self) {}
+    pub fn search_jump_forward(&mut self) {
+        let next = self.search.next(self.cursor);
+        for x in next {
+            self.cursor = x;
+        }
+    }
+    pub fn search_jump_backward(&mut self) {
+        let prev = self.search.prev(self.cursor);
+        for x in prev {
+            self.cursor = x;
+        }
+    }
 }

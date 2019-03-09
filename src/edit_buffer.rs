@@ -432,6 +432,12 @@ impl EditBuffer {
     pub fn leave_search_mode(&mut self, k: Key) {
         self.rb.leave_search_mode();
     }
+    pub fn search_jump_forward(&mut self, k: Key) {
+        self.rb.search_jump_forward();
+    }
+    pub fn search_jump_backward(&mut self, k: Key) {
+        self.rb.search_jump_backward();
+    }
 }
 
 use crate::Key;
@@ -478,6 +484,8 @@ def_effect!(JumpLast, EditBuffer, jump_last);
 def_effect!(EnterSearchMode, EditBuffer, enter_search_mode);
 def_effect!(SearchModeInput, EditBuffer, search_mode_input);
 def_effect!(LeaveSearchMode, EditBuffer, leave_search_mode);
+def_effect!(SearchJumpForward, EditBuffer, search_jump_forward);
+def_effect!(SearchJumpBackward, EditBuffer, search_jump_backward);
 
 use crate::controller;
 pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
@@ -516,6 +524,8 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "search", Char('/'), Rc::new(EnterSearchMode(eb.clone())));
     g.add_edge("search", "init", Esc, Rc::new(LeaveSearchMode(eb.clone())));
     g.add_edge("search", "search", Otherwise, Rc::new(SearchModeInput(eb.clone())));
+    g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(eb.clone())));
+    g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(eb.clone())));
 
     controller::Controller {
         cur: "init".to_owned(),
