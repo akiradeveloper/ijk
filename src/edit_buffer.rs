@@ -523,7 +523,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
 
     // search
     g.add_edge("init", "search", Char('/'), Rc::new(EnterSearchMode(eb.clone())));
-    g.add_edge("search", "init", Esc, Rc::new(LeaveSearchMode(eb.clone())));
+    g.add_edge("search", "init", Char('\n'), Rc::new(LeaveSearchMode(eb.clone())));
     g.add_edge("search", "search", Otherwise, Rc::new(SearchModeInput(eb.clone())));
     g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(eb.clone())));
     g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(eb.clone())));
@@ -559,7 +559,7 @@ impl view::ViewGen for ViewGen {
         let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
 
         if self.old_region != region {
-            self.buf.borrow_mut().rb.resize_window(region.width - 6, region.height);
+            self.buf.borrow_mut().rb.resize_window(region.width - 6, region.height - 1);
             self.old_region = region;
         }
         self.buf.borrow_mut().rb.adjust_window();

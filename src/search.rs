@@ -156,6 +156,9 @@ impl Search {
             hits: vec![Hit::new(); n_rows],
         }
     }
+    pub fn clear_search_word(&mut self) {
+        self.cur_word.clear()
+    }
     pub fn push_search_word(&mut self, c: char) {
         self.cur_word.push(c);
     }

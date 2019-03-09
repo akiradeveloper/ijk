@@ -104,7 +104,9 @@ impl ReadBuffer {
         self.cursor.row = self.buf.len() - 1;
         self.cursor.col = 0;
     }
-    pub fn enter_search_mode(&mut self) {}
+    pub fn enter_search_mode(&mut self) {
+        self.search.clear_search_word()
+    }
     pub fn search_mode_input(&mut self, k: Key) {
         match k {
             Key::Backspace => self.search.pop_search_word(),
