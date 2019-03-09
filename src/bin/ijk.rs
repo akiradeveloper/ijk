@@ -22,15 +22,6 @@ use ijk::Key::*;
 use ijk::edit_buffer as EB;
 use ijk::screen::*;
 
-fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
-    let mut r = vec![];
-    for c in cs {
-        r.push(BufElem::Char(c));
-    }
-    r.push(BufElem::Eol);
-    r
-}
-
 fn main() {
     let matches = App::new("ijk")
         .about("A toy editor for fun")
@@ -39,19 +30,9 @@ fn main() {
         .get_matches();
 
     let file_path: Option<&OsStr> = matches.value_of_os("file");
-    let init_buf: Vec<Vec<BufElem>> = file_path
-        .and_then(|file_path| {
-            fs::read_to_string(path::Path::new(file_path))
-                .ok()
-                .map(|s| {
-                    s.lines()
-                     .map(|line| convert_to_bufelems(line.chars().collect()))
-                     .collect()
-                })
-        })
-        .unwrap_or(vec![vec![BufElem::Eol]]);
+    let path = file_path.map(|fp| path::Path::new(fp));
 
-    let mut eb = Rc::new(RefCell::new(EB::EditBuffer::new(init_buf)));
+    let mut eb = Rc::new(RefCell::new(EB::EditBuffer::open(path)));
 
     let mut ctrl = Rc::new(RefCell::new(EB::mk_controller(eb.clone())));
     let mut view_gen = Rc::new(RefCell::new(EB::ViewGen::new(eb.clone())));

@@ -3,6 +3,8 @@ use crate::undo_buffer::UndoBuffer;
 use crate::{BufElem, Cursor, ChangeLog};
 use crate::read_buffer::*;
 use crate::search;
+use std::path;
+use std::fs;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
@@ -15,6 +17,7 @@ pub struct EditBuffer {
     visual_cursor: Option<Cursor>,
     change_log_buffer: UndoBuffer<ChangeLog>,
     edit_state: Option<EditState>,
+    path: Option<path::PathBuf>,
 }
 
 #[derive(Clone)]
@@ -25,13 +28,36 @@ struct EditState {
     orig_buf: Vec<Vec<BufElem>>,
 }
 
+fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
+    let mut r = vec![];
+    for c in cs {
+        r.push(BufElem::Char(c));
+    }
+    r.push(BufElem::Eol);
+    r
+}
+
+fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
+    path.and_then(|path|
+        fs::read_to_string(path).ok().map(|s| {
+            if s.is_empty() {
+                vec![vec![BufElem::Eol]]
+            } else {
+                s.lines().map(|line| convert_to_bufelems(line.chars().collect())).collect()
+            }
+        })
+    ).unwrap_or(vec![vec![BufElem::Eol]])
+}
+
 impl EditBuffer {
-    pub fn new(init_buf: Vec<Vec<BufElem>>) -> EditBuffer {
+    pub fn open(path: Option<&path::Path>) -> EditBuffer {
+        let init_buf = read_buffer(path);
         EditBuffer {
             rb: ReadBuffer::new(init_buf),
             visual_cursor: None,
             change_log_buffer: UndoBuffer::new(20),
             edit_state: None,
+            path: path.map(|x| x.to_owned()),
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
@@ -385,6 +411,9 @@ impl EditBuffer {
             self.visual_cursor = Some(self.rb.cursor.clone());
         }
     }
+    pub fn save_to_file(&self, _: Key) {
+
+    }
     pub fn cursor_up(&mut self, k: Key) {
         self.rb.cursor_up();
     }
@@ -467,6 +496,7 @@ def_effect!(EditModeInput, EditBuffer, edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
 def_effect!(DeleteEff, EditBuffer, delete);
 def_effect!(ToggleVisualMode, EditBuffer, toggle_visual_mode);
+def_effect!(SaveToFile, EditBuffer, save_to_file);
 
 def_effect!(CursorUp, EditBuffer, cursor_up);
 def_effect!(CursorDown, EditBuffer, cursor_down);
@@ -494,6 +524,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     let mut g = controller::GraphImpl::new();
 
     // mutable
+    g.add_edge("init", "init", Ctrl('s'), Rc::new(SaveToFile(eb.clone())));
     g.add_edge("init", "init", Char('v'), Rc::new(ToggleVisualMode(eb.clone())));
     g.add_edge("init", "init", Char('d'), Rc::new(DeleteEff(eb.clone())));
     g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(eb.clone())));
