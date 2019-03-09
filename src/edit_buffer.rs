@@ -562,7 +562,7 @@ impl view::ViewGen for ViewGen {
             self.old_region = region;
         }
         self.buf.borrow_mut().rb.adjust_window();
-        // self.buf.borrow_mut().rb.update_search_results();
+        self.buf.borrow_mut().rb.update_search_results();
 
         let max_lineno = std::cmp::min(self.buf.borrow().rb.filter.row_high, self.buf.borrow().rb.buf.len() - 1) + 1;
         let lineno_view = view::LineNumber {
