@@ -243,7 +243,9 @@ impl DiffView {
 impl view::DiffView for DiffView {
     fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
         let search_word_len = self.model.cur_word.len();
-        if self.model.hits[row].result().iter().any(|&s| s <= col && col < s+search_word_len) {
+        if row >= self.model.hits.len() {
+            (None, None, None)
+        } else if self.model.hits[row].result().iter().any(|&s| s <= col && col < s+search_word_len) {
             (None, None, Some(screen::Color::Green))
         } else {
             (None, None, None)

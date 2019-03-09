@@ -573,10 +573,10 @@ impl view::ViewGen for ViewGen {
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
 
         let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
-        // let buf_view = view::OverlayView::new(
-        //     buf_view,
-        //     search::DiffView::new(self.buf.borrow().rb.search.clone()),
-        // );
+        let buf_view = view::OverlayView::new(
+            buf_view,
+            search::DiffView::new(self.buf.borrow().rb.search.clone()),
+        );
         let buf_view = view::OverlayView::new(
             buf_view,
             view::VisualRangeDiffView::new(self.buf.borrow().visual_range()),
