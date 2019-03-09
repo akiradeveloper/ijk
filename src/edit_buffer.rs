@@ -565,10 +565,10 @@ impl view::ViewGen for ViewGen {
         self.buf.borrow_mut().rb.adjust_window();
         self.buf.borrow_mut().rb.update_search_results();
 
-        let max_lineno = std::cmp::min(self.buf.borrow().rb.filter.row_high, self.buf.borrow().rb.buf.len() - 1) + 1;
+        let lineno_range = self.buf.borrow().rb.lineno_range();
         let lineno_view = view::LineNumber {
-            from: self.buf.borrow().rb.filter.row_low + 1,
-            to: max_lineno,
+            from: lineno_range.start+1 ,
+            to: lineno_range.end ,
         };
         let lineno_view =
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
