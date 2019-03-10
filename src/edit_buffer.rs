@@ -411,8 +411,14 @@ impl EditBuffer {
         // this ensures visual mode is cancelled whenever it starts insertion mode.
         self.visual_cursor = None;
     }
-    pub fn delete(&mut self, _: Key) {
+    pub fn delete(&mut self, k: Key) {
         if self.visual_range().is_none() {
+            self.visual_cursor = Some(Cursor {
+                row: self.rb.cursor.row,
+                col: 0,
+            });
+            self.rb.jump_line_last();
+            self.delete(k);
             return;
         }
         let vr = self.visual_range().unwrap();
