@@ -24,6 +24,7 @@ impl ReadBuffer {
     fn stabilize_buffer(&mut self) {
         if self.buf.is_empty() {
             self.buf = vec![vec![BufElem::Eol]];
+            self.search = Search::new(1);
         }
     }
     fn stabilize_cursor(&mut self) {

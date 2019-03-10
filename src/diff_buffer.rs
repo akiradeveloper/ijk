@@ -9,11 +9,6 @@ pub struct DiffBuffer {
 }
 
 impl DiffBuffer {
-    pub fn is_empty(&self) -> bool {
-        self.pre_buf.is_empty() &&
-        self.diff_buf.is_empty() &&
-        self.post_buf.is_empty()
-    }
     pub fn input(&mut self, k: Key) {
         match k {
             Key::Backspace => {

@@ -187,9 +187,6 @@ impl EditBuffer {
         }
         Cursor { row: row, col: col }
     }
-    fn is_eof(&self, row: usize, col: usize) -> bool {
-        row == self.rb.buf.len() - 1 && col == self.rb.buf[row].len() - 1
-    }
     fn find_cursor_pair(&self, cursor: Cursor, len: usize) -> Cursor {
         let mut row = cursor.row;
         let mut col = cursor.col;
@@ -236,9 +233,7 @@ impl EditBuffer {
         // others will survive, be merged and inserted afterward
         for (row, col_range) in target_region.clone() {
             for col in 0..self.rb.buf[row].len() {
-                if self.is_eof(row, col) {
-                    post_survivors.push(self.rb.buf[row][col].clone())
-                } else if col_range.start <= col && col < col_range.end {
+                if col_range.start <= col && col < col_range.end {
                     removed.push(self.rb.buf[row][col].clone())
                 } else {
                     let as_cursor = Cursor { row, col };
@@ -272,7 +267,6 @@ impl EditBuffer {
 
         // write back the initial diff buffer
         let es = self.edit_state.clone().unwrap();
-        assert!(!es.diff_buffer.is_empty());
         self.rb.buf.insert(es.at.row, vec![]);
         let mut b = false;
         let after_pre_inserted = self.insert(
@@ -368,7 +362,6 @@ impl EditBuffer {
 
         let es = self.edit_state.clone().unwrap();
         self.rb.buf = es.orig_buf;
-        assert!(!es.diff_buffer.is_empty());
         self.rb.buf.insert(es.at.row, vec![]);
         let mut b = false;
         let after_pre_inserted = self.insert(
@@ -729,6 +722,7 @@ impl view::ViewGen for ViewGen {
         let (edit_reg, search_reg) = region.split_vertical(region.height-1);
         let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
 
+        self.buf.borrow_mut().rb.stabilize();
         if self.old_region != region {
             self.buf.borrow_mut().rb.resize_window(region.width - 6, region.height - 1);
             self.old_region = region;
