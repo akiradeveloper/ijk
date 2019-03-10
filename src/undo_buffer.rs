@@ -24,7 +24,7 @@ impl <T: Clone> UndoBuffer<T> {
     pub fn peek(&self) -> Option<&T> {
         self.undo_queue.back()
     }
-    pub fn save(&mut self, x: T) {
+    pub fn push(&mut self, x: T) {
         self.redo_stack.clear();
         self.undo_queue.push_back(x);
         while self.undo_queue.len() > self.capacity {
@@ -50,10 +50,10 @@ impl <T: Clone> UndoBuffer<T> {
 #[test]
 fn test_undo_buffer() {
     let mut ub = UndoBuffer::new(3);
-    ub.save(1);
-    ub.save(2);
-    ub.save(3);
-    ub.save(4); // [2,3,4]+[]
+    ub.push(1);
+    ub.push(2);
+    ub.push(3);
+    ub.push(4); // [2,3,4]+[]
     assert!(ub.pop_redo().is_none());
     assert_eq!(ub.pop_undo(), Some(4)); // [2,3]+[4]
     assert_eq!(ub.pop_undo(), Some(3)); // [2]+[3,4]

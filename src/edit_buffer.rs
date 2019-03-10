@@ -397,7 +397,7 @@ impl EditBuffer {
         // self.rb.search.update(&change_log);
         self.rb.clear_search_struct(); // tmp
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
-            self.change_log_buffer.save(change_log);
+            self.change_log_buffer.push(change_log);
         }
     }
     fn delete_range(&mut self, range: CursorRange) {
@@ -423,7 +423,7 @@ impl EditBuffer {
             inserted: vec![],
         };
         // self.rb.search.update(&log);
-        self.change_log_buffer.save(log);
+        self.change_log_buffer.push(log);
         self.rb.clear_search_struct(); // tmp
 
         self.rb.cursor = range.start;
@@ -474,7 +474,7 @@ impl EditBuffer {
             deleted: vec![],
             inserted: yb,
         };
-        self.change_log_buffer.save(log.clone());
+        self.change_log_buffer.push(log.clone());
         self.apply_log(&mut log);
     }
     pub fn yank(&mut self, _: Key) {
@@ -517,13 +517,11 @@ impl EditBuffer {
         self.visual_cursor = None;
         // TODO atomic change log
     }
-    pub fn toggle_visual_mode(&mut self, _: Key) {
-        let cur0 = self.visual_cursor;
-        if cur0.is_some() {
-            self.visual_cursor = None;
-        } else {
-            self.visual_cursor = Some(self.rb.cursor.clone());
-        }
+    pub fn enter_visual_mode(&mut self, _: Key) {
+        self.visual_cursor = Some(self.rb.cursor.clone());
+    }
+    pub fn reset(&mut self, _: Key) {
+        self.visual_cursor = None;
     }
     pub fn save_to_file(&self, _: Key) {
         use std::io::Write;
@@ -630,8 +628,9 @@ def_effect!(DeleteChar, EditBuffer, delete_char);
 def_effect!(Paste, EditBuffer, paste);
 def_effect!(Yank, EditBuffer, yank);
 def_effect!(IndentBack, EditBuffer, indent_back);
-def_effect!(ToggleVisualMode, EditBuffer, toggle_visual_mode);
+def_effect!(EnterVisualMode, EditBuffer, enter_visual_mode);
 def_effect!(SaveToFile, EditBuffer, save_to_file);
+def_effect!(Reset, EditBuffer, reset);
 
 def_effect!(CursorUp, EditBuffer, cursor_up);
 def_effect!(CursorDown, EditBuffer, cursor_down);
@@ -660,7 +659,8 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
 
     // mutable
     g.add_edge("init", "init", Ctrl('s'), Rc::new(SaveToFile(eb.clone())));
-    g.add_edge("init", "init", Char('v'), Rc::new(ToggleVisualMode(eb.clone())));
+    g.add_edge("init", "init", Char('v'), Rc::new(EnterVisualMode(eb.clone())));
+    g.add_edge("init", "init", Esc, Rc::new(Reset(eb.clone())));
     g.add_edge("init", "init", Char('d'), Rc::new(DeleteLine(eb.clone())));
     g.add_edge("init", "init", Char('x'), Rc::new(DeleteChar(eb.clone())));
     g.add_edge("init", "init", Char('<'), Rc::new(IndentBack(eb.clone())));
