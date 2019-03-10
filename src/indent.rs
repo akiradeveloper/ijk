@@ -1,6 +1,6 @@
 use crate::BufElem;
-struct AutoIndent<'a> {
-    line_predecessors: &'a [BufElem]
+pub struct AutoIndent<'a> {
+    pub line_predecessors: &'a [BufElem]
 }
 impl <'a> AutoIndent<'a> {
     fn current_indent(&self) -> Vec<BufElem> {
@@ -28,7 +28,7 @@ impl <'a> AutoIndent<'a> {
             }
         }
     }
-    fn next_indent(&self) -> Vec<BufElem> {
+    pub fn next_indent(&self) -> Vec<BufElem> {
         let mut v = self.current_indent();
         v.append(&mut self.extra_next_indent());
         v

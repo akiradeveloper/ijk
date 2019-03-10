@@ -5,6 +5,7 @@ use crate::read_buffer::*;
 use crate::search;
 use std::path;
 use std::fs;
+use crate::indent;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
@@ -292,7 +293,12 @@ impl EditBuffer {
                 col: self.rb.buf[row].len() - 1,
             },
         };
-        self.enter_update_mode(&delete_range, vec![BufElem::Eol]);
+        let auto_indent = indent::AutoIndent {
+            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len()-1]
+        };
+        let mut v = vec![BufElem::Eol];
+        v.append(&mut auto_indent.next_indent());
+        self.enter_update_mode(&delete_range, v);
     }
     pub fn join_next_line(&mut self, _: Key) {
         let row = self.rb.cursor.row;
