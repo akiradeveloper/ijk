@@ -478,6 +478,7 @@ impl EditBuffer {
         self.apply_log(&mut log);
     }
     pub fn yank(&mut self, _: Key) {
+        let orig_cursor = self.rb.cursor;
         let vr = self.visual_range();
         if vr.is_none() { return; }
 
@@ -486,6 +487,7 @@ impl EditBuffer {
         let yb = self.change_log_buffer.peek().cloned().unwrap().deleted;
         self._undo();
         self.yank_buffer.push(yb);
+        self.rb.cursor = orig_cursor;
     }
     fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
         let mut cnt = 0;
