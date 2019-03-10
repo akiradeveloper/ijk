@@ -77,12 +77,16 @@ fn compose<G1: Graph,G2: Graph>(g1: G1, g2: G2) -> ComposedGraph<G1,G2> {
     }
 }
 
-pub struct Controller {
+pub trait Controller {
+   fn receive(&mut self, k: Key);
+}
+
+pub struct ControllerFSM {
     pub cur: String,
     pub g: Box<Graph>,
 }
-impl Controller {
-    pub fn receive(&mut self, k: Key) {
+impl Controller for ControllerFSM {
+    fn receive(&mut self, k: Key) {
         let eff0 = self.g.find_effect(&self.cur, &k);
         match eff0 {
             Some((eff, to)) => {
@@ -126,7 +130,7 @@ fn test_controller() {
 
     let g = compose(g1, g2);
 
-    let mut ctrl = Controller {
+    let mut ctrl = ControllerFSM {
         cur: "yes".to_owned(),
         g: Box::new(g),
     };

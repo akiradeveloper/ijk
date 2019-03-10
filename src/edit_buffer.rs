@@ -646,7 +646,7 @@ def_effect!(SearchJumpForward, EditBuffer, search_jump_forward);
 def_effect!(SearchJumpBackward, EditBuffer, search_jump_backward);
 
 use crate::controller;
-pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
+pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::GraphImpl::new();
 
@@ -692,7 +692,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(eb.clone())));
     g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(eb.clone())));
 
-    controller::Controller {
+    controller::ControllerFSM {
         cur: "init".to_owned(),
         g: Box::new(g),
     }
