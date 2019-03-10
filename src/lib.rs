@@ -59,3 +59,4 @@ pub mod screen;
 pub mod controller;
 pub mod view;
 pub mod search;
+pub mod indent;
