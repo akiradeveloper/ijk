@@ -21,10 +21,22 @@ impl ReadBuffer {
             search: Search::new(n_rows),
         }
     }
+    fn stabilize_buffer(&mut self) {
+        if self.buf.is_empty() {
+            self.buf = vec![vec![BufElem::Eol]];
+        }
+    }
     fn stabilize_cursor(&mut self) {
+        if self.cursor.row > self.buf.len() - 1 {
+            self.cursor.row = self.buf.len() - 1;
+        }
         if self.cursor.col > self.buf[self.cursor.row].len() - 1 {
             self.cursor.col = self.buf[self.cursor.row].len() - 1;
         }
+    }
+    pub fn stabilize(&mut self) {
+        self.stabilize_buffer();
+        self.stabilize_cursor();
     }
     pub fn cursor_up(&mut self) {
         if self.cursor.row > 0 {
