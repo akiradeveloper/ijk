@@ -434,6 +434,32 @@ impl EditBuffer {
         };
         self.delete_range(range);
     }
+    fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
+        let mut cnt = 0;
+        for i in 0 .. indent.len() {
+            if self.rb.buf[row][i] != indent[i] {
+                break;
+            }
+            cnt += 1;
+        }
+        for _ in 0 .. cnt {
+            self.rb.buf[row].remove(0);
+        }
+    }
+    fn indent_back_range(&mut self, row_range: std::ops::Range<usize>) {
+        for row in row_range {
+            self.indent_back_line(row, &vec![BufElem::Char(' '); 4]);
+        }
+    }
+    pub fn indent_back(&mut self, _: Key) {
+        if self.visual_range().is_none() {
+            self.indent_back_range(self.rb.cursor.row .. self.rb.cursor.row+1);
+            return;
+        }
+        let vr = self.visual_range().unwrap();
+        self.indent_back_range(vr.start.row .. vr.end.row+1);
+        self.visual_cursor = None;
+    }
     pub fn toggle_visual_mode(&mut self, _: Key) {
         let cur0 = self.visual_cursor;
         if cur0.is_some() {
@@ -544,6 +570,7 @@ def_effect!(EditModeInput, EditBuffer, edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
 def_effect!(DeleteEff, EditBuffer, delete);
 def_effect!(DeleteChar, EditBuffer, delete_char);
+def_effect!(IndentBack, EditBuffer, indent_back);
 def_effect!(ToggleVisualMode, EditBuffer, toggle_visual_mode);
 def_effect!(SaveToFile, EditBuffer, save_to_file);
 
@@ -577,6 +604,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "init", Char('v'), Rc::new(ToggleVisualMode(eb.clone())));
     g.add_edge("init", "init", Char('d'), Rc::new(DeleteEff(eb.clone())));
     g.add_edge("init", "init", Char('x'), Rc::new(DeleteChar(eb.clone())));
+    g.add_edge("init", "init", Char('<'), Rc::new(IndentBack(eb.clone())));
     g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(eb.clone())));
     g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(eb.clone())));
     g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(eb.clone())));
