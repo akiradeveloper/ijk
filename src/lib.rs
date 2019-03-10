@@ -60,4 +60,4 @@ pub mod controller;
 pub mod view;
 pub mod search;
 pub mod indent;
-pub mod page_list;
+pub mod navigator;
