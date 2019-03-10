@@ -13,12 +13,30 @@ pub struct CursorRange {
     pub end: Cursor,
 }
 
+pub struct YankBuffer {
+    x: Option<Vec<BufElem>>,
+}
+impl YankBuffer {
+    pub fn new() -> Self {
+        Self {
+            x: None,
+        }
+    }
+    pub fn push(&mut self, x: Vec<BufElem>) {
+        self.x = Some(x)
+    }
+    pub fn pop(&mut self) -> Option<Vec<BufElem>> {
+        self.x.clone()
+    }
+}
+
 pub struct EditBuffer {
     pub rb: ReadBuffer,
     visual_cursor: Option<Cursor>,
     change_log_buffer: UndoBuffer<ChangeLog>,
     edit_state: Option<EditState>,
     path: Option<path::PathBuf>,
+    yank_buffer: YankBuffer,
 }
 
 #[derive(Clone)]
@@ -59,6 +77,7 @@ impl EditBuffer {
             change_log_buffer: UndoBuffer::new(20),
             edit_state: None,
             path: path.map(|x| x.to_owned()),
+            yank_buffer: YankBuffer::new(),
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
@@ -445,6 +464,29 @@ impl EditBuffer {
         );
         self.delete_range(range);
     }
+    pub fn paste(&mut self, _: Key) {
+        let yb = self.yank_buffer.pop();
+        if yb.is_none() { return; }
+
+        let yb = yb.unwrap();
+        let mut log = ChangeLog {
+            at: self.rb.cursor,
+            deleted: vec![],
+            inserted: yb,
+        };
+        self.change_log_buffer.save(log.clone());
+        self.apply_log(&mut log);
+    }
+    pub fn yank(&mut self, _: Key) {
+        let vr = self.visual_range();
+        if vr.is_none() { return; }
+
+        let vr = vr.unwrap();
+        self.delete_range(vr);
+        let yb = self.change_log_buffer.peek().cloned().unwrap().deleted;
+        self._undo();
+        self.yank_buffer.push(yb);
+    }
     fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
         let mut cnt = 0;
         for i in 0 .. indent.len() {
@@ -583,6 +625,8 @@ def_effect!(EditModeInput, EditBuffer, edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
 def_effect!(DeleteLine, EditBuffer, delete_line);
 def_effect!(DeleteChar, EditBuffer, delete_char);
+def_effect!(Paste, EditBuffer, paste);
+def_effect!(Yank, EditBuffer, yank);
 def_effect!(IndentBack, EditBuffer, indent_back);
 def_effect!(ToggleVisualMode, EditBuffer, toggle_visual_mode);
 def_effect!(SaveToFile, EditBuffer, save_to_file);
@@ -623,6 +667,8 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(eb.clone())));
     g.add_edge("init", "insert", Char('a'), Rc::new(EnterAppendMode(eb.clone())));
     g.add_edge("init", "insert", Char('c'), Rc::new(EnterChangeMode(eb.clone())));
+    g.add_edge("init", "init", Char('p'), Rc::new(Paste(eb.clone())));
+    g.add_edge("init", "init", Char('y'), Rc::new(Yank(eb.clone())));
     g.add_edge("insert", "init", Esc, Rc::new(LeaveEditMode(eb.clone())));
     g.add_edge("insert", "insert", Otherwise, Rc::new(EditModeInput(eb.clone())));
 

@@ -21,6 +21,9 @@ impl <T: Clone> UndoBuffer<T> {
             redo_stack: Vec::new(),
         }
     }
+    pub fn peek(&self) -> Option<&T> {
+        self.undo_queue.back()
+    }
     pub fn save(&mut self, x: T) {
         self.redo_stack.clear();
         self.undo_queue.push_back(x);
