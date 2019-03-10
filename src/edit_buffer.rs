@@ -411,27 +411,38 @@ impl EditBuffer {
         // this ensures visual mode is cancelled whenever it starts insertion mode.
         self.visual_cursor = None;
     }
-    pub fn delete(&mut self, k: Key) {
+    pub fn delete(&mut self, _: Key) {
         if self.visual_range().is_none() {
             self.visual_cursor = Some(Cursor {
                 row: self.rb.cursor.row,
                 col: 0,
             });
             self.rb.jump_line_last();
-            self.delete(k);
-            return;
+            self.delete_range(self.visual_range().unwrap());
+        } else {
+            let vr = self.visual_range().unwrap();
+            self.rb.cursor = Cursor {
+                row: vr.end.row,
+                col: 0,
+            };
+            self.visual_cursor = Some(Cursor {
+                row: vr.start.row,
+                col: 0,
+            });
+            self.rb.jump_line_last();
+            self.delete_range(self.visual_range().unwrap());
         }
-        let vr = self.visual_range().unwrap();
-        self.delete_range(vr);
     }
     pub fn delete_char(&mut self, _: Key) {
-        let range = CursorRange {
-            start: self.rb.cursor,
-            end: Cursor {
-                row: self.rb.cursor.row,
-                col: self.rb.cursor.col + 1,
-            },
-        };
+        let range = self.visual_range().unwrap_or(
+            CursorRange {
+                start: self.rb.cursor,
+                end: Cursor {
+                    row: self.rb.cursor.row,
+                    col: self.rb.cursor.col + 1,
+                },
+            }
+        );
         self.delete_range(range);
     }
     fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
