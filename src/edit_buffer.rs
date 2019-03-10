@@ -381,21 +381,17 @@ impl EditBuffer {
             self.change_log_buffer.save(change_log);
         }
     }
-    pub fn delete(&mut self, _: Key) {
-        if self.visual_range().is_none() {
-            return;
-        }
-        let vr = self.visual_range().unwrap();
-        let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&vr);
+    fn delete_range(&mut self, range: CursorRange) {
+        let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&range);
 
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
-            self.rb.buf.insert(vr.start.row, vec![])
+            self.rb.buf.insert(range.start.row, vec![])
         }
         let mut b = false;
         self.insert(
             Cursor {
-                row: vr.start.row,
+                row: range.start.row,
                 col: 0,
             },
             pre_survivors,
@@ -403,7 +399,7 @@ impl EditBuffer {
         );
 
         let log = ChangeLog {
-            at: vr.start.clone(),
+            at: range.start.clone(),
             deleted: removed,
             inserted: vec![],
         };
@@ -411,9 +407,26 @@ impl EditBuffer {
         self.change_log_buffer.save(log);
         self.rb.clear_search_struct(); // tmp
 
-        self.rb.cursor = vr.start;
+        self.rb.cursor = range.start;
         // this ensures visual mode is cancelled whenever it starts insertion mode.
         self.visual_cursor = None;
+    }
+    pub fn delete(&mut self, _: Key) {
+        if self.visual_range().is_none() {
+            return;
+        }
+        let vr = self.visual_range().unwrap();
+        self.delete_range(vr);
+    }
+    pub fn delete_char(&mut self, _: Key) {
+        let range = CursorRange {
+            start: self.rb.cursor,
+            end: Cursor {
+                row: self.rb.cursor.row,
+                col: self.rb.cursor.col + 1,
+            },
+        };
+        self.delete_range(range);
     }
     pub fn toggle_visual_mode(&mut self, _: Key) {
         let cur0 = self.visual_cursor;
@@ -524,6 +537,7 @@ def_effect!(EnterChangeMode, EditBuffer, enter_change_mode);
 def_effect!(EditModeInput, EditBuffer, edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
 def_effect!(DeleteEff, EditBuffer, delete);
+def_effect!(DeleteChar, EditBuffer, delete_char);
 def_effect!(ToggleVisualMode, EditBuffer, toggle_visual_mode);
 def_effect!(SaveToFile, EditBuffer, save_to_file);
 
@@ -556,6 +570,7 @@ pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::Controller {
     g.add_edge("init", "init", Ctrl('s'), Rc::new(SaveToFile(eb.clone())));
     g.add_edge("init", "init", Char('v'), Rc::new(ToggleVisualMode(eb.clone())));
     g.add_edge("init", "init", Char('d'), Rc::new(DeleteEff(eb.clone())));
+    g.add_edge("init", "init", Char('x'), Rc::new(DeleteChar(eb.clone())));
     g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(eb.clone())));
     g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(eb.clone())));
     g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(eb.clone())));
