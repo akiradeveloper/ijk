@@ -19,7 +19,7 @@ pub struct Directory {
     entries: Vec<Entry>,
 }
 impl Directory {
-    pub fn new(path: &path::Path) -> Self {
+    pub fn open(path: &path::Path) -> Self {
         let mut r = Self {
             path: path.to_owned(),
             entries: vec![],
@@ -60,7 +60,7 @@ impl view::ViewGen for ViewGen {
         unimplemented!()
     }
 }
-struct Page {
+pub struct Page {
 
 }
 impl Page {

@@ -17,6 +17,7 @@ use clap::{App, Arg};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use ijk::directory;
 use ijk::BufElem;
 use ijk::Key::*;
 use ijk::edit_buffer;
@@ -27,15 +28,32 @@ fn main() {
     let matches = App::new("ijk")
         .about("A toy editor for fun")
         .bin_name("ijk")
-        .arg(Arg::with_name("file"))
+        .arg(Arg::with_name("path"))
         .get_matches();
 
-    let file_path: Option<&OsStr> = matches.value_of_os("file");
+    let file_path: Option<&OsStr> = matches.value_of_os("path");
     let path = file_path.map(|fp| path::Path::new(fp));
     
     let mut navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
-    let mut eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(path)));
-    let page = Box::new(edit_buffer::Page::new(eb));
+
+    let page: Box<navigator::Page> = match path {
+        Some(path) if path.is_file() => {
+            let mut eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(path))));
+            Box::new(edit_buffer::Page::new(eb))
+        },
+        Some(path) if path.is_dir() => {
+            let mut dir = Rc::new(RefCell::new(directory::Directory::open(path)));
+            Box::new(directory::Page::new(dir))
+        },
+        Some(_) => {
+            panic!()
+        },
+        None => {
+            let mut eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(None)));
+            Box::new(edit_buffer::Page::new(eb))
+        }
+    };
+
     navigator.borrow_mut().push(page);
     let mut editor = ijk::editor::Editor::new(navigator);
 
