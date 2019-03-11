@@ -1,5 +1,5 @@
-use crate::controller;
-use crate::view;
+use super::controller;
+use super::view;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::cell::RefCell;
