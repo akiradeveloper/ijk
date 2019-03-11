@@ -55,7 +55,7 @@ pub trait View {
     fn get_cursor_pos(&self) -> Option<Cursor>;
 }
 
-struct NullView {}
+pub struct NullView {}
 impl View for NullView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         (' ', Color::Black, Color::Black)

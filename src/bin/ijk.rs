@@ -34,7 +34,7 @@ fn main() {
     let file_path: Option<&OsStr> = matches.value_of_os("path");
     let path = file_path.map(|fp| path::Path::new(fp));
     
-    let mut navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
+    let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
 
     let page: Box<navigator::Page> = match path {
         Some(path) if path.is_file() => {

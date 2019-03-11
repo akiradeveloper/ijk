@@ -1,8 +1,11 @@
 use super::controller;
 use super::view;
+use super::read_buffer;
+use crate::BufElem;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::cell::RefCell;
+
 pub trait Page {
     fn controller(&self) -> Rc<RefCell<controller::Controller>>;
     fn view_gen(&self) -> Rc<RefCell<view::ViewGen>>;
@@ -13,6 +16,7 @@ pub struct Navigator {
     pub controller: Rc<RefCell<controller::Controller>>,
     pub view_gen: Rc<RefCell<view::ViewGen>>,
     list: VecDeque<Box<Page>>,
+    rb: read_buffer::ReadBuffer,
 }
 impl Navigator {
     pub fn new() -> Self {
@@ -20,9 +24,10 @@ impl Navigator {
             controller: Rc::new(RefCell::new(controller::NullController {})),
             view_gen: Rc::new(RefCell::new(view::NullViewGen {})),
             list: VecDeque::new(),
+            rb: read_buffer::ReadBuffer::new(vec![vec![BufElem::Eol]]),
         }
     }
-    fn set(&mut self, controller: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<view::ViewGen>>) {
+    pub fn set(&mut self, controller: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<view::ViewGen>>) {
         self.controller = controller;
         self.view_gen = view_gen;
     }
@@ -38,5 +43,78 @@ impl Navigator {
     }
     pub fn pop(&mut self) {
 
+    }
+}
+
+pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
+    let mut g = controller::GraphImpl::new();
+    // TODO
+    controller::ControllerFSM {
+        cur: "init".to_owned(),
+        g: Box::new(g),
+    }
+}
+pub struct ViewGen {
+    x: Rc<RefCell<Navigator>>,
+    old_region: view::ViewRegion,
+}
+impl ViewGen {
+    pub fn new(x: Rc<RefCell<Navigator>>) -> Self {
+        Self {
+            x,
+            old_region: view::ViewRegion {
+                col: 0,
+                row: 0,
+                width: 0,
+                height: 0,
+            },
+         }
+    }
+}
+impl view::ViewGen for ViewGen {
+    fn gen(&mut self, region: view::ViewRegion) -> Box<view::View> {
+        self.x.borrow_mut().rb.stabilize();
+        if self.old_region != region {
+            self.x.borrow_mut().rb.resize_window(region.width - 6, region.height - 1);
+            self.old_region = region;
+        }
+        self.x.borrow_mut().rb.adjust_window();
+        self.x.borrow_mut().rb.update_search_results();
+
+        let navi_area = region;
+        let navi_view = view::ToView::new(self.x.borrow().rb.buf.clone());
+        let navi_view = view::TranslateView::new(
+            navi_view,
+            navi_area.col as i32 - self.x.borrow().rb.filter.col() as i32,
+            navi_area.row as i32 - self.x.borrow().rb.filter.row() as i32,
+        );
+
+        let view = navi_view;
+        Box::new(view)
+    }
+}
+pub struct PageImpl {
+    controller: Rc<RefCell<controller::Controller>>,
+    view_gen: Rc<RefCell<view::ViewGen>>,
+    x: Rc<RefCell<Navigator>>,
+}
+impl PageImpl {
+    pub fn new(x: Rc<RefCell<Navigator>>) -> Self {
+        Self {
+            controller: Rc::new(RefCell::new(mk_controller(x.clone()))),
+            view_gen: Rc::new(RefCell::new(ViewGen::new(x.clone()))),
+            x: x,
+        }
+    }
+}
+impl Page for PageImpl {
+    fn controller(&self) -> Rc<RefCell<controller::Controller>> {
+        self.controller.clone()
+    }
+    fn view_gen(&self) -> Rc<RefCell<view::ViewGen>> {
+        self.view_gen.clone()
+    }
+    fn desc(&self) -> String {
+        unimplemented!()
     }
 }
