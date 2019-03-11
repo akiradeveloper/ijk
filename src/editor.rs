@@ -30,7 +30,6 @@ impl Editor {
     pub fn new(navigator: Rc<RefCell<navigator::Navigator>>) -> Self {
         Self {
             controller: Rc::new(RefCell::new(navigator::mk_controller(navigator.clone()))),
-            // view_gen: Rc::new(RefCell::new(view::NullViewGen {})),
             view_gen: Rc::new(RefCell::new(navigator::ViewGen::new(navigator.clone()))),
             navigator: navigator,
         }

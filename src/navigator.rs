@@ -24,25 +24,39 @@ impl Navigator {
             controller: Rc::new(RefCell::new(controller::NullController {})),
             view_gen: Rc::new(RefCell::new(view::NullViewGen {})),
             list: VecDeque::new(),
-            rb: read_buffer::ReadBuffer::new(vec![vec![BufElem::Eol]]),
+            rb: read_buffer::ReadBuffer::new(vec![]),
         }
+    }
+    fn refresh_buffer(&mut self) {
+        let mut v = vec![];
+        for e in &self.list {
+            let mut vv = vec![];
+            for c in e.desc().chars() {
+                vv.push(BufElem::Char(c));
+            }
+            vv.push(BufElem::Eol);
+            v.push(vv);
+        }
+        self.rb = read_buffer::ReadBuffer::new(v);
     }
     pub fn set(&mut self, controller: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<view::ViewGen>>) {
         self.controller = controller;
         self.view_gen = view_gen;
     }
     fn select(&mut self, i: usize) {
-        self.set(self.list[i].controller(), self.list[i].view_gen())
+        // TODO move i-th to the top
+        self.refresh_buffer();
+        self.set(self.list[i].controller(), self.list[i].view_gen());
     }
     fn delete(&mut self, i: usize) {
-
+        self.refresh_buffer();
     }
     pub fn push(&mut self, page: Box<Page>) {
         self.list.push_front(page);
-        self.select(0)
+        self.select(0);
     }
     pub fn pop(&mut self) {
-
+        self.refresh_buffer();
     }
 }
 
@@ -91,30 +105,5 @@ impl view::ViewGen for ViewGen {
 
         let view = navi_view;
         Box::new(view)
-    }
-}
-pub struct PageImpl {
-    controller: Rc<RefCell<controller::Controller>>,
-    view_gen: Rc<RefCell<view::ViewGen>>,
-    x: Rc<RefCell<Navigator>>,
-}
-impl PageImpl {
-    pub fn new(x: Rc<RefCell<Navigator>>) -> Self {
-        Self {
-            controller: Rc::new(RefCell::new(mk_controller(x.clone()))),
-            view_gen: Rc::new(RefCell::new(ViewGen::new(x.clone()))),
-            x: x,
-        }
-    }
-}
-impl Page for PageImpl {
-    fn controller(&self) -> Rc<RefCell<controller::Controller>> {
-        self.controller.clone()
-    }
-    fn view_gen(&self) -> Rc<RefCell<view::ViewGen>> {
-        self.view_gen.clone()
-    }
-    fn desc(&self) -> String {
-        unimplemented!()
     }
 }

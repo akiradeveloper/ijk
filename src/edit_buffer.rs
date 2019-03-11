@@ -803,6 +803,6 @@ impl navigator::Page for Page {
         self.view_gen.clone()
     }
     fn desc(&self) -> String {
-        "tmp".to_owned()
+        "buffer".to_owned() // tmp
     }
 }

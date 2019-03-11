@@ -138,6 +138,6 @@ impl navigator::Page for Page {
         self.view_gen.clone()
     }
     fn desc(&self) -> String {
-        unimplemented!()
+        "directory".to_owned() // tmp
     }
 }
