@@ -140,4 +140,10 @@ impl navigator::Page for Page {
     fn desc(&self) -> String {
         "directory".to_owned() // tmp
     }
+    fn kind(&self) -> navigator::PageKind {
+        navigator::PageKind::Directory
+    }
+    fn id(&self) -> String {
+        "bbb".to_owned()
+    }
 }

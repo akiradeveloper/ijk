@@ -805,4 +805,10 @@ impl navigator::Page for Page {
     fn desc(&self) -> String {
         "buffer".to_owned() // tmp
     }
+    fn kind(&self) -> navigator::PageKind {
+        navigator::PageKind::Buffer
+    }
+    fn id(&self) -> String {
+        "aaa".to_owned() // tmp
+    }
 }

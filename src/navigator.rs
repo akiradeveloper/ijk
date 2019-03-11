@@ -6,16 +6,24 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+pub enum PageKind {
+    Buffer,
+    Directory,
+    Other,
+}
+
 pub trait Page {
     fn controller(&self) -> Rc<RefCell<controller::Controller>>;
     fn view_gen(&self) -> Rc<RefCell<view::ViewGen>>;
+    fn kind(&self) -> PageKind;
+    fn id(&self) -> String;
     fn desc(&self) -> String;
 }
 
 pub struct Navigator {
     pub controller: Rc<RefCell<controller::Controller>>,
     pub view_gen: Rc<RefCell<view::ViewGen>>,
-    list: VecDeque<Box<Page>>,
+    list: Vec<Box<Page>>,
     rb: read_buffer::ReadBuffer,
 }
 impl Navigator {
@@ -23,7 +31,7 @@ impl Navigator {
         Self {
             controller: Rc::new(RefCell::new(controller::NullController {})),
             view_gen: Rc::new(RefCell::new(view::NullViewGen {})),
-            list: VecDeque::new(),
+            list: Vec::new(),
             rb: read_buffer::ReadBuffer::new(vec![]),
         }
     }
@@ -44,19 +52,25 @@ impl Navigator {
         self.view_gen = view_gen;
     }
     fn select(&mut self, i: usize) {
-        // TODO move i-th to the top
+        let e = self.list.remove(i);
+        self.list.insert(0, e);
         self.refresh_buffer();
         self.set(self.list[i].controller(), self.list[i].view_gen());
     }
     fn delete(&mut self, i: usize) {
-        self.refresh_buffer();
+        self.list.remove(i);
+        self.select(0);
     }
     pub fn push(&mut self, page: Box<Page>) {
-        self.list.push_front(page);
+        if self.list.iter().any(|e| e.id() == page.id()) {
+            return;
+        }
+        self.list.insert(0, page);
         self.select(0);
     }
     pub fn pop(&mut self) {
-        self.refresh_buffer();
+        self.list.remove(0);
+        self.select(0);
     }
 }
 
