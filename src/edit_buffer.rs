@@ -608,6 +608,7 @@ macro_rules! def_effect {
         }
     };
 }
+
 def_effect!(Undo, EditBuffer, undo);
 def_effect!(Redo, EditBuffer, redo);
 def_effect!(JoinNextLine, EditBuffer, join_next_line);
