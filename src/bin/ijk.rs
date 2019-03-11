@@ -19,8 +19,9 @@ use std::rc::Rc;
 
 use ijk::BufElem;
 use ijk::Key::*;
-use ijk::edit_buffer as EB;
+use ijk::edit_buffer;
 use ijk::screen::*;
+use ijk::navigator;
 
 fn main() {
     let matches = App::new("ijk")
@@ -31,12 +32,12 @@ fn main() {
 
     let file_path: Option<&OsStr> = matches.value_of_os("file");
     let path = file_path.map(|fp| path::Path::new(fp));
-
-    let mut eb = Rc::new(RefCell::new(EB::EditBuffer::open(path)));
-
-    let mut ctrl = Rc::new(RefCell::new(EB::mk_controller(eb.clone())));
-    let mut view_gen = Rc::new(RefCell::new(EB::ViewGen::new(eb.clone())));
-    let mut editor = ijk::editor::Editor::new(ctrl, view_gen);
+    
+    let mut navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
+    let mut eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(path)));
+    let page = Box::new(edit_buffer::Page::new(eb));
+    navigator.borrow_mut().push(page);
+    let mut editor = ijk::editor::Editor::new(navigator);
 
     editor.run();
 }

@@ -81,6 +81,11 @@ pub trait Controller {
    fn receive(&mut self, k: Key);
 }
 
+pub struct NullController {} 
+impl Controller for NullController {
+    fn receive(&mut self, k: Key) {}
+}
+
 pub struct ControllerFSM {
     pub cur: String,
     pub g: Box<Graph>,

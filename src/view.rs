@@ -55,6 +55,22 @@ pub trait View {
     fn get_cursor_pos(&self) -> Option<Cursor>;
 }
 
+struct NullView {}
+impl View for NullView {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        (' ', Color::Black, Color::Black)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
+pub struct NullViewGen {}
+impl ViewGen for NullViewGen {
+    fn gen(&mut self, region: ViewRegion) -> Box<View> {
+        Box::new(NullView {})
+    }
+}
+
 pub trait DiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }

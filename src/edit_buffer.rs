@@ -3,6 +3,7 @@ use crate::undo_buffer::UndoBuffer;
 use crate::{BufElem, Cursor, ChangeLog};
 use crate::read_buffer::*;
 use crate::search;
+use crate::navigator;
 use std::path;
 use std::fs;
 use crate::indent;
@@ -776,5 +777,31 @@ impl view::ViewGen for ViewGen {
         };
 
         Box::new(view)
+    }
+}
+
+pub struct Page {
+    controller: Rc<RefCell<controller::Controller>>,
+    view_gen: Rc<RefCell<view::ViewGen>>,
+    eb: Rc<RefCell<EditBuffer>>,
+}
+impl Page {
+    pub fn new(eb: Rc<RefCell<EditBuffer>>) -> Self {
+        Self {
+            controller: Rc::new(RefCell::new(mk_controller(eb.clone()))),
+            view_gen: Rc::new(RefCell::new(ViewGen::new(eb.clone()))),
+            eb: eb,
+        }
+    }
+}
+impl navigator::Page for Page {
+    fn controller(&self) -> Rc<RefCell<controller::Controller>> {
+        self.controller.clone()
+    }
+    fn view_gen(&self) -> Rc<RefCell<view::ViewGen>> {
+        self.view_gen.clone()
+    }
+    fn desc(&self) -> String {
+        "tmp".to_owned()
     }
 }

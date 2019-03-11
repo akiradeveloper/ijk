@@ -15,18 +15,18 @@ use crate::edit_buffer as EB;
 use crate::screen::*;
 use crate::BufElem;
 use crate::view;
+use crate::navigator;
 use crate::controller;
 use crate::view::View;
 use crate::view::ViewGen;
 
 pub struct Editor {
-    ctrl: Rc<RefCell<controller::Controller>>,
-    view_gen: Rc<RefCell<view::ViewGen>>, // tmp instead of view
+    navigator: Rc<RefCell<navigator::Navigator>>,
 }
 
 impl Editor {
-    pub fn new(ctrl: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<view::ViewGen>>) -> Self {
-        Self { ctrl: ctrl, view_gen: view_gen }
+    pub fn new(navigator: Rc<RefCell<navigator::Navigator>>) -> Self {
+        Self { navigator }
     }
     // fn draw() {}
     pub fn run(&mut self) {
@@ -48,7 +48,7 @@ impl Editor {
                 width: term_w as usize,
                 height: term_h as usize,
             };
-            let view = self.view_gen.borrow_mut().gen(region);
+            let view = self.navigator.borrow().view_gen.borrow_mut().gen(region);
             screen.clear();
             for row in 0 .. region.height {
                 for col in 0 .. region.width {
@@ -56,8 +56,9 @@ impl Editor {
                     screen.draw(col, row, c, Style(fg,bg))
                 }
             }
-            let cursor = view.get_cursor_pos().unwrap();
-            screen.move_cursor(cursor.col, cursor.row);
+            for cursor in view.get_cursor_pos() {
+                screen.move_cursor(cursor.col, cursor.row);
+            }
             screen.present();
 
             match keys.next() {
@@ -74,7 +75,7 @@ impl Editor {
                             continue
                         },
                     };
-                    self.ctrl.borrow_mut().receive(kk);
+                    self.navigator.borrow().controller.borrow_mut().receive(kk);
                 }
             }
         }
