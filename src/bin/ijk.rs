@@ -38,18 +38,18 @@ fn main() {
 
     let page: Box<navigator::Page> = match path {
         Some(path) if path.is_file() => {
-            let mut eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(path))));
+            let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(path))));
             Box::new(edit_buffer::Page::new(eb))
         },
         Some(path) if path.is_dir() => {
-            let mut dir = Rc::new(RefCell::new(directory::Directory::open(path)));
+            let dir = Rc::new(RefCell::new(directory::Directory::open(path)));
             Box::new(directory::Page::new(dir))
         },
         Some(_) => {
             panic!()
         },
         None => {
-            let mut eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(None)));
+            let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(None)));
             Box::new(edit_buffer::Page::new(eb))
         }
     };
