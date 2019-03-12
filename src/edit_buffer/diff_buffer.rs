@@ -1,5 +1,5 @@
-use crate::*;
-use crate::indent;
+use crate::{BufElem, Key};
+use super::indent;
 
 #[derive(Clone)]
 pub struct DiffBuffer {

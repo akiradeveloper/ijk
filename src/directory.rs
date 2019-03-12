@@ -22,7 +22,7 @@ pub struct Directory {
     navigator: Rc<RefCell<Navigator>>,
 }
 impl Directory {
-    pub fn open(path: &path::Path, navigator: Rc<RefCell<Navigator>>) -> Self {
+    pub fn open(path: &Path, navigator: Rc<RefCell<Navigator>>) -> Self {
         let mut r = Self {
             path: fs::canonicalize(path).unwrap(),
             entries: vec![],
@@ -150,8 +150,8 @@ impl view::ViewGen for ViewGen {
         );
         let dir_view = view::TranslateView::new(
             dir_view,
-            dir_area.col as i32 - self.x.borrow().rb.filter.col() as i32,
-            dir_area.row as i32 - self.x.borrow().rb.filter.row() as i32,
+            dir_area.col as i32 - self.x.borrow().rb.window.col() as i32,
+            dir_area.row as i32 - self.x.borrow().rb.window.row() as i32,
         );
 
         let view = dir_view;

@@ -1,12 +1,15 @@
 use crate::{BufElem, Cursor, Key};
-use crate::visibility_filter::VisibilityFilter;
-use crate::search::Search;
+use self::visibility_window::VisibilityWindow;
+use self::search::Search;
+
+mod visibility_window;
+pub mod search;
 
 pub struct ReadBuffer {
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
     num_buffer: Vec<char>,
-    pub filter: VisibilityFilter,
+    pub window: VisibilityWindow,
     pub search: Search,
 }
 
@@ -17,7 +20,7 @@ impl ReadBuffer {
             buf: init_buf,
             cursor: Cursor { row: 0, col: 0 },
             num_buffer: vec![],
-            filter: VisibilityFilter::new(Cursor { col: 0, row: 0 }),
+            window: VisibilityWindow::new(Cursor { col: 0, row: 0 }),
             search: Search::new(n_rows),
         }
     }
@@ -68,21 +71,21 @@ impl ReadBuffer {
         self.cursor.col = self.buf[self.cursor.row].len() - 1;
     }
     pub fn jump_page_forward(&mut self) {
-        let dist_from_window_bottom = self.filter.row_high - self.cursor.row;
-        for _ in 0 .. self.filter.height() + dist_from_window_bottom {
+        let dist_from_window_bottom = self.window.row_high - self.cursor.row;
+        for _ in 0 .. self.window.height() + dist_from_window_bottom {
             self.cursor_down();
         }
-        self.filter.adjust(self.cursor);
+        self.window.adjust(self.cursor);
         for _ in 0 .. dist_from_window_bottom {
             self.cursor_up();
         }
     }
     pub fn jump_page_backward(&mut self) {
-        let dist_from_window_top = self.cursor.row - self.filter.row_low;
-        for _ in 0 .. self.filter.height() + dist_from_window_top {
+        let dist_from_window_top = self.cursor.row - self.window.row_low;
+        for _ in 0 .. self.window.height() + dist_from_window_top {
             self.cursor_up();
         }
-        self.filter.adjust(self.cursor);
+        self.window.adjust(self.cursor);
         for _ in 0 .. dist_from_window_top {
             self.cursor_down();
         }
@@ -141,7 +144,7 @@ impl ReadBuffer {
         }
     }
     pub fn adjust_window(&mut self, w: usize, h: usize) {
-        self.filter.adjust_window(self.cursor, w, h);
+        self.window.adjust_window(self.cursor, w, h);
     }
     pub fn current_search_word(&self) -> String {
         let mut s = String::new();
@@ -157,6 +160,6 @@ impl ReadBuffer {
         self.search.update_results(self.lineno_range(), &self.buf)
     }
     pub fn lineno_range(&self) -> std::ops::Range<usize> {
-        self.filter.row_low .. std::cmp::min(self.filter.row_high+1, self.buf.len())
+        self.window.row_low .. std::cmp::min(self.window.row_high+1, self.buf.len())
     }
 }

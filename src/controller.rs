@@ -1,5 +1,6 @@
 use crate::Key;
 use std::collections::{HashSet, HashMap};
+use std::rc::Rc;
 
 pub trait Effect {
     fn run(&self, k: Key) -> ();
@@ -103,6 +104,10 @@ impl Controller for ControllerFSM {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{Effect, GraphImpl, compose, ControllerFSM, Controller};
+    use crate::Key;
 use std::rc::Rc;
 use std::cell::RefCell;
 // for test
@@ -145,4 +150,5 @@ fn test_controller() {
     assert_eq!(*buf.borrow(), ['y']);
     ctrl.receive(Char('n'));
     assert_eq!(*buf.borrow(), ['y', 'n']);
+}
 }

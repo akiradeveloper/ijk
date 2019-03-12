@@ -1,7 +1,6 @@
 use crate::view;
 use crate::screen;
-use crate::{Cursor, BufElem, ChangeLog};
-use std::ops::Range;
+use crate::{Cursor, BufElem};
 
 #[derive(Clone, Debug)]
 /// invariant: L(search_word) == L(results)
@@ -107,49 +106,14 @@ fn test_hit() {
     assert_eq!(hit.rollback_search(&[]), 0);
     assert_eq!(hit.result(), &[]);
 }
-#[derive(PartialEq, Debug)]
-enum AffectRange {
-    Empty,
-    Mid(usize),
-    EndEol(usize),
-}
+
 #[derive(Clone)]
 pub struct Search {
     pub cur_word: Vec<char>,
     hits: Vec<Hit>,
 }
 impl Search {
-    fn affect_range_of(buf: &[BufElem]) -> AffectRange {
-        if buf.is_empty() {
-            return AffectRange::Empty;
-        }
-        let mut n = 1;
-        for e in buf {
-            if *e == BufElem::Eol {
-                n += 1;
-            }
-        }
-        if *buf.last().unwrap() == BufElem::Eol {
-            n -= 1;
-            AffectRange::EndEol(n)
-        } else {
-            AffectRange::Mid(n)
-        }
-    }
-    fn calc_n_rows_affected(deleted: &[BufElem], inserted: &[BufElem]) -> (usize, usize) {
-        use crate::search::AffectRange::*;
-        match (Self::affect_range_of(deleted), Self::affect_range_of(inserted)) {
-            (Empty, Empty) => (0, 0),
-            (Empty, Mid(n)) => (1, n),
-            (Empty, EndEol(n)) => (1, n+1),
-            (Mid(n), Empty) => (n, 1),
-            (Mid(n), Mid(m)) => (n, m),
-            (Mid(n), EndEol(m)) => (n, m+1),
-            (EndEol(n), Empty) => (n+1, 1),
-            (EndEol(n), Mid(m)) => (n+1, m),
-            (EndEol(n), EndEol(m)) => (n+1, m+1),
-        }
-    }
+
     pub fn new(n_rows: usize) -> Self {
         Self {
             cur_word: vec![],
@@ -165,15 +129,12 @@ impl Search {
     pub fn pop_search_word(&mut self) {
         self.cur_word.pop();
     }
-    // TODO
-    // optimized version
-    pub fn update_struct(&mut self, log: &ChangeLog) {
-        let (deleted, inserted) = Self::calc_n_rows_affected(&log.deleted, &log.inserted);
+    pub fn update_struct(&mut self, row: usize, deleted: usize, inserted: usize) {
         for _ in 0..deleted {
-            self.hits.remove(log.at.row);
+            self.hits.remove(row);
         }
         for _ in 0..inserted {
-            self.hits.insert(log.at.row, Hit::new());
+            self.hits.insert(row, Hit::new());
         }
     }
     // tmp: instead of update
@@ -220,17 +181,6 @@ impl Search {
             }
         }
     }
-}
-
-#[test]
-fn test_affect_range() {
-    use crate::search::AffectRange::*;
-    use crate::BufElem::*;
-    assert_eq!(Search::affect_range_of(&[]), Empty);
-    assert_eq!(Search::affect_range_of(&[Char(' ')]), Mid(1));
-    assert_eq!(Search::affect_range_of(&[Char(' '),BufElem::Eol]), EndEol(1));
-    assert_eq!(Search::affect_range_of(&[Char(' '),BufElem::Eol,Char('a')]), Mid(2));
-    assert_eq!(Search::affect_range_of(&[Char(' '),BufElem::Eol,Char('a'),Eol]), EndEol(2));
 }
 
 pub struct DiffView {

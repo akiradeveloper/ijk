@@ -2,7 +2,6 @@ use super::controller;
 use super::view;
 use super::read_buffer;
 use crate::BufElem;
-use std::collections::VecDeque;
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -139,8 +138,8 @@ impl view::ViewGen for ViewGen {
         );
         let navi_view = view::TranslateView::new(
             navi_view,
-            navi_area.col as i32 - self.x.borrow().rb.filter.col() as i32,
-            navi_area.row as i32 - self.x.borrow().rb.filter.row() as i32,
+            navi_area.col as i32 - self.x.borrow().rb.window.col() as i32,
+            navi_area.row as i32 - self.x.borrow().rb.window.row() as i32,
         );
 
         let view = navi_view;

@@ -1,4 +1,5 @@
 use crate::BufElem;
+
 pub struct AutoIndent<'a> {
     pub line_predecessors: &'a [BufElem]
 }

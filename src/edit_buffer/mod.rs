@@ -1,17 +1,36 @@
-use crate::diff_buffer::DiffBuffer;
-use crate::undo_buffer::UndoBuffer;
-use crate::{BufElem, Cursor, ChangeLog};
+mod diff_buffer;
+mod undo_buffer;
+mod indent;
+
+use self::diff_buffer::DiffBuffer;
+use self::undo_buffer::UndoBuffer;
+
+use crate::{BufElem, Cursor};
 use crate::read_buffer::*;
-use crate::search;
 use crate::navigator;
 use std::path;
 use std::fs;
-use crate::indent;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
     pub start: Cursor,
     pub end: Cursor,
+}
+
+#[derive(Clone)]
+pub struct ChangeLog {
+    at: Cursor,
+    deleted: Vec<BufElem>,
+    inserted: Vec<BufElem>,
+}
+impl ChangeLog {
+    pub fn swap(&self) -> Self {
+        Self {
+            at: self.at,
+            deleted: self.inserted.clone(),
+            inserted: self.deleted.clone(),
+        }
+    }
 }
 
 pub struct YankBuffer {
@@ -28,6 +47,54 @@ impl YankBuffer {
     }
     pub fn pop(&mut self) -> Option<Vec<BufElem>> {
         self.x.clone()
+    }
+}
+
+#[derive(PartialEq, Debug)]
+enum AffectRange {
+    Empty,
+    Mid(usize),
+    EndEol(usize),
+}
+fn affect_range_of(buf: &[BufElem]) -> AffectRange {
+    if buf.is_empty() {
+        return AffectRange::Empty;
+    }
+    let mut n = 1;
+    for e in buf {
+        if *e == BufElem::Eol {
+            n += 1;
+        }
+    }
+    if *buf.last().unwrap() == BufElem::Eol {
+        n -= 1;
+        AffectRange::EndEol(n)
+    } else {
+        AffectRange::Mid(n)
+    }
+}
+#[test]
+fn test_affect_range() {
+    use self::AffectRange::*;
+    use crate::BufElem::*;
+    assert_eq!(affect_range_of(&[]), Empty);
+    assert_eq!(affect_range_of(&[Char(' ')]), Mid(1));
+    assert_eq!(affect_range_of(&[Char(' '),BufElem::Eol]), EndEol(1));
+    assert_eq!(affect_range_of(&[Char(' '),BufElem::Eol,Char('a')]), Mid(2));
+    assert_eq!(affect_range_of(&[Char(' '),BufElem::Eol,Char('a'),Eol]), EndEol(2));
+}
+fn calc_n_rows_affected(deleted: &[BufElem], inserted: &[BufElem]) -> (usize, usize) {
+    use self::AffectRange::*;
+    match (affect_range_of(deleted), affect_range_of(inserted)) {
+        (Empty, Empty) => (0, 0),
+        (Empty, Mid(n)) => (1, n),
+        (Empty, EndEol(n)) => (1, n+1),
+        (Mid(n), Empty) => (n, 1),
+        (Mid(n), Mid(m)) => (n, m),
+        (Mid(n), EndEol(m)) => (n, m+1),
+        (EndEol(n), Empty) => (n+1, 1),
+        (EndEol(n), Mid(m)) => (n+1, m),
+        (EndEol(n), EndEol(m)) => (n+1, m+1),
     }
 }
 
@@ -700,7 +767,6 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     }
 }
 
-use crate::visibility_filter::VisibilityFilter;
 pub struct ViewGen {
     buf: Rc<RefCell<EditBuffer>>,
 }
@@ -744,8 +810,8 @@ impl view::ViewGen for ViewGen {
         );
         let buf_view = view::TranslateView::new(
             buf_view,
-            buf_reg.col as i32 - self.buf.borrow().rb.filter.col() as i32,
-            buf_reg.row as i32 - self.buf.borrow().rb.filter.row() as i32,
+            buf_reg.col as i32 - self.buf.borrow().rb.window.col() as i32,
+            buf_reg.row as i32 - self.buf.borrow().rb.window.row() as i32,
         );
 
         let view = view::MergeHorizontal {

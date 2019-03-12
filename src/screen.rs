@@ -63,7 +63,6 @@ impl Screen {
         write!(out, "{}", last_style).unwrap();
 
         for y in 0..self.h {
-            let mut x = 0;
             write!(out, "{}", termion::cursor::Goto(1, y as u16 + 1)).unwrap();
             for x in 0..self.w {
                 let (style, ref c) = buf[y * self.w + x];

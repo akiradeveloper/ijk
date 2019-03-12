@@ -1,6 +1,6 @@
 use crate::Cursor;
 
-pub struct VisibilityFilter {
+pub struct VisibilityWindow {
     cur_cursor: Cursor,
     pub col_low: usize,
     pub col_high: usize,
@@ -8,15 +8,15 @@ pub struct VisibilityFilter {
     pub row_high: usize,
 }
 
-impl VisibilityFilter {
-    pub fn new(cursor: Cursor) -> VisibilityFilter {
-        VisibilityFilter {
+impl VisibilityWindow {
+    pub fn new(cursor: Cursor) -> Self {
+        Self {
             cur_cursor: cursor,
             col_low: 0, col_high: 0,
             row_low: 0, row_high: 0,
         }
     }
-    pub fn resize(&mut self, cursor: Cursor, width: usize, height: usize) {
+    fn resize(&mut self, cursor: Cursor, width: usize, height: usize) {
         if self.width() == width && self.height() == height {
             return;
         }
