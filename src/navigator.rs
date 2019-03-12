@@ -58,8 +58,8 @@ impl Navigator {
         self.set(self.list[0].controller(), self.list[0].view_gen());
     }
     fn delete(&mut self, i: usize) {
-        self.list.remove(i);
-        self.select(0);
+        let e = self.list.remove(i);
+        self.refresh_buffer()
     }
     pub fn push(&mut self, page: Box<Page>) {
         let pos0 = self.list.iter().position(|e| e.id() == page.id());
@@ -96,6 +96,9 @@ impl Navigator {
             self.select(i);
         }
     }
+    pub fn eff_close_selected(&mut self, _: Key) {
+        self.delete(self.rb.cursor.row);
+    }
 }
 
 use crate::controller::Effect;
@@ -115,6 +118,7 @@ def_effect!(CursorDown, Navigator, eff_cursor_down);
 def_effect!(Select, Navigator, eff_select);
 def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory);
 def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer);
+def_effect!(CloseSelected, Navigator, eff_close_selected);
 
 pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     use crate::Key::*;
@@ -124,6 +128,7 @@ pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
     g.add_edge("init", "init", Char('h'), Rc::new(SelectCurDirectory(x.clone())));
     g.add_edge("init", "init", Char('l'), Rc::new(SelectCurBuffer(x.clone())));
+    g.add_edge("init", "init", Char('d'), Rc::new(CloseSelected(x.clone())));
     controller::ControllerFSM {
         cur: "init".to_owned(),
         g: Box::new(g),
