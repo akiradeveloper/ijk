@@ -172,7 +172,7 @@ impl EditBuffer {
         );
         self.rb.clear_search_struct(); // tmp
     }
-    fn _undo(&mut self) -> bool {
+    fn undo(&mut self) -> bool {
         let log = self.change_log_buffer.pop_undo();
         if log.is_none() {
             return false;
@@ -182,7 +182,7 @@ impl EditBuffer {
         self.rb.cursor = log.at;
         true
     }
-    fn _redo(&mut self) -> bool {
+    fn redo(&mut self) -> bool {
         let log = self.change_log_buffer.pop_redo();
         if log.is_none() {
             return false;
@@ -356,13 +356,13 @@ impl EditBuffer {
     // effect functions
     //
 
-    pub fn undo(&mut self, _: Key) {
-        self._undo();
+    pub fn eff_undo(&mut self, _: Key) {
+        self.undo();
     }
-    pub fn redo(&mut self, _: Key) {
-        self._redo();
+    pub fn eff_redo(&mut self, _: Key) {
+        self.redo();
     }
-    pub fn enter_insert_newline(&mut self, _: Key) {
+    pub fn eff_enter_insert_newline(&mut self, _: Key) {
         let row = self.rb.cursor.row;
         let delete_range = CursorRange {
             start: Cursor {
@@ -381,7 +381,7 @@ impl EditBuffer {
         v.append(&mut auto_indent.next_indent());
         self.enter_update_mode(&delete_range, v);
     }
-    pub fn join_next_line(&mut self, _: Key) {
+    pub fn eff_join_next_line(&mut self, _: Key) {
         let row = self.rb.cursor.row;
         if row == self.rb.buf.len() - 1 {
             return;
@@ -405,7 +405,7 @@ impl EditBuffer {
         };
         self.enter_update_mode(&delete_range, vec![]);
     }
-    pub fn enter_insert_mode(&mut self, _: Key) {
+    pub fn eff_enter_insert_mode(&mut self, _: Key) {
         assert!(self.edit_state.is_none());
         let delete_range = CursorRange {
             start: self.rb.cursor,
@@ -413,18 +413,18 @@ impl EditBuffer {
         };
         self.enter_update_mode(&delete_range, vec![]);
     }
-    pub fn enter_append_mode(&mut self, k: Key) {
-        self.cursor_right(k.clone());
-        self.enter_insert_mode(k);
+    pub fn eff_enter_append_mode(&mut self, k: Key) {
+        self.eff_cursor_right(k.clone());
+        self.eff_enter_insert_mode(k);
     }
-    pub fn enter_change_mode(&mut self, _: Key) {
+    pub fn eff_enter_change_mode(&mut self, _: Key) {
         if self.visual_range().is_none() {
             return;
         }
         let vr = self.visual_range().unwrap();
         self.enter_update_mode(&vr, vec![]);
     }
-    pub fn edit_mode_input(&mut self, k: Key) {
+    pub fn eff_edit_mode_input(&mut self, k: Key) {
         let es = self.edit_state.as_mut().unwrap();
         es.diff_buffer.input(k.clone());
 
@@ -445,7 +445,7 @@ impl EditBuffer {
         self.rb.clear_search_struct(); // tmp (too slow)
         self.rb.cursor = after_diff_inserted;
     }
-    pub fn leave_edit_mode(&mut self, _: Key) {
+    pub fn eff_leave_edit_mode(&mut self, _: Key) {
         assert!(self.edit_state.is_some());
         // take(): replace the memory region with None and take out the owrnership of the object
         let edit_state = self.edit_state.take().unwrap();
@@ -491,7 +491,7 @@ impl EditBuffer {
         // this ensures visual mode is cancelled whenever it starts insertion mode.
         self.visual_cursor = None;
     }
-    pub fn delete_line(&mut self, _: Key) {
+    pub fn eff_delete_line(&mut self, _: Key) {
         if self.visual_range().is_none() {
             self.visual_cursor = Some(Cursor {
                 row: self.rb.cursor.row,
@@ -513,7 +513,7 @@ impl EditBuffer {
             self.delete_range(self.visual_range().unwrap());
         }
     }
-    pub fn delete_char(&mut self, _: Key) {
+    pub fn eff_delete_char(&mut self, _: Key) {
         let range = self.visual_range().unwrap_or(
             CursorRange {
                 start: self.rb.cursor,
@@ -525,7 +525,7 @@ impl EditBuffer {
         );
         self.delete_range(range);
     }
-    pub fn paste(&mut self, _: Key) {
+    pub fn eff_paste(&mut self, _: Key) {
         let yb = self.yank_buffer.pop();
         if yb.is_none() { return; }
 
@@ -538,7 +538,7 @@ impl EditBuffer {
         self.change_log_buffer.push(log.clone());
         self.apply_log(&mut log);
     }
-    pub fn yank(&mut self, _: Key) {
+    pub fn eff_yank(&mut self, _: Key) {
         let orig_cursor = self.rb.cursor;
         let vr = self.visual_range();
         if vr.is_none() { return; }
@@ -546,7 +546,7 @@ impl EditBuffer {
         let vr = vr.unwrap();
         self.delete_range(vr);
         let yb = self.change_log_buffer.peek().cloned().unwrap().deleted;
-        self._undo();
+        self.undo();
         self.yank_buffer.push(yb);
         self.rb.cursor = orig_cursor;
     }
@@ -568,7 +568,7 @@ impl EditBuffer {
             self.indent_back_line(row, &vec![BufElem::Char(' '); 4]);
         }
     }
-    pub fn indent_back(&mut self, _: Key) {
+    pub fn eff_indent_back(&mut self, _: Key) {
         if self.visual_range().is_none() {
             self.indent_back_range(self.rb.cursor.row .. self.rb.cursor.row+1);
             return;
@@ -578,13 +578,13 @@ impl EditBuffer {
         self.visual_cursor = None;
         // TODO atomic change log
     }
-    pub fn enter_visual_mode(&mut self, _: Key) {
+    pub fn eff_enter_visual_mode(&mut self, _: Key) {
         self.visual_cursor = Some(self.rb.cursor.clone());
     }
-    pub fn reset(&mut self, _: Key) {
+    pub fn eff_reset(&mut self, _: Key) {
         self.visual_cursor = None;
     }
-    pub fn save_to_file(&self, _: Key) {
+    pub fn eff_save_to_file(&self, _: Key) {
         use std::io::Write;
         if self.path.is_none() {
             return;
@@ -603,58 +603,58 @@ impl EditBuffer {
             }
         }
     }
-    pub fn cursor_up(&mut self, k: Key) {
+    pub fn eff_cursor_up(&mut self, _: Key) {
         self.rb.cursor_up();
     }
-    pub fn cursor_down(&mut self, k: Key) {
+    pub fn eff_cursor_down(&mut self, _: Key) {
         self.rb.cursor_down();
     }
-    pub fn cursor_left(&mut self, k: Key) {
+    pub fn eff_cursor_left(&mut self, _: Key) {
         self.rb.cursor_left();
     }
-    pub fn cursor_right(&mut self, k: Key) {
+    pub fn eff_cursor_right(&mut self, _: Key) {
         self.rb.cursor_right();
     }
-    pub fn jump_line_head(&mut self, k: Key) {
+    pub fn eff_jump_line_head(&mut self, _: Key) {
         self.rb.jump_line_head();
     }
-    pub fn jump_line_last(&mut self, k: Key) {
+    pub fn eff_jump_line_last(&mut self, _: Key) {
         self.rb.jump_line_last();
     }
-    pub fn jump_page_forward(&mut self, k: Key) {
+    pub fn eff_jump_page_forward(&mut self, _: Key) {
         self.rb.jump_page_forward();
     }
-    pub fn jump_page_backward(&mut self, k: Key) {
+    pub fn eff_jump_page_backward(&mut self, _: Key) {
         self.rb.jump_page_backward();
     }
-    pub fn enter_jump_mode(&mut self, k: Key) {
+    pub fn eff_enter_jump_mode(&mut self, k: Key) {
         self.rb.enter_jump_mode(k);
     }
-    pub fn acc_jump_num(&mut self, k: Key) {
+    pub fn eff_acc_jump_num(&mut self, k: Key) {
         self.rb.acc_jump_num(k);
     }
-    pub fn jump(&mut self, k: Key) {
+    pub fn eff_jump(&mut self, _: Key) {
         self.rb.jump();
     }
-    pub fn cancel_jump(&mut self, k: Key) {
+    pub fn eff_cancel_jump(&mut self, _: Key) {
         self.rb.cancel_jump();
     }
-    pub fn jump_last(&mut self, k: Key) {
+    pub fn eff_jump_last(&mut self, _: Key) {
         self.rb.jump_last();
     }
-    pub fn enter_search_mode(&mut self, k: Key) {
+    pub fn eff_enter_search_mode(&mut self, _: Key) {
         self.rb.enter_search_mode();
     }
-    pub fn search_mode_input(&mut self, k: Key) {
+    pub fn eff_search_mode_input(&mut self, k: Key) {
         self.rb.search_mode_input(k);
     }
-    pub fn leave_search_mode(&mut self, k: Key) {
+    pub fn eff_leave_search_mode(&mut self, _: Key) {
         self.rb.leave_search_mode();
     }
-    pub fn search_jump_forward(&mut self, k: Key) {
+    pub fn eff_search_jump_forward(&mut self, _: Key) {
         self.rb.search_jump_forward();
     }
-    pub fn search_jump_backward(&mut self, k: Key) {
+    pub fn eff_search_jump_backward(&mut self, _: Key) {
         self.rb.search_jump_backward();
     }
 }
@@ -676,43 +676,43 @@ macro_rules! def_effect {
     };
 }
 
-def_effect!(Undo, EditBuffer, undo);
-def_effect!(Redo, EditBuffer, redo);
-def_effect!(JoinNextLine, EditBuffer, join_next_line);
-def_effect!(EnterInsertNewline, EditBuffer, enter_insert_newline);
-def_effect!(EnterInsertMode, EditBuffer, enter_insert_mode);
-def_effect!(EnterAppendMode, EditBuffer, enter_append_mode);
-def_effect!(EnterChangeMode, EditBuffer, enter_change_mode);
-def_effect!(EditModeInput, EditBuffer, edit_mode_input);
-def_effect!(LeaveEditMode, EditBuffer, leave_edit_mode);
-def_effect!(DeleteLine, EditBuffer, delete_line);
-def_effect!(DeleteChar, EditBuffer, delete_char);
-def_effect!(Paste, EditBuffer, paste);
-def_effect!(Yank, EditBuffer, yank);
-def_effect!(IndentBack, EditBuffer, indent_back);
-def_effect!(EnterVisualMode, EditBuffer, enter_visual_mode);
-def_effect!(SaveToFile, EditBuffer, save_to_file);
-def_effect!(Reset, EditBuffer, reset);
+def_effect!(Undo, EditBuffer, eff_undo);
+def_effect!(Redo, EditBuffer, eff_redo);
+def_effect!(JoinNextLine, EditBuffer, eff_join_next_line);
+def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline);
+def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
+def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
+def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
+def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
+def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode);
+def_effect!(DeleteLine, EditBuffer, eff_delete_line);
+def_effect!(DeleteChar, EditBuffer, eff_delete_char);
+def_effect!(Paste, EditBuffer, eff_paste);
+def_effect!(Yank, EditBuffer, eff_yank);
+def_effect!(IndentBack, EditBuffer, eff_indent_back);
+def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
+def_effect!(SaveToFile, EditBuffer, eff_save_to_file);
+def_effect!(Reset, EditBuffer, eff_reset);
 
-def_effect!(CursorUp, EditBuffer, cursor_up);
-def_effect!(CursorDown, EditBuffer, cursor_down);
-def_effect!(CursorLeft, EditBuffer, cursor_left);
-def_effect!(CursorRight, EditBuffer, cursor_right);
-def_effect!(JumpLineHead, EditBuffer, jump_line_head);
-def_effect!(JumpLineLast, EditBuffer, jump_line_last);
-def_effect!(JumpPageForward, EditBuffer, jump_page_forward);
-def_effect!(JumpPageBackward, EditBuffer, jump_page_backward);
-def_effect!(EnterJumpMode, EditBuffer, enter_jump_mode);
-def_effect!(AccJumpNum, EditBuffer, acc_jump_num);
-def_effect!(Jump, EditBuffer, jump);
-def_effect!(CancelJump, EditBuffer, cancel_jump);
-def_effect!(JumpLast, EditBuffer, jump_last);
+def_effect!(CursorUp, EditBuffer, eff_cursor_up);
+def_effect!(CursorDown, EditBuffer, eff_cursor_down);
+def_effect!(CursorLeft, EditBuffer, eff_cursor_left);
+def_effect!(CursorRight, EditBuffer, eff_cursor_right);
+def_effect!(JumpLineHead, EditBuffer, eff_jump_line_head);
+def_effect!(JumpLineLast, EditBuffer, eff_jump_line_last);
+def_effect!(JumpPageForward, EditBuffer, eff_jump_page_forward);
+def_effect!(JumpPageBackward, EditBuffer, eff_jump_page_backward);
+def_effect!(EnterJumpMode, EditBuffer, eff_enter_jump_mode);
+def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num);
+def_effect!(Jump, EditBuffer, eff_jump);
+def_effect!(CancelJump, EditBuffer, eff_cancel_jump);
+def_effect!(JumpLast, EditBuffer, eff_jump_last);
 
-def_effect!(EnterSearchMode, EditBuffer, enter_search_mode);
-def_effect!(SearchModeInput, EditBuffer, search_mode_input);
-def_effect!(LeaveSearchMode, EditBuffer, leave_search_mode);
-def_effect!(SearchJumpForward, EditBuffer, search_jump_forward);
-def_effect!(SearchJumpBackward, EditBuffer, search_jump_backward);
+def_effect!(EnterSearchMode, EditBuffer, eff_enter_search_mode);
+def_effect!(SearchModeInput, EditBuffer, eff_search_mode_input);
+def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode);
+def_effect!(SearchJumpForward, EditBuffer, eff_search_jump_forward);
+def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward);
 
 use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
