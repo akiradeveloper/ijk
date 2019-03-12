@@ -72,11 +72,40 @@ impl Navigator {
         self.list.remove(0);
         self.select(0);
     }
+
+    pub fn eff_cursor_up(&mut self, _: Key) {
+        self.rb.cursor_up();
+    }
+    pub fn eff_cursor_down(&mut self, _: Key) {
+        self.rb.cursor_down();
+    }
+    pub fn eff_select(&mut self, _: Key) {
+        self.select(self.rb.cursor.row);
+    }
 }
 
+use crate::controller::Effect;
+use crate::Key;
+macro_rules! def_effect {
+    ($eff_name:ident, $t:ty, $fun_name:ident) => {
+        struct $eff_name(Rc<RefCell<$t>>);
+        impl Effect for $eff_name {
+            fn run(&self, k: Key) {
+                self.0.borrow_mut().$fun_name(k);
+            }
+        }
+    };
+}
+def_effect!(CursorUp, Navigator, eff_cursor_up);
+def_effect!(CursorDown, Navigator, eff_cursor_down);
+def_effect!(Select, Navigator, eff_select);
+
 pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
+    use crate::Key::*;
     let mut g = controller::GraphImpl::new();
-    // TODO
+    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
+    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
+    g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
     controller::ControllerFSM {
         cur: "init".to_owned(),
         g: Box::new(g),

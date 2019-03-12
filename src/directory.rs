@@ -68,10 +68,35 @@ impl Directory {
         }
         self.rb = ReadBuffer::new(v);
     }
+
+    pub fn eff_cursor_up(&mut self, _: Key) {
+        self.rb.cursor_up();
+    }
+    pub fn eff_cursor_down(&mut self, _: Key) {
+        self.rb.cursor_down();
+    }
 }
+
+use crate::controller::Effect;
+use crate::Key;
+macro_rules! def_effect {
+    ($eff_name:ident, $t:ty, $fun_name:ident) => {
+        struct $eff_name(Rc<RefCell<$t>>);
+        impl Effect for $eff_name {
+            fn run(&self, k: Key) {
+                self.0.borrow_mut().$fun_name(k);
+            }
+        }
+    };
+}
+def_effect!(CursorUp, Directory, eff_cursor_up);
+def_effect!(CursorDown, Directory, eff_cursor_down);
+
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
+    use crate::Key::*;
     let mut g = controller::GraphImpl::new();
-    // TODO
+    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
+    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
     controller::ControllerFSM {
         cur: "init".to_owned(),
         g: Box::new(g),
@@ -106,6 +131,10 @@ impl view::ViewGen for ViewGen {
 
         let dir_area = region;
         let dir_view = view::ToView::new(self.x.borrow().rb.buf.clone());
+        let dir_view = view::AddCursor::new(
+            dir_view,
+            Some(self.x.borrow().rb.cursor), // tmp: the cursor is always visible
+        );
         let dir_view = view::TranslateView::new(
             dir_view,
             dir_area.col as i32 - self.x.borrow().rb.filter.col() as i32,
