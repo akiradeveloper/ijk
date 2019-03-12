@@ -774,7 +774,7 @@ impl view::ViewGen for ViewGen {
         let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
 
         self.buf.borrow_mut().rb.stabilize();
-        self.buf.borrow_mut().rb.adjust_window(region.width - 6, region.height - 1);
+        self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
         self.buf.borrow_mut().rb.update_search_results();
 
         let lineno_range = self.buf.borrow().rb.lineno_range();
