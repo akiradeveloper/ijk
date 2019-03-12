@@ -1,8 +1,9 @@
 use std::rc::Rc;
 use std::cell::RefCell;
+use super::edit_buffer::{self, EditBuffer};
 use super::controller;
 use super::view;
-use super::navigator;
+use super::navigator::{self, Navigator};
 use super::read_buffer::ReadBuffer;
 use std::path;
 use std::fs;
@@ -18,13 +19,15 @@ pub struct Directory {
     pub rb: ReadBuffer,
     path: path::PathBuf,
     entries: Vec<Entry>,
+    navigator: Rc<RefCell<Navigator>>,
 }
 impl Directory {
-    pub fn open(path: &path::Path) -> Self {
+    pub fn open(path: &path::Path, navigator: Rc<RefCell<Navigator>>) -> Self {
         let mut r = Self {
             path: fs::canonicalize(path).unwrap(),
             entries: vec![],
             rb: ReadBuffer::new(vec![]),
+            navigator: navigator,
         };
         r.refresh();
         r
@@ -75,6 +78,25 @@ impl Directory {
     pub fn eff_cursor_down(&mut self, _: Key) {
         self.rb.cursor_down();
     }
+    pub fn eff_select(&mut self, _: Key) {
+        let i = self.rb.cursor.row;
+        let entry = &self.entries[i];
+        let page: Box<navigator::Page> = match entry.clone() {
+            Entry::Parent(path) => {
+                let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
+                Box::new(self::Page::new(dir))
+            },
+            Entry::Dir(path) => {
+                let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
+                Box::new(self::Page::new(dir))
+            },
+            Entry::File(path) => {
+                let x = Rc::new(RefCell::new(EditBuffer::open(Some(&path))));
+                Box::new(edit_buffer::Page::new(x))
+            },
+        };
+        self.navigator.borrow_mut().push(page);
+    }
 }
 
 use crate::controller::Effect;
@@ -91,12 +113,14 @@ macro_rules! def_effect {
 }
 def_effect!(CursorUp, Directory, eff_cursor_up);
 def_effect!(CursorDown, Directory, eff_cursor_down);
+def_effect!(Select, Directory, eff_select);
 
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::GraphImpl::new();
     g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
     g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
+    g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
     controller::ControllerFSM {
         cur: "init".to_owned(),
         g: Box::new(g),

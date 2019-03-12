@@ -42,7 +42,7 @@ fn main() {
             Box::new(edit_buffer::Page::new(eb))
         },
         Some(path) if path.is_dir() => {
-            let dir = Rc::new(RefCell::new(directory::Directory::open(path)));
+            let dir = Rc::new(RefCell::new(directory::Directory::open(path, navigator.clone())));
             Box::new(directory::Page::new(dir))
         },
         Some(_) => {
