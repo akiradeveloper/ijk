@@ -663,18 +663,8 @@ use crate::Key;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::controller::Effect;
-
-macro_rules! def_effect {
-    ($eff_name:ident, $t:ty, $fun_name:ident) => {
-        struct $eff_name(Rc<RefCell<$t>>);
-        impl Effect for $eff_name {
-            fn run(&self, k: Key) {
-                self.0.borrow_mut().$fun_name(k);
-            }
-        }
-    };
-}
+use crate::controller::{Effect};
+use crate::def_effect;
 
 def_effect!(Undo, EditBuffer, eff_undo);
 def_effect!(Redo, EditBuffer, eff_redo);

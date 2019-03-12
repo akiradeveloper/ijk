@@ -33,22 +33,6 @@ pub struct Cursor {
     pub col: usize,
 }
 
-#[derive(Clone)]
-pub struct ChangeLog {
-    at: Cursor,
-    deleted: Vec<BufElem>,
-    inserted: Vec<BufElem>,
-}
-impl ChangeLog {
-    pub fn swap(&self) -> Self {
-        Self {
-            at: self.at,
-            deleted: self.inserted.clone(),
-            inserted: self.deleted.clone(),
-        }
-    }
-}
-
 pub mod editor;
 pub mod read_buffer;
 pub mod edit_buffer;

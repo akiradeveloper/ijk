@@ -107,17 +107,9 @@ impl Navigator {
 }
 
 use crate::controller::Effect;
+use crate::def_effect;
 use crate::Key;
-macro_rules! def_effect {
-    ($eff_name:ident, $t:ty, $fun_name:ident) => {
-        struct $eff_name(Rc<RefCell<$t>>);
-        impl Effect for $eff_name {
-            fn run(&self, k: Key) {
-                self.0.borrow_mut().$fun_name(k);
-            }
-        }
-    };
-}
+
 def_effect!(CursorUp, Navigator, eff_cursor_up);
 def_effect!(CursorDown, Navigator, eff_cursor_down);
 def_effect!(Select, Navigator, eff_select);
