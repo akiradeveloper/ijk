@@ -648,51 +648,51 @@ def_effect!(SearchJumpForward, EditBuffer, search_jump_forward);
 def_effect!(SearchJumpBackward, EditBuffer, search_jump_backward);
 
 use crate::controller;
-pub fn mk_controller(eb: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
+pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::GraphImpl::new();
 
     // mutable
-    g.add_edge("init", "init", Ctrl('s'), Rc::new(SaveToFile(eb.clone())));
-    g.add_edge("init", "init", Char('v'), Rc::new(EnterVisualMode(eb.clone())));
-    g.add_edge("init", "init", Esc, Rc::new(Reset(eb.clone())));
-    g.add_edge("init", "init", Char('d'), Rc::new(DeleteLine(eb.clone())));
-    g.add_edge("init", "init", Char('x'), Rc::new(DeleteChar(eb.clone())));
-    g.add_edge("init", "init", Char('<'), Rc::new(IndentBack(eb.clone())));
-    g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(eb.clone())));
-    g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(eb.clone())));
-    g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(eb.clone())));
-    g.add_edge("init", "insert", Char('a'), Rc::new(EnterAppendMode(eb.clone())));
-    g.add_edge("init", "insert", Char('c'), Rc::new(EnterChangeMode(eb.clone())));
-    g.add_edge("init", "init", Char('p'), Rc::new(Paste(eb.clone())));
-    g.add_edge("init", "init", Char('y'), Rc::new(Yank(eb.clone())));
-    g.add_edge("insert", "init", Esc, Rc::new(LeaveEditMode(eb.clone())));
-    g.add_edge("insert", "insert", Otherwise, Rc::new(EditModeInput(eb.clone())));
+    g.add_edge("init", "init", Ctrl('s'), Rc::new(SaveToFile(x.clone())));
+    g.add_edge("init", "init", Char('v'), Rc::new(EnterVisualMode(x.clone())));
+    g.add_edge("init", "init", Esc, Rc::new(Reset(x.clone())));
+    g.add_edge("init", "init", Char('d'), Rc::new(DeleteLine(x.clone())));
+    g.add_edge("init", "init", Char('x'), Rc::new(DeleteChar(x.clone())));
+    g.add_edge("init", "init", Char('<'), Rc::new(IndentBack(x.clone())));
+    g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(x.clone())));
+    g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(x.clone())));
+    g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(x.clone())));
+    g.add_edge("init", "insert", Char('a'), Rc::new(EnterAppendMode(x.clone())));
+    g.add_edge("init", "insert", Char('c'), Rc::new(EnterChangeMode(x.clone())));
+    g.add_edge("init", "init", Char('p'), Rc::new(Paste(x.clone())));
+    g.add_edge("init", "init", Char('y'), Rc::new(Yank(x.clone())));
+    g.add_edge("insert", "init", Esc, Rc::new(LeaveEditMode(x.clone())));
+    g.add_edge("insert", "insert", Otherwise, Rc::new(EditModeInput(x.clone())));
 
-    g.add_edge("init", "init", Ctrl('r'), Rc::new(Redo(eb.clone())));
-    g.add_edge("init", "init", Char('u'), Rc::new(Undo(eb.clone())));
+    g.add_edge("init", "init", Ctrl('r'), Rc::new(Redo(x.clone())));
+    g.add_edge("init", "init", Char('u'), Rc::new(Undo(x.clone())));
 
     // immutable
-    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(eb.clone())));
-    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(eb.clone())));
-    g.add_edge("init", "init", Char('h'), Rc::new(CursorLeft(eb.clone())));
-    g.add_edge("init", "init", Char('l'), Rc::new(CursorRight(eb.clone())));
-    g.add_edge("init", "init", Char('0'), Rc::new(JumpLineHead(eb.clone())));
-    g.add_edge("init", "init", Char('$'), Rc::new(JumpLineLast(eb.clone())));
-    g.add_edge("init", "init", Ctrl('f'), Rc::new(JumpPageForward(eb.clone())));
-    g.add_edge("init", "init", Ctrl('b'), Rc::new(JumpPageBackward(eb.clone())));
-    g.add_edge("init", "jump", CharRange('1','9'), Rc::new(EnterJumpMode(eb.clone())));
-    g.add_edge("jump", "jump", CharRange('0','9'), Rc::new(AccJumpNum(eb.clone())));
-    g.add_edge("jump", "init", Char('G'), Rc::new(Jump(eb.clone())));
-    g.add_edge("jump", "init", Esc, Rc::new(CancelJump(eb.clone())));
-    g.add_edge("init", "init", Char('G'), Rc::new(JumpLast(eb.clone())));
+    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
+    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
+    g.add_edge("init", "init", Char('h'), Rc::new(CursorLeft(x.clone())));
+    g.add_edge("init", "init", Char('l'), Rc::new(CursorRight(x.clone())));
+    g.add_edge("init", "init", Char('0'), Rc::new(JumpLineHead(x.clone())));
+    g.add_edge("init", "init", Char('$'), Rc::new(JumpLineLast(x.clone())));
+    g.add_edge("init", "init", Ctrl('f'), Rc::new(JumpPageForward(x.clone())));
+    g.add_edge("init", "init", Ctrl('b'), Rc::new(JumpPageBackward(x.clone())));
+    g.add_edge("init", "jump", CharRange('1','9'), Rc::new(EnterJumpMode(x.clone())));
+    g.add_edge("jump", "jump", CharRange('0','9'), Rc::new(AccJumpNum(x.clone())));
+    g.add_edge("jump", "init", Char('G'), Rc::new(Jump(x.clone())));
+    g.add_edge("jump", "init", Esc, Rc::new(CancelJump(x.clone())));
+    g.add_edge("init", "init", Char('G'), Rc::new(JumpLast(x.clone())));
 
     // search
-    g.add_edge("init", "search", Char('/'), Rc::new(EnterSearchMode(eb.clone())));
-    g.add_edge("search", "init", Char('\n'), Rc::new(LeaveSearchMode(eb.clone())));
-    g.add_edge("search", "search", Otherwise, Rc::new(SearchModeInput(eb.clone())));
-    g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(eb.clone())));
-    g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(eb.clone())));
+    g.add_edge("init", "search", Char('/'), Rc::new(EnterSearchMode(x.clone())));
+    g.add_edge("search", "init", Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
+    g.add_edge("search", "search", Otherwise, Rc::new(SearchModeInput(x.clone())));
+    g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(x.clone())));
+    g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(x.clone())));
 
     controller::ControllerFSM {
         cur: "init".to_owned(),
@@ -784,14 +784,14 @@ impl view::ViewGen for ViewGen {
 pub struct Page {
     controller: Rc<RefCell<controller::Controller>>,
     view_gen: Rc<RefCell<view::ViewGen>>,
-    eb: Rc<RefCell<EditBuffer>>,
+    x: Rc<RefCell<EditBuffer>>,
 }
 impl Page {
-    pub fn new(eb: Rc<RefCell<EditBuffer>>) -> Self {
+    pub fn new(x: Rc<RefCell<EditBuffer>>) -> Self {
         Self {
-            controller: Rc::new(RefCell::new(mk_controller(eb.clone()))),
-            view_gen: Rc::new(RefCell::new(ViewGen::new(eb.clone()))),
-            eb: eb,
+            controller: Rc::new(RefCell::new(mk_controller(x.clone()))),
+            view_gen: Rc::new(RefCell::new(ViewGen::new(x.clone()))),
+            x: x,
         }
     }
 }
@@ -803,12 +803,19 @@ impl navigator::Page for Page {
         self.view_gen.clone()
     }
     fn desc(&self) -> String {
-        "buffer".to_owned() // tmp
+        match self.x.borrow().path.clone() {
+            Some(p) => p.to_str().unwrap().to_owned(),
+            None => "noname".to_owned(),
+        }
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Buffer
     }
     fn id(&self) -> String {
-        "aaa".to_owned() // tmp
+        // "aaa".to_owned()
+        match self.x.borrow().path.clone() {
+            Some(p) => p.to_str().unwrap().to_owned(),
+            None => "noname".to_owned(),
+        }
     }
 }

@@ -5,7 +5,7 @@ use super::controller;
 use super::view;
 use super::navigator::{self, Navigator};
 use super::read_buffer::ReadBuffer;
-use std::path;
+use std::path::{self, Path, PathBuf};
 use std::fs;
 use crate::BufElem;
 
@@ -84,11 +84,11 @@ impl Directory {
         let page: Box<navigator::Page> = match entry.clone() {
             Entry::Parent(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                Box::new(self::Page::new(dir))
+                Box::new(self::Page::new(dir, path.clone()))
             },
             Entry::Dir(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                Box::new(self::Page::new(dir))
+                Box::new(self::Page::new(dir, path.clone()))
             },
             Entry::File(path) => {
                 let x = Rc::new(RefCell::new(EditBuffer::open(Some(&path))));
@@ -173,13 +173,21 @@ pub struct Page {
     controller: Rc<RefCell<controller::Controller>>,
     view_gen: Rc<RefCell<view::ViewGen>>,
     x: Rc<RefCell<Directory>>,
+    // WA:
+    // to call eff_select() we need to take the borrow_mut() of the directory
+    // and neither borrow() nor borrow_mut() should not be called again under
+    // the path. (although this is too strict.)
+    // if id() is implemented in a way it borrows the `path` from the directory
+    // this violates the borrow rules in runtime.
+    path: PathBuf,
 }
 impl Page {
-    pub fn new(x: Rc<RefCell<Directory>>) -> Self {
+    pub fn new(x: Rc<RefCell<Directory>>, path: PathBuf) -> Self {
         Self {
             controller: Rc::new(RefCell::new(mk_controller(x.clone()))),
             view_gen: Rc::new(RefCell::new(ViewGen::new(x.clone()))),
             x: x,
+            path: path,
         }
     }
 }
@@ -191,12 +199,13 @@ impl navigator::Page for Page {
         self.view_gen.clone()
     }
     fn desc(&self) -> String {
-        "directory".to_owned() // tmp
+        self.path.to_str().unwrap().to_owned()
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Directory
     }
     fn id(&self) -> String {
-        "bbb".to_owned()
+        // should not call self.x.borrow() here
+        self.path.to_str().unwrap().to_owned()
     }
 }
