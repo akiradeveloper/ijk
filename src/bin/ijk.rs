@@ -43,7 +43,7 @@ fn main() {
         },
         Some(path) if path.is_dir() => {
             let dir = Rc::new(RefCell::new(directory::Directory::open(path, navigator.clone())));
-            Box::new(directory::Page::new(dir, path.to_owned()))
+            Box::new(directory::Page::new(dir, fs::canonicalize(path).unwrap()))
         },
         Some(_) => {
             panic!()

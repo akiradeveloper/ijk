@@ -199,7 +199,7 @@ impl navigator::Page for Page {
         self.view_gen.clone()
     }
     fn desc(&self) -> String {
-        self.path.to_str().unwrap().to_owned()
+        format!("[DIRECTORY] {}", self.path.to_str().unwrap().to_owned())
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Directory

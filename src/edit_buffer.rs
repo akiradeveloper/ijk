@@ -803,10 +803,11 @@ impl navigator::Page for Page {
         self.view_gen.clone()
     }
     fn desc(&self) -> String {
-        match self.x.borrow().path.clone() {
+        let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
             None => "noname".to_owned(),
-        }
+        };
+        format!("[BUFFER] {}", s)
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Buffer
