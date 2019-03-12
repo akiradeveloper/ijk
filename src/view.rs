@@ -4,14 +4,14 @@ use crate::Cursor;
 use crate::edit_buffer::CursorRange;
 
 #[derive(PartialEq, Clone, Copy)]
-pub struct ViewRegion {
+pub struct Area {
     pub col: usize,
     pub row: usize,
     pub width: usize,
     pub height: usize,
 }
-impl ViewRegion {
-    pub fn split_horizontal(&self, left_width: usize) -> (ViewRegion, ViewRegion) {
+impl Area {
+    pub fn split_horizontal(&self, left_width: usize) -> (Area, Area) {
         let left = Self {
             col: self.col,
             row: self.row,
@@ -26,7 +26,7 @@ impl ViewRegion {
         };
         (left, right)
     }
-    pub fn split_vertical(&self, top_height: usize) -> (ViewRegion, ViewRegion) {
+    pub fn split_vertical(&self, top_height: usize) -> (Area, Area) {
         let top = Self {
             col: self.col,
             row: self.row,
@@ -47,7 +47,7 @@ pub type ViewElem = (char, Color, Color);
 pub type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
 
 pub trait ViewGen {
-    fn gen(&mut self, region: ViewRegion) -> Box<View>;
+    fn gen(&mut self, region: Area) -> Box<View>;
 }
 
 pub trait View {
@@ -66,7 +66,7 @@ impl View for NullView {
 }
 pub struct NullViewGen {}
 impl ViewGen for NullViewGen {
-    fn gen(&mut self, region: ViewRegion) -> Box<View> {
+    fn gen(&mut self, region: Area) -> Box<View> {
         Box::new(NullView {})
     }
 }
@@ -281,7 +281,7 @@ fn test_view_overlay() {
     let v1 = OverlayView { v: v0, d: d0 };
 
     let view: Box<dyn View> = Box::new(v1);
-    let reg = ViewRegion {
+    let reg = Area {
         col: 0,
         row: 0,
         width: 1,

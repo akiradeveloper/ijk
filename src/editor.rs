@@ -33,7 +33,7 @@ impl Editor {
         let mut keys = stdin.keys();
 
         loop {
-            let region = view::ViewRegion {
+            let region = view::Area {
                 col: 0,
                 row: 0,
                 width: term_w as usize,

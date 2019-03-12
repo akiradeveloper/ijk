@@ -142,7 +142,7 @@ impl ViewGen {
     }
 }
 impl view::ViewGen for ViewGen {
-    fn gen(&mut self, region: view::ViewRegion) -> Box<view::View> {
+    fn gen(&mut self, region: view::Area) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().rb.update_search_results();

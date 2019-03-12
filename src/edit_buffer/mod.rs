@@ -769,7 +769,7 @@ impl ViewGen {
 }
 use crate::view;
 impl view::ViewGen for ViewGen {
-    fn gen(&mut self, region: view::ViewRegion) -> Box<view::View> {
+    fn gen(&mut self, region: view::Area) -> Box<view::View> {
         let (edit_reg, search_reg) = region.split_vertical(region.height-1);
         let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
 
