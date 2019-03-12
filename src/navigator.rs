@@ -91,8 +91,7 @@ macro_rules! def_effect {
         struct $eff_name(Rc<RefCell<$t>>);
         impl Effect for $eff_name {
             fn run(&self, k: Key) {
-                let x = self.0.clone();
-                x.borrow_mut().$fun_name(k);
+                self.0.borrow_mut().$fun_name(k);
             }
         }
     };
