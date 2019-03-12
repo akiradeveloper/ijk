@@ -5,6 +5,7 @@ use crate::BufElem;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[derive(PartialEq)]
 pub enum PageKind {
     Buffer,
     Directory,
@@ -85,6 +86,16 @@ impl Navigator {
     pub fn eff_select(&mut self, _: Key) {
         self.select(self.rb.cursor.row);
     }
+    pub fn eff_select_cur_directory(&mut self, _: Key) {
+        for i in self.list.iter().position(|e| e.kind() == PageKind::Directory) {
+            self.select(i);
+        }
+    }
+    pub fn eff_select_cur_buffer(&mut self, _: Key) {
+        for i in self.list.iter().position(|e| e.kind() == PageKind::Buffer) {
+            self.select(i);
+        }
+    }
 }
 
 use crate::controller::Effect;
@@ -102,6 +113,8 @@ macro_rules! def_effect {
 def_effect!(CursorUp, Navigator, eff_cursor_up);
 def_effect!(CursorDown, Navigator, eff_cursor_down);
 def_effect!(Select, Navigator, eff_select);
+def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory);
+def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer);
 
 pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     use crate::Key::*;
@@ -109,6 +122,8 @@ pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
     g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
     g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
+    g.add_edge("init", "init", Char('h'), Rc::new(SelectCurDirectory(x.clone())));
+    g.add_edge("init", "init", Char('l'), Rc::new(SelectCurBuffer(x.clone())));
     controller::ControllerFSM {
         cur: "init".to_owned(),
         g: Box::new(g),
