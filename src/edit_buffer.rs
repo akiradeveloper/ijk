@@ -805,7 +805,7 @@ impl navigator::Page for Page {
     fn desc(&self) -> String {
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
-            None => "noname".to_owned(),
+            None => "null".to_owned(),
         };
         format!("[BUFFER] {}", s)
     }
