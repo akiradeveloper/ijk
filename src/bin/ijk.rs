@@ -24,16 +24,13 @@ fn main() {
     let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
 
     let page: Box<navigator::Page> = match path {
-        Some(path) if path.is_file() => {
-            let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(path))));
-            Box::new(edit_buffer::Page::new(eb))
-        },
         Some(path) if path.is_dir() => {
             let dir = Rc::new(RefCell::new(directory::Directory::open(path, navigator.clone())));
             Box::new(directory::Page::new(dir, fs::canonicalize(path).unwrap()))
         },
-        Some(_) => {
-            panic!()
+        Some(path) => { // existing/unexisting file
+            let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(path))));
+            Box::new(edit_buffer::Page::new(eb))
         },
         None => {
             let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(None)));
