@@ -84,7 +84,8 @@ impl Editor {
                             continue
                         },
                     };
-                    self.navigator.borrow().controller.borrow_mut().receive(kk);
+                    let controller = self.navigator.borrow().controller.clone();
+                    controller.borrow_mut().receive(kk);
                 }
             }
         }

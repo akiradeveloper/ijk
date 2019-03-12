@@ -55,7 +55,7 @@ impl Navigator {
         let e = self.list.remove(i);
         self.list.insert(0, e);
         self.refresh_buffer();
-        self.set(self.list[i].controller(), self.list[i].view_gen());
+        self.set(self.list[0].controller(), self.list[0].view_gen());
     }
     fn delete(&mut self, i: usize) {
         self.list.remove(i);
@@ -91,7 +91,8 @@ macro_rules! def_effect {
         struct $eff_name(Rc<RefCell<$t>>);
         impl Effect for $eff_name {
             fn run(&self, k: Key) {
-                self.0.borrow_mut().$fun_name(k);
+                let x = self.0.clone();
+                x.borrow_mut().$fun_name(k);
             }
         }
     };
@@ -140,6 +141,10 @@ impl view::ViewGen for ViewGen {
 
         let navi_area = region;
         let navi_view = view::ToView::new(self.x.borrow().rb.buf.clone());
+        let navi_view = view::AddCursor::new(
+            navi_view,
+            Some(self.x.borrow().rb.cursor), // tmp: the cursor is always visible
+        );
         let navi_view = view::TranslateView::new(
             navi_view,
             navi_area.col as i32 - self.x.borrow().rb.filter.col() as i32,
