@@ -62,17 +62,21 @@ impl Navigator {
         self.select(0);
     }
     pub fn push(&mut self, page: Box<Page>) {
-        if self.list.iter().any(|e| e.id() == page.id()) {
-            return;
+        let pos0 = self.list.iter().position(|e| e.id() == page.id());
+        match pos0 {
+            Some(i) => {
+                self.select(i);
+            },
+            None => {
+                self.list.insert(0, page);
+                self.select(0);
+            }
         }
-        self.list.insert(0, page);
-        self.select(0);
     }
     pub fn pop(&mut self) {
         self.list.remove(0);
         self.select(0);
     }
-
     pub fn eff_cursor_up(&mut self, _: Key) {
         self.rb.cursor_up();
     }
