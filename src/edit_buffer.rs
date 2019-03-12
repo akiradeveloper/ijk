@@ -703,18 +703,11 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
 use crate::visibility_filter::VisibilityFilter;
 pub struct ViewGen {
     buf: Rc<RefCell<EditBuffer>>,
-    old_region: view::ViewRegion,
 }
 impl ViewGen {
     pub fn new(buf: Rc<RefCell<EditBuffer>>) -> Self {
         Self {
             buf: buf,
-            old_region: view::ViewRegion {
-                col: 0,
-                row: 0,
-                width: 0,
-                height: 0,
-            },
         }
     }
 }
@@ -725,11 +718,7 @@ impl view::ViewGen for ViewGen {
         let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
 
         self.buf.borrow_mut().rb.stabilize();
-        if self.old_region != region {
-            self.buf.borrow_mut().rb.resize_window(region.width - 6, region.height - 1);
-            self.old_region = region;
-        }
-        self.buf.borrow_mut().rb.adjust_window();
+        self.buf.borrow_mut().rb.adjust_window(region.width - 6, region.height - 1);
         self.buf.borrow_mut().rb.update_search_results();
 
         let lineno_range = self.buf.borrow().rb.lineno_range();

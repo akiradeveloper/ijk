@@ -117,29 +117,18 @@ pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
 }
 pub struct ViewGen {
     x: Rc<RefCell<Navigator>>,
-    old_region: view::ViewRegion,
 }
 impl ViewGen {
     pub fn new(x: Rc<RefCell<Navigator>>) -> Self {
         Self {
             x,
-            old_region: view::ViewRegion {
-                col: 0,
-                row: 0,
-                width: 0,
-                height: 0,
-            },
          }
     }
 }
 impl view::ViewGen for ViewGen {
     fn gen(&mut self, region: view::ViewRegion) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize();
-        if self.old_region != region {
-            self.x.borrow_mut().rb.resize_window(region.width - 6, region.height - 1);
-            self.old_region = region;
-        }
-        self.x.borrow_mut().rb.adjust_window();
+        self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().rb.update_search_results();
 
         let navi_area = region;

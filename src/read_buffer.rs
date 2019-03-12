@@ -140,11 +140,8 @@ impl ReadBuffer {
             self.cursor = x;
         }
     }
-    pub fn resize_window(&mut self, w: usize, h: usize) {
-        self.filter.resize(self.cursor, w, h)
-    }
-    pub fn adjust_window(&mut self) {
-        self.filter.adjust(self.cursor)
+    pub fn adjust_window(&mut self, w: usize, h: usize) {
+        self.filter.adjust_window(self.cursor, w, h);
     }
     pub fn current_search_word(&self) -> String {
         let mut s = String::new();

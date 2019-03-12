@@ -17,11 +17,14 @@ impl VisibilityFilter {
         }
     }
     pub fn resize(&mut self, cursor: Cursor, width: usize, height: usize) {
+        if self.width() == width && self.height() == height {
+            return;
+        }
         self.col_low = cursor.col; // TODO should be able to be any value like 0
         self.col_high = cursor.col + width - 1;
         self.row_low = cursor.row;
         self.row_high = cursor.row + height - 1;
-        self.cur_cursor = cursor;
+        // self.cur_cursor = cursor;
     }
     pub fn col(&self) -> usize {
         self.col_low
@@ -66,5 +69,9 @@ impl VisibilityFilter {
                 self.row_high = cursor.row + height - 1;
             }
         }
+    }
+    pub fn adjust_window(&mut self, cursor: Cursor, w: usize, h: usize) {
+        self.resize(cursor, w, h);
+        self.adjust(cursor);
     }
 }
