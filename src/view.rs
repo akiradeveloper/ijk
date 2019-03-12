@@ -47,7 +47,7 @@ pub type ViewElem = (char, Color, Color);
 pub type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
 
 pub trait ViewGen {
-    fn gen(&mut self, region: Area) -> Box<View>;
+    fn gen(&self, region: Area) -> Box<View>;
 }
 
 pub trait View {
@@ -66,7 +66,7 @@ impl View for NullView {
 }
 pub struct NullViewGen {}
 impl ViewGen for NullViewGen {
-    fn gen(&mut self, region: Area) -> Box<View> {
+    fn gen(&self, _: Area) -> Box<View> {
         Box::new(NullView {})
     }
 }

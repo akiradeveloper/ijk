@@ -6,20 +6,18 @@ use std::rc::Rc;
 use std::{thread, time};
 use crate::screen::*;
 use crate::view;
-use crate::navigator;
+use crate::navigator::{self, Page};
 use crate::controller;
 
 pub struct Editor {
     navigator: Rc<RefCell<navigator::Navigator>>,
-    controller: Rc<RefCell<controller::Controller>>,
-    view_gen: Rc<RefCell<view::ViewGen>>,
+    navi_page: Rc<Page>,
 }
 
 impl Editor {
     pub fn new(navigator: Rc<RefCell<navigator::Navigator>>) -> Self {
         Self {
-            controller: Rc::new(RefCell::new(navigator::mk_controller(navigator.clone()))),
-            view_gen: Rc::new(RefCell::new(navigator::ViewGen::new(navigator.clone()))),
+            navi_page: Rc::new(navigator::NavigatorPage::new(navigator.clone())),
             navigator: navigator,
         }
     }
@@ -39,8 +37,8 @@ impl Editor {
                 width: term_w as usize,
                 height: term_h as usize,
             };
-            let view_gen = self.navigator.borrow().view_gen.clone();
-            let view = view_gen.borrow_mut().gen(region);
+            let page = self.navigator.borrow().current.clone();
+            let view = page.view_gen().gen(region);
             screen.clear();
             for row in 0 .. region.height {
                 for col in 0 .. region.width {
@@ -56,7 +54,7 @@ impl Editor {
             match keys.next() {
                 Some(Ok(TermKey::Ctrl('z'))) => break,
                 Some(Ok(TermKey::Ctrl('w'))) => {
-                    self.navigator.borrow_mut().set(self.controller.clone(), self.view_gen.clone());
+                    self.navigator.borrow_mut().set(self.navi_page.clone());
                 },
                 other_key => {
                     let kk = match other_key {
@@ -69,8 +67,8 @@ impl Editor {
                             continue
                         },
                     };
-                    let controller = self.navigator.borrow().controller.clone();
-                    controller.borrow_mut().receive(kk);
+                    let page = self.navigator.borrow().current.clone();
+                    page.controller().receive(kk);
                 }
             }
         }

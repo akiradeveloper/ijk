@@ -4,6 +4,7 @@ use super::read_buffer;
 use crate::BufElem;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::path::PathBuf;
 
 #[derive(PartialEq)]
 pub enum PageKind {
@@ -13,24 +14,48 @@ pub enum PageKind {
 }
 
 pub trait Page {
-    fn controller(&self) -> Rc<RefCell<controller::Controller>>;
-    fn view_gen(&self) -> Rc<RefCell<view::ViewGen>>;
+    fn controller(&self) -> &Box<controller::Controller>;
+    fn view_gen(&self) -> &Box<view::ViewGen>;
     fn kind(&self) -> PageKind;
     fn id(&self) -> String;
     fn desc(&self) -> String;
 }
 
+struct NullPage {
+    controller: Box<controller::Controller>,
+    view_gen: Box<view::ViewGen>,
+}
+
+impl Page for NullPage {
+    fn controller(&self) -> &Box<controller::Controller> {
+        &self.controller
+    }
+    fn view_gen(&self) -> &Box<view::ViewGen> {
+        &self.view_gen
+    }
+    fn kind(&self) -> PageKind {
+        PageKind::Other
+    }
+    fn id(&self) -> String {
+        "null".to_owned()
+    }
+    fn desc(&self) -> String {
+        "null".to_owned()
+    }
+}
+
 pub struct Navigator {
-    pub controller: Rc<RefCell<controller::Controller>>,
-    pub view_gen: Rc<RefCell<view::ViewGen>>,
-    list: Vec<Box<Page>>,
+    pub current: Rc<Page>,
+    list: Vec<Rc<Page>>,
     rb: read_buffer::ReadBuffer,
 }
 impl Navigator {
     pub fn new() -> Self {
         Self {
-            controller: Rc::new(RefCell::new(controller::NullController {})),
-            view_gen: Rc::new(RefCell::new(view::NullViewGen {})),
+            current: Rc::new(NullPage {
+                controller: Box::new(controller::NullController {}),
+                view_gen: Box::new(view::NullViewGen {}),
+            }),
             list: Vec::new(),
             rb: read_buffer::ReadBuffer::new(vec![]),
         }
@@ -47,21 +72,20 @@ impl Navigator {
         }
         self.rb = read_buffer::ReadBuffer::new(v);
     }
-    pub fn set(&mut self, controller: Rc<RefCell<controller::Controller>>, view_gen: Rc<RefCell<view::ViewGen>>) {
-        self.controller = controller;
-        self.view_gen = view_gen;
+    pub fn set(&mut self, page: Rc<Page>) {
+        self.current = page;
     }
     fn select(&mut self, i: usize) {
         let e = self.list.remove(i);
         self.list.insert(0, e);
         self.refresh_buffer();
-        self.set(self.list[0].controller(), self.list[0].view_gen());
+        self.set(self.list[0].clone());
     }
     fn delete(&mut self, i: usize) {
         let e = self.list.remove(i);
         self.refresh_buffer()
     }
-    pub fn push(&mut self, page: Box<Page>) {
+    pub fn push(&mut self, page: Rc<Page>) {
         let pos0 = self.list.iter().position(|e| e.id() == page.id());
         match pos0 {
             Some(i) => {
@@ -73,7 +97,7 @@ impl Navigator {
             }
         }
     }
-    pub fn pop_and_push(&mut self, e: Box<Page>) {
+    pub fn pop_and_push(&mut self, e: Rc<Page>) {
         self.list.remove(0);
         self.list.insert(0, e);
         self.select(0);
@@ -126,10 +150,7 @@ pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('h'), Rc::new(SelectCurDirectory(x.clone())));
     g.add_edge("init", "init", Char('l'), Rc::new(SelectCurBuffer(x.clone())));
     g.add_edge("init", "init", Char('d'), Rc::new(CloseSelected(x.clone())));
-    controller::ControllerFSM {
-        cur: "init".to_owned(),
-        g: Box::new(g),
-    }
+    controller::ControllerFSM::new("init", Box::new(g))
 }
 pub struct ViewGen {
     x: Rc<RefCell<Navigator>>,
@@ -142,7 +163,7 @@ impl ViewGen {
     }
 }
 impl view::ViewGen for ViewGen {
-    fn gen(&mut self, region: view::Area) -> Box<view::View> {
+    fn gen(&self, region: view::Area) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().rb.update_search_results();
@@ -161,5 +182,37 @@ impl view::ViewGen for ViewGen {
 
         let view = navi_view;
         Box::new(view)
+    }
+}
+
+pub struct NavigatorPage {
+    controller: Box<controller::Controller>,
+    view_gen: Box<view::ViewGen>,
+    x: Rc<RefCell<Navigator>>,
+}
+impl NavigatorPage {
+    pub fn new(x: Rc<RefCell<Navigator>>) -> Self {
+        Self {
+            controller: Box::new(mk_controller(x.clone())),
+            view_gen: Box::new(ViewGen::new(x.clone())),
+            x: x,
+        }
+    }
+}
+impl Page for NavigatorPage {
+    fn controller(&self) -> &Box<controller::Controller> {
+        &self.controller
+    }
+    fn view_gen(&self) -> &Box<view::ViewGen> {
+        &self.view_gen
+    }
+    fn desc(&self) -> String {
+        "[NAVIGATOR]".to_owned()
+    }
+    fn kind(&self) -> PageKind {
+        PageKind::Other
+    }
+    fn id(&self) -> String {
+        "navigator".to_owned()
     }
 }

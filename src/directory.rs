@@ -81,18 +81,18 @@ impl Directory {
     pub fn eff_select(&mut self, _: Key) {
         let i = self.rb.cursor.row;
         let entry = &self.entries[i];
-        let page: Box<navigator::Page> = match entry.clone() {
+        let page: Rc<navigator::Page> = match entry.clone() {
             Entry::Parent(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                Box::new(self::Page::new(dir, path.clone()))
+                Rc::new(self::Page::new(dir, path.clone()))
             },
             Entry::Dir(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                Box::new(self::Page::new(dir, path.clone()))
+                Rc::new(self::Page::new(dir, path.clone()))
             },
             Entry::File(path) => {
                 let x = Rc::new(RefCell::new(EditBuffer::open(Some(&path))));
-                Box::new(edit_buffer::Page::new(x))
+                Rc::new(edit_buffer::Page::new(x))
             },
         };
         self.navigator.borrow_mut().push(page);
@@ -103,7 +103,7 @@ impl Directory {
         match entry.clone() {
             Entry::Dir(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                let new_dir = Box::new(self::Page::new(dir, path.clone()));
+                let new_dir = Rc::new(self::Page::new(dir, path.clone()));
                 self.navigator.borrow_mut().pop_and_push(new_dir);
             },
             _ => {}
@@ -114,7 +114,7 @@ impl Directory {
             match e {
                 Entry::Parent(path) => {
                     let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                    let new_dir = Box::new(self::Page::new(dir, path.clone()));
+                    let new_dir = Rc::new(self::Page::new(dir, path.clone()));
                     self.navigator.borrow_mut().pop_and_push(new_dir);
                 },
                 _ => {},
@@ -141,10 +141,7 @@ pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
     g.add_edge("init", "init", Char('l'), Rc::new(GoDown(x.clone())));
     g.add_edge("init", "init", Char('h'), Rc::new(GoUp(x.clone())));
-    controller::ControllerFSM {
-        cur: "init".to_owned(),
-        g: Box::new(g),
-    }
+    controller::ControllerFSM::new("init", Box::new(g))
 }
 struct ViewGen {
     x: Rc<RefCell<Directory>>,
@@ -157,7 +154,7 @@ impl ViewGen {
     }
 }
 impl view::ViewGen for ViewGen {
-    fn gen(&mut self, region: view::Area) -> Box<view::View> {
+    fn gen(&self, region: view::Area) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().rb.update_search_results();
@@ -179,8 +176,8 @@ impl view::ViewGen for ViewGen {
     }
 }
 pub struct Page {
-    controller: Rc<RefCell<controller::Controller>>,
-    view_gen: Rc<RefCell<view::ViewGen>>,
+    controller: Box<controller::Controller>,
+    view_gen: Box<view::ViewGen>,
     x: Rc<RefCell<Directory>>,
     // WA:
     // to call eff_select() we need to take the borrow_mut() of the directory
@@ -193,19 +190,19 @@ pub struct Page {
 impl Page {
     pub fn new(x: Rc<RefCell<Directory>>, path: PathBuf) -> Self {
         Self {
-            controller: Rc::new(RefCell::new(mk_controller(x.clone()))),
-            view_gen: Rc::new(RefCell::new(ViewGen::new(x.clone()))),
+            controller: Box::new(mk_controller(x.clone())),
+            view_gen: Box::new(ViewGen::new(x.clone())),
             x: x,
             path: path,
         }
     }
 }
 impl navigator::Page for Page {
-    fn controller(&self) -> Rc<RefCell<controller::Controller>> {
-        self.controller.clone()
+    fn controller(&self) -> &Box<controller::Controller> {
+        &self.controller
     }
-    fn view_gen(&self) -> Rc<RefCell<view::ViewGen>> {
-        self.view_gen.clone()
+    fn view_gen(&self) -> &Box<view::ViewGen> {
+        &self.view_gen
     }
     fn desc(&self) -> String {
         format!("[DIRECTORY] {}", self.path.to_str().unwrap().to_owned())

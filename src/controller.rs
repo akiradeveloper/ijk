@@ -1,6 +1,7 @@
 use crate::Key;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
+use std::cell::RefCell;
 
 pub trait Effect {
     fn run(&self, k: Key) -> ();
@@ -97,25 +98,34 @@ fn compose<G1: Graph, G2: Graph>(g1: G1, g2: G2) -> ComposedGraph<G1, G2> {
 }
 
 pub trait Controller {
-    fn receive(&mut self, k: Key);
+    fn receive(&self, k: Key);
 }
 
 pub struct NullController {}
 impl Controller for NullController {
-    fn receive(&mut self, k: Key) {}
+    fn receive(&self, k: Key) {}
 }
 
 pub struct ControllerFSM {
-    pub cur: String,
-    pub g: Box<Graph>,
+    cur: RefCell<String>,
+    g: Box<Graph>,
+}
+impl ControllerFSM {
+    pub fn new(s: &str, g: Box<Graph>) -> Self {
+        Self {
+            cur: RefCell::new(s.to_owned()),
+            g: g,
+        }
+    }
 }
 impl Controller for ControllerFSM {
-    fn receive(&mut self, k: Key) {
-        let eff0 = self.g.find_effect(&self.cur, &k);
+    fn receive(&self, k: Key) {
+        let cur = self.cur.borrow().clone();
+        let eff0 = self.g.find_effect(&cur, &k);
         match eff0 {
             Some((eff, to)) => {
                 eff.run(k);
-                self.cur = to;
+                *self.cur.borrow_mut() = to;
             }
             None => {}
         }
@@ -158,10 +168,7 @@ mod tests {
 
         let g = compose(g1, g2);
 
-        let mut ctrl = ControllerFSM {
-            cur: "yes".to_owned(),
-            g: Box::new(g),
-        };
+        let mut ctrl = ControllerFSM::new("yes", Box::new(g));
         ctrl.receive(Char('y'));
         assert_eq!(*buf.borrow(), ['y']);
         ctrl.receive(Char('y'));

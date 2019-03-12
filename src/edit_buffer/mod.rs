@@ -751,10 +751,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(x.clone())));
     g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(x.clone())));
 
-    controller::ControllerFSM {
-        cur: "init".to_owned(),
-        g: Box::new(g),
-    }
+    controller::ControllerFSM::new("init", Box::new(g))
 }
 
 pub struct ViewGen {
@@ -769,7 +766,7 @@ impl ViewGen {
 }
 use crate::view;
 impl view::ViewGen for ViewGen {
-    fn gen(&mut self, region: view::Area) -> Box<view::View> {
+    fn gen(&self, region: view::Area) -> Box<view::View> {
         let (edit_reg, search_reg) = region.split_vertical(region.height-1);
         let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
 
@@ -827,30 +824,30 @@ impl view::ViewGen for ViewGen {
 }
 
 pub struct Page {
-    controller: Rc<RefCell<controller::Controller>>,
-    view_gen: Rc<RefCell<view::ViewGen>>,
+    controller: Box<controller::Controller>,
+    view_gen: Box<view::ViewGen>,
     x: Rc<RefCell<EditBuffer>>,
 }
 impl Page {
     pub fn new(x: Rc<RefCell<EditBuffer>>) -> Self {
         Self {
-            controller: Rc::new(RefCell::new(mk_controller(x.clone()))),
-            view_gen: Rc::new(RefCell::new(ViewGen::new(x.clone()))),
+            controller: Box::new(mk_controller(x.clone())),
+            view_gen: Box::new(ViewGen::new(x.clone())),
             x: x,
         }
     }
 }
 impl navigator::Page for Page {
-    fn controller(&self) -> Rc<RefCell<controller::Controller>> {
-        self.controller.clone()
+    fn controller(&self) -> &Box<controller::Controller> {
+        &self.controller
     }
-    fn view_gen(&self) -> Rc<RefCell<view::ViewGen>> {
-        self.view_gen.clone()
+    fn view_gen(&self) -> &Box<view::ViewGen> {
+        &self.view_gen
     }
     fn desc(&self) -> String {
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
-            None => "null".to_owned(),
+            None => "noname".to_owned(),
         };
         format!("[BUFFER] {}", s)
     }
