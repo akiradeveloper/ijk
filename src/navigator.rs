@@ -73,6 +73,11 @@ impl Navigator {
             }
         }
     }
+    pub fn pop_and_push(&mut self, e: Box<Page>) {
+        self.list.remove(0);
+        self.list.insert(0, e);
+        self.select(0);
+    }
     pub fn pop(&mut self) {
         self.list.remove(0);
         self.select(0);
