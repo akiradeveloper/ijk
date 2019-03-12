@@ -109,6 +109,18 @@ impl Directory {
             _ => {}
         };
     }
+    pub fn eff_go_up(&mut self, _: Key) {
+        for e in &self.entries {
+            match e {
+                Entry::Parent(path) => {
+                    let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
+                    let new_dir = Box::new(self::Page::new(dir, path.clone()));
+                    self.navigator.borrow_mut().pop_and_push(new_dir);
+                },
+                _ => {},
+            }
+        }
+    }
 }
 
 use crate::controller::Effect;
@@ -127,6 +139,7 @@ def_effect!(CursorUp, Directory, eff_cursor_up);
 def_effect!(CursorDown, Directory, eff_cursor_down);
 def_effect!(Select, Directory, eff_select);
 def_effect!(GoDown, Directory, eff_go_down);
+def_effect!(GoUp, Directory, eff_go_up);
 
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     use crate::Key::*;
@@ -135,6 +148,7 @@ pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
     g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
     g.add_edge("init", "init", Char('l'), Rc::new(GoDown(x.clone())));
+    g.add_edge("init", "init", Char('h'), Rc::new(GoUp(x.clone())));
     controller::ControllerFSM {
         cur: "init".to_owned(),
         g: Box::new(g),
