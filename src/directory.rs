@@ -159,8 +159,8 @@ impl view::ViewGen for ViewGen {
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().rb.update_search_results();
 
-        let dir_area = region;
-        let dir_view = view::ToView::new(self.x.borrow().rb.buf.clone());
+        let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
+        let dir_view = view::CutBuffer::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
         let dir_view = view::AddCursor::new(
             dir_view,
             Some(self.x.borrow().rb.cursor), // tmp: the cursor is always visible
@@ -171,7 +171,17 @@ impl view::ViewGen for ViewGen {
             dir_area.row as i32 - self.x.borrow().rb.window.row() as i32,
         );
 
-        let view = dir_view;
+        let lineno_range = self.x.borrow().rb.lineno_range();
+        let lineno_view = view::LineNumber {
+            from: lineno_range.start+1,
+            to: lineno_range.end,
+        };
+
+        let view = view::MergeHorizontal {
+            left: lineno_view,
+            right: dir_view,
+            col_offset: dir_area.col,
+        };
         Box::new(view)
     }
 }
