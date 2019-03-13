@@ -1,4 +1,5 @@
 use crate::{BufElem, Cursor, Key};
+use crate::view;
 use self::visibility_window::VisibilityWindow;
 use self::search::Search;
 
@@ -145,6 +146,9 @@ impl ReadBuffer {
     }
     pub fn adjust_window(&mut self, w: usize, h: usize) {
         self.window.adjust_window(self.cursor, w, h);
+    }
+    pub fn current_window(&self) -> view::Area {
+        self.window.area()
     }
     pub fn current_search_word(&self) -> String {
         let mut s = String::new();

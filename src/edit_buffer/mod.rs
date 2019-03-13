@@ -10,6 +10,7 @@ use crate::read_buffer::*;
 use crate::navigator;
 use std::path;
 use std::fs;
+use crate::screen;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
@@ -754,6 +755,27 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     controller::ControllerFSM::new("init", Box::new(g))
 }
 
+use crate::view;
+pub struct VisualRangeDiffView {
+    range: Option<CursorRange>, // doubtful design to have option here
+}
+impl view::DiffView for VisualRangeDiffView {
+    fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
+        let as_cursor = Cursor { row, col };
+        let in_visual_range = self.range.map(|r| r.start <= as_cursor && as_cursor < r.end).unwrap_or(false);
+        if in_visual_range {
+            (None, None, Some(screen::Color::Blue))
+        } else {
+            (None, None, None)
+        }
+    }
+}
+impl VisualRangeDiffView {
+    pub fn new(range: Option<CursorRange>) -> Self {
+        Self { range }
+    }
+}
+
 pub struct ViewGen {
     buf: Rc<RefCell<EditBuffer>>,
 }
@@ -764,11 +786,10 @@ impl ViewGen {
         }
     }
 }
-use crate::view;
 impl view::ViewGen for ViewGen {
     fn gen(&self, region: view::Area) -> Box<view::View> {
         let (edit_reg, search_reg) = region.split_vertical(region.height-1);
-        let (lineno_reg, buf_reg) = edit_reg.split_horizontal(6);
+        let (lineno_reg, buf_reg) = edit_reg.split_horizontal(view::LINE_NUMBER_W);
 
         self.buf.borrow_mut().rb.stabilize();
         self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
@@ -789,7 +810,7 @@ impl view::ViewGen for ViewGen {
         );
         let buf_view = view::OverlayView::new(
             buf_view,
-            view::VisualRangeDiffView::new(self.buf.borrow().visual_range()),
+            VisualRangeDiffView::new(self.buf.borrow().visual_range()),
         );
         let buf_view = view::AddCursor::new(
             buf_view,

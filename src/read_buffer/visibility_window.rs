@@ -1,3 +1,4 @@
+use crate::view;
 use crate::Cursor;
 
 pub struct VisibilityWindow {
@@ -16,15 +17,13 @@ impl VisibilityWindow {
             row_low: 0, row_high: 0,
         }
     }
-    fn resize(&mut self, cursor: Cursor, width: usize, height: usize) {
-        if self.width() == width && self.height() == height {
-            return;
+    pub fn area(&self) -> view::Area {
+        view::Area {
+            col: self.col(),
+            row: self.row(),
+            width: self.width(),
+            height: self.height(),
         }
-        self.col_low = cursor.col; // TODO should be able to be any value like 0
-        self.col_high = cursor.col + width - 1;
-        self.row_low = cursor.row;
-        self.row_high = cursor.row + height - 1;
-        // self.cur_cursor = cursor;
     }
     pub fn col(&self) -> usize {
         self.col_low
@@ -37,6 +36,16 @@ impl VisibilityWindow {
     }
     pub fn height(&self) -> usize {
         self.row_high - self.row_low + 1
+    }
+    fn resize(&mut self, cursor: Cursor, width: usize, height: usize) {
+        if self.width() == width && self.height() == height {
+            return;
+        }
+        self.col_low = cursor.col; // TODO should be able to be any value like 0
+        self.col_high = cursor.col + width - 1;
+        self.row_low = cursor.row;
+        self.row_high = cursor.row + height - 1;
+        // self.cur_cursor = cursor;
     }
     pub fn adjust(&mut self, cursor: Cursor) {
         let prev_cursor = self.cur_cursor;

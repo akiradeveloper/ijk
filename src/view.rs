@@ -1,7 +1,7 @@
-use crate::BufElem;
-use crate::screen::Color;
-use crate::Cursor;
 use crate::edit_buffer::CursorRange;
+use crate::screen::Color;
+use crate::BufElem;
+use crate::Cursor;
 
 #[derive(PartialEq, Clone, Copy)]
 pub struct Area {
@@ -75,22 +75,72 @@ pub trait DiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }
 
+pub struct CutBuffer {
+    copy: Vec<Vec<BufElem>>,
+    area: Area,
+}
+impl CutBuffer {
+    fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
+        let mut v = vec![];
+        for i in 0..area.height {
+            let row = area.row + i;
+            if row > orig.len() - 1 {
+                break;
+            }
+            let mut vv = vec![];
+            for j in 0..area.width {
+                let col = area.col + j;
+                if col > orig[row].len() - 1 {
+                    break;
+                }
+                vv.push(orig[row][col].clone());
+            }
+            v.push(vv);
+        }
+        Self {
+            copy: v,
+            area: area,
+        }
+    }
+}
+impl View for CutBuffer {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        let copy_row = row - self.area.row;
+        let copy_col = col - self.area.col;
+        if copy_row > self.copy.len() - 1 || copy_col > self.copy[copy_row].len() - 1 {
+            (' ', Color::Black, Color::Black)
+        } else {
+            let e = &self.copy[copy_row][copy_col];
+            let c = match *e {
+                BufElem::Char(c) => c,
+                BufElem::Eol => ' ',
+            };
+            (c, Color::White, Color::Black)
+        }
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
+
 pub struct ToView {
-    x: Vec<Vec<BufElem>>
+    x: Vec<Vec<BufElem>>,
 }
 impl View for ToView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         if row >= self.x.len() || col >= self.x[row].len() {
-            return (' ', Color::Black, Color::Black)
+            return (' ', Color::Black, Color::Black);
         }
         let e: &BufElem = &self.x[row][col];
         let c = match *e {
             BufElem::Char(c) => c,
-            BufElem::Eol => ' '
+            BufElem::Eol => ' ',
         };
         (c, Color::White, Color::Black)
     }
-    fn get_cursor_pos(&self) -> Option<Cursor> { None }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
 }
 impl ToView {
     pub fn new(x: Vec<Vec<BufElem>>) -> Self {
@@ -98,17 +148,34 @@ impl ToView {
     }
 }
 
+pub struct BgColor {
+    bg: Color,
+}
+impl View for BgColor {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        (' ', Color::Black, self.bg)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
+
 pub struct AddCursor<V> {
     x: V,
     cursor: Option<Cursor>,
 }
-impl <V> View for AddCursor<V> where V: View {
-    fn get(&self, col: usize, row: usize) -> ViewElem { self.x.get(col, row) }
+impl<V> View for AddCursor<V>
+where
+    V: View,
+{
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        self.x.get(col, row)
+    }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         self.cursor
     }
 }
-impl <V> AddCursor<V> {
+impl<V> AddCursor<V> {
     pub fn new(x: V, cursor: Option<Cursor>) -> Self {
         Self { x, cursor }
     }
@@ -119,33 +186,42 @@ pub struct TranslateView<V> {
     diff_col: i32,
     diff_row: i32,
 }
-impl <V> View for TranslateView<V> where V: View {
+impl<V> View for TranslateView<V>
+where
+    V: View,
+{
     fn get(&self, col: usize, row: usize) -> ViewElem {
         let c = (col as i32 - self.diff_col) as usize;
         let r = (row as i32 - self.diff_row) as usize;
         self.x.get(c, r)
     }
-    fn get_cursor_pos(&self) -> Option<Cursor> { 
-        self.x.get_cursor_pos().map(|cur|
-            Cursor {
-                row: (cur.row as i32 + self.diff_row) as usize,
-                col: (cur.col as i32 + self.diff_col) as usize,
-            }
-        )
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        self.x.get_cursor_pos().map(|cur| Cursor {
+            row: (cur.row as i32 + self.diff_row) as usize,
+            col: (cur.col as i32 + self.diff_col) as usize,
+        })
     }
 }
-impl <V> TranslateView<V> {
+impl<V> TranslateView<V> {
     pub fn new(x: V, diff_col: i32, diff_row: i32) -> Self {
-        Self { x, diff_col, diff_row }
+        Self {
+            x,
+            diff_col,
+            diff_row,
+        }
     }
 }
 
-pub struct MergeVertical<V1,V2> {
+pub struct MergeVertical<V1, V2> {
     pub top: V1,
     pub bottom: V2,
     pub row_offset: usize,
 }
-impl <V1,V2> View for MergeVertical<V1,V2> where V1: View, V2: View {
+impl<V1, V2> View for MergeVertical<V1, V2>
+where
+    V1: View,
+    V2: View,
+{
     fn get(&self, col: usize, row: usize) -> ViewElem {
         if row < self.row_offset {
             self.top.get(col, row)
@@ -158,12 +234,16 @@ impl <V1,V2> View for MergeVertical<V1,V2> where V1: View, V2: View {
     }
 }
 
-pub struct MergeHorizontal<V1,V2> {
+pub struct MergeHorizontal<V1, V2> {
     pub left: V1,
     pub right: V2,
     pub col_offset: usize,
 }
-impl <V1,V2> View for MergeHorizontal<V1,V2> where V1: View, V2: View {
+impl<V1, V2> View for MergeHorizontal<V1, V2>
+where
+    V1: View,
+    V2: View,
+{
     fn get(&self, col: usize, row: usize) -> ViewElem {
         if col < self.col_offset {
             self.left.get(col, row)
@@ -176,6 +256,7 @@ impl <V1,V2> View for MergeHorizontal<V1,V2> where V1: View, V2: View {
     }
 }
 
+pub const LINE_NUMBER_W: usize = 7;
 pub struct LineNumber {
     pub from: usize,
     pub to: usize,
@@ -184,25 +265,27 @@ impl View for LineNumber {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         let n = self.from + row;
         let c = if n <= self.to {
-            let line: Vec<char> = format!("{0:>5} ", n).chars().collect();
+            let line: Vec<char> = format!("{0:>5}  ", n).chars().collect();
             line[col]
         } else {
             ' '
         };
         (c, Color::White, Color::Black)
     }
-    fn get_cursor_pos(&self) -> Option<Cursor> { None }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
 }
 #[test]
 fn test_lineno() {
     let view = LineNumber { from: 15, to: 15 };
     for (i, &c) in [' ', ' ', ' ', '1', '5', ' '].iter().enumerate() {
-        assert_eq!(view.get(i,0).0, c);
+        assert_eq!(view.get(i, 0).0, c);
     }
 }
 
 pub struct SearchBar {
-    s: Vec<char>
+    s: Vec<char>,
 }
 impl SearchBar {
     pub fn new(s: &str) -> Self {
@@ -226,49 +309,42 @@ impl View for SearchBar {
             (' ', Color::White, Color::Black)
         }
     }
-    fn get_cursor_pos(&self) -> Option<Cursor> { None }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
 }
 
 pub struct OverlayView<V, D> {
     v: V,
     d: D,
 }
-impl <V, D> OverlayView<V, D> where V: View, D: DiffView {
+impl<V, D> OverlayView<V, D>
+where
+    V: View,
+    D: DiffView,
+{
     pub fn new(v: V, d: D) -> Self {
         Self { v, d }
     }
 }
-impl <V, D> View for OverlayView<V, D> where V: View, D: DiffView {
+impl<V, D> View for OverlayView<V, D>
+where
+    V: View,
+    D: DiffView,
+{
     fn get(&self, col: usize, row: usize) -> ViewElem {
         let (v0, v1, v2) = self.v.get(col, row);
         let (d0, d1, d2) = self.d.get(col, row);
         (d0.unwrap_or(v0), d1.unwrap_or(v1), d2.unwrap_or(v2))
     }
-    fn get_cursor_pos(&self) -> Option<Cursor> { self.v.get_cursor_pos() }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        self.v.get_cursor_pos()
+    }
 }
 
-pub struct VisualRangeDiffView {
-    range: Option<CursorRange>, // doubtful design to have option here
-}
-impl DiffView for VisualRangeDiffView {
-    fn get(&self, col: usize, row: usize) -> ViewElemDiff {
-        let as_cursor = Cursor { row, col };
-        let in_visual_range = self.range.map(|r| r.start <= as_cursor && as_cursor < r.end).unwrap_or(false);
-        if in_visual_range {
-            (None, None, Some(Color::Blue))
-        } else {
-            (None, None, None)
-        }
-    }
-}
-impl VisualRangeDiffView {
-    pub fn new(range: Option<CursorRange>) -> Self {
-        Self { range }
-    }
-}
 struct TestDiffView {}
 impl DiffView for TestDiffView {
-    fn get(&self, col: usize, row: usize) -> ViewElemDiff { 
+    fn get(&self, col: usize, row: usize) -> ViewElemDiff {
         (Some('a'), Some(Color::Red), None)
     }
 }
@@ -287,6 +363,6 @@ fn test_view_overlay() {
         width: 1,
         height: 1,
     };
-    let e = view.get(0,0);
+    let e = view.get(0, 0);
     assert_eq!(e, ('a', Color::Red, Color::Black));
 }
