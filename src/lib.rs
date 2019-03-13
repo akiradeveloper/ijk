@@ -41,3 +41,4 @@ pub mod controller;
 pub mod view;
 pub mod navigator;
 pub mod directory;
+pub mod message_box;
