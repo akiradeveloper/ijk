@@ -90,11 +90,10 @@ impl <'a> View for MapBuffer<'a> {
                 BufElem::Eol => ' ',
             };
             (c, Color::White, Color::Black)
-        } 
+        }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> { None }
 }
-
 
 pub struct CutBuffer {
     copy: Vec<Vec<BufElem>>,
