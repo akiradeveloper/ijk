@@ -168,7 +168,8 @@ impl view::ViewGen for ViewGen {
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().rb.update_search_results();
 
-        let navi_area = region;
+        let (lineno_area, navi_area) = region.split_horizontal(view::LINE_NUMBER_W);
+        let navi_view = view::CutBuffer::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
         let navi_view = view::ToView::new(self.x.borrow().rb.buf.clone());
         let navi_view = view::AddCursor::new(
             navi_view,
@@ -180,7 +181,18 @@ impl view::ViewGen for ViewGen {
             navi_area.row as i32 - self.x.borrow().rb.window.row() as i32,
         );
 
-        let view = navi_view;
+        let lineno_range = self.x.borrow().rb.lineno_range();
+        let lineno_view = view::LineNumber {
+            from: lineno_range.start+1,
+            to: lineno_range.end,
+        };
+
+        let view = view::MergeHorizontal {
+            left: lineno_view,
+            right: navi_view,
+            col_offset: navi_area.col,
+        };
+
         Box::new(view)
     }
 }
