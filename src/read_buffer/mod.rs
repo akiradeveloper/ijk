@@ -150,13 +150,6 @@ impl ReadBuffer {
     pub fn current_window(&self) -> view::Area {
         self.window.area()
     }
-    pub fn current_search_word(&self) -> String {
-        let mut s = String::new();
-        for c in &self.search.cur_word {
-            s.push(*c);
-        }
-        s
-    }
     pub fn clear_search_struct(&mut self) {
         self.search.clear_struct(self.buf.len())
     }

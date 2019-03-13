@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 termion = "*"
 clap = "2"
+lazy_static = "1.3.0"

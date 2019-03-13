@@ -8,6 +8,7 @@ use self::undo_buffer::UndoBuffer;
 use crate::{BufElem, Cursor};
 use crate::read_buffer::*;
 use crate::navigator;
+use crate::message_box::{self, MessageBox};
 use std::path;
 use std::fs;
 use crate::screen;
@@ -830,7 +831,7 @@ impl view::ViewGen for ViewGen {
             col_offset: buf_reg.col,
         };
 
-        let search_bar = view::SearchBar::new(&self.buf.borrow().rb.current_search_word());
+        let search_bar = message_box::View::new(message_box::SINGLETON.clone());
         let search_bar = view::TranslateView::new(
             search_bar,
             search_reg.col as i32,
