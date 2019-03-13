@@ -1,6 +1,7 @@
 mod diff_buffer;
 mod undo_buffer;
 mod indent;
+mod clipboard;
 
 use self::diff_buffer::DiffBuffer;
 use self::undo_buffer::UndoBuffer;
@@ -11,8 +12,8 @@ use crate::navigator;
 use std::path;
 use std::fs;
 use crate::screen;
-use crate::message_box;
-use crate::message_box::SINGLETON as msgbox;
+use crate::message_box as message_box_lib;
+use crate::message_box::SINGLETON as message_box;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
@@ -33,23 +34,6 @@ impl ChangeLog {
             deleted: self.inserted.clone(),
             inserted: self.deleted.clone(),
         }
-    }
-}
-
-pub struct YankBuffer {
-    x: Option<Vec<BufElem>>,
-}
-impl YankBuffer {
-    pub fn new() -> Self {
-        Self {
-            x: None,
-        }
-    }
-    pub fn push(&mut self, x: Vec<BufElem>) {
-        self.x = Some(x)
-    }
-    pub fn pop(&mut self) -> Option<Vec<BufElem>> {
-        self.x.clone()
     }
 }
 
@@ -107,7 +91,6 @@ pub struct EditBuffer {
     change_log_buffer: UndoBuffer<ChangeLog>,
     edit_state: Option<EditState>,
     path: Option<path::PathBuf>,
-    yank_buffer: YankBuffer,
 }
 
 #[derive(Clone)]
@@ -148,7 +131,6 @@ impl EditBuffer {
             change_log_buffer: UndoBuffer::new(20),
             edit_state: None,
             path: path.map(|x| x.to_owned()),
-            yank_buffer: YankBuffer::new(),
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
@@ -529,14 +511,23 @@ impl EditBuffer {
         self.delete_range(range);
     }
     pub fn eff_paste(&mut self, _: Key) {
-        let yb = self.yank_buffer.pop();
-        if yb.is_none() { return; }
+        let pasted = clipboard::SINGLETON.paste();
+        if pasted.is_none() { return; }
 
-        let yb = yb.unwrap();
+        let pasted = pasted.unwrap();
+        let mut v = vec![];
+        for c in pasted.chars() {
+            let e = match c {
+                '\n' => BufElem::Eol,
+                c => BufElem::Char(c),
+            };
+            v.push(e)
+        }
+        
         let mut log = ChangeLog {
             at: self.rb.cursor,
             deleted: vec![],
-            inserted: yb,
+            inserted: v,
         };
         self.change_log_buffer.push(log.clone());
         self.apply_log(&mut log);
@@ -548,9 +539,17 @@ impl EditBuffer {
 
         let vr = vr.unwrap();
         self.delete_range(vr);
-        let yb = self.change_log_buffer.peek().cloned().unwrap().deleted;
+        let to_copy = self.change_log_buffer.peek().cloned().unwrap().deleted;
         self.undo();
-        self.yank_buffer.push(yb);
+        let mut s = String::new();
+        for e in to_copy {
+            let c = match e {
+                BufElem::Char(c) => c,
+                BufElem::Eol => '\n',
+            };
+            s.push(c)
+        }
+        clipboard::SINGLETON.copy(&s);
         self.rb.cursor = orig_cursor;
     }
     fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
@@ -604,7 +603,7 @@ impl EditBuffer {
                     }
                 }
             }
-            msgbox.send_str("Saved")
+            message_box.send_str("Saved")
         }
     }
     pub fn eff_cursor_up(&mut self, _: Key) {
@@ -833,7 +832,7 @@ impl view::ViewGen for ViewGen {
             col_offset: buf_reg.col,
         };
 
-        let search_bar = message_box::View::new(msgbox.clone());
+        let search_bar = message_box_lib::View::new(message_box.clone());
         let search_bar = view::TranslateView::new(
             search_bar,
             search_reg.col as i32,
