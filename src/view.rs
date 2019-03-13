@@ -76,8 +76,8 @@ pub trait DiffView {
 }
 
 pub struct MapBuffer<'a> {
-    back: &'a[Vec<BufElem>],
-    area: Area,
+    pub back: &'a[Vec<BufElem>],
+    pub area: Area,
 }
 impl <'a> View for MapBuffer<'a> {
     fn get(&self, col: usize, row: usize) -> ViewElem {
@@ -101,7 +101,7 @@ pub struct CutBuffer {
     area: Area,
 }
 impl CutBuffer {
-    fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
+    pub fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
         let mut v = vec![];
         for i in 0..area.height {
             let row = area.row + i;
