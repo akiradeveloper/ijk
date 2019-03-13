@@ -16,6 +16,13 @@ impl MessageBoxImpl {
             buf: vec![],
         }
     }
+    fn send_str(&mut self, x: &str) {
+        let mut v = vec![];
+        for c in x.chars() {
+            v.push(BufElem::Char(c))
+        }
+        self.buf = v;
+    }
     fn send(&mut self, x: Vec<BufElem>) {
         self.buf = x;
     }
@@ -30,6 +37,9 @@ impl MessageBox {
         Self {
             x: Arc::new(Mutex::new(MessageBoxImpl::new()))
         }
+    }
+    pub fn send_str(&self, x: &str) {
+        self.x.lock().unwrap().send_str(x)
     }
     pub fn send(&self, x: Vec<BufElem>) {
         self.x.lock().unwrap().send(x)

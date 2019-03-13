@@ -8,10 +8,11 @@ use self::undo_buffer::UndoBuffer;
 use crate::{BufElem, Cursor};
 use crate::read_buffer::*;
 use crate::navigator;
-use crate::message_box::{self, MessageBox};
 use std::path;
 use std::fs;
 use crate::screen;
+use crate::message_box;
+use crate::message_box::SINGLETON as msgbox;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
@@ -603,6 +604,7 @@ impl EditBuffer {
                     }
                 }
             }
+            msgbox.send_str("Saved")
         }
     }
     pub fn eff_cursor_up(&mut self, _: Key) {
@@ -831,7 +833,7 @@ impl view::ViewGen for ViewGen {
             col_offset: buf_reg.col,
         };
 
-        let search_bar = message_box::View::new(message_box::SINGLETON.clone());
+        let search_bar = message_box::View::new(msgbox.clone());
         let search_bar = view::TranslateView::new(
             search_bar,
             search_reg.col as i32,
