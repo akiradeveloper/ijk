@@ -8,6 +8,7 @@ use super::read_buffer::ReadBuffer;
 use std::path::{self, Path, PathBuf};
 use std::fs;
 use crate::BufElem;
+use crate::screen::Color;
 
 enum Entry {
     Parent(path::PathBuf),
@@ -143,6 +144,27 @@ pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('h'), Rc::new(GoUp(x.clone())));
     controller::ControllerFSM::new("init", Box::new(g))
 }
+struct AddColor {
+    x: Rc<RefCell<Directory>>,
+}
+impl AddColor {
+    fn new(x: Rc<RefCell<Directory>>) -> Self {
+        Self { x }
+    }
+}
+impl view::DiffView for AddColor {
+    fn get(&self, _: usize, row: usize) -> view::ViewElemDiff {
+        if row > self.x.borrow().entries.len() - 1 {
+            return (None, None, None)
+        }
+        match self.x.borrow().entries[row] {
+            Entry::File(_) => (None, None, None),
+            Entry::Dir(_) => (None, Some(Color::LightRed), None),
+            Entry::Parent(_) => (None, Some(Color::LightRed), None),
+        }
+    }
+}
+
 struct ViewGen {
     x: Rc<RefCell<Directory>>,
 }
@@ -161,6 +183,8 @@ impl view::ViewGen for ViewGen {
 
         let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
         let dir_view = view::CutBuffer::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
+        let add_color = AddColor::new(self.x.clone());
+        let dir_view = view::OverlayView::new(dir_view, add_color);
         let dir_view = view::AddCursor::new(
             dir_view,
             Some(self.x.borrow().rb.cursor), // tmp: the cursor is always visible
