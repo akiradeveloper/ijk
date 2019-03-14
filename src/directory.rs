@@ -12,8 +12,8 @@ use crate::screen::Color;
 
 enum Entry {
     Parent(path::PathBuf),
-    File(path::PathBuf),
     Dir(path::PathBuf),
+    File(path::PathBuf),
 }
 
 pub struct Directory {
@@ -33,6 +33,20 @@ impl Directory {
         r.refresh();
         r
     }
+    fn sort_entries(&mut self) {
+        use std::cmp::Ordering;
+        use self::Entry::*;
+        self.entries.sort_by(|a, b| {
+            match (a.clone(), b.clone()) {
+                (Parent(_), _) => Ordering::Less,
+                (_, Parent(_)) => Ordering::Greater,
+                (Dir(_), File(_)) => Ordering::Less,
+                (File(_), Dir(_)) => Ordering::Greater,
+                (Dir(x), Dir(y)) => x.cmp(&y),
+                (File(x), File(y)) => x.cmp(&y),
+            }
+        })
+    }
     pub fn refresh(&mut self) {
         self.entries.clear();
         for p in self.path.parent() {
@@ -47,6 +61,7 @@ impl Directory {
             };
             self.entries.push(e);
         }
+        self.sort_entries();
         let mut v = vec![];
         for e in &self.entries {
             let mut vv = vec![];
