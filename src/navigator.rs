@@ -39,7 +39,7 @@ impl Page for HelpPage {
         &self.view_gen
     }
     fn kind(&self) -> PageKind {
-        PageKind::Other
+        PageKind::Help
     }
     fn id(&self) -> String {
         "help".to_owned()
@@ -111,7 +111,10 @@ impl Navigator {
         self.set(self.list[0].clone());
     }
     fn delete(&mut self, i: usize) {
-        let e = self.list.remove(i);
+        if self.list[i].kind() == PageKind::Help {
+            return;
+        }
+        self.list.remove(i);
         self.refresh_buffer()
     }
     pub fn push(&mut self, page: Rc<Page>) {
