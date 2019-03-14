@@ -47,20 +47,7 @@ impl Directory {
             }
         })
     }
-    pub fn refresh(&mut self) {
-        self.entries.clear();
-        for p in self.path.parent() {
-            self.entries.push(Entry::Parent(fs::canonicalize(p).unwrap()))
-        }
-        for entry in self.path.read_dir().unwrap() {
-            let p = fs::canonicalize(entry.unwrap().path()).unwrap();
-            let e = if p.is_file() {
-                Entry::File(p)
-            } else {
-                Entry::Dir(p)
-            };
-            self.entries.push(e);
-        }
+    fn refresh_memory(&mut self) {
         self.sort_entries();
         let mut v = vec![];
         for e in &self.entries {
@@ -87,7 +74,22 @@ impl Directory {
         }
         self.rb = ReadBuffer::new(v);
     }
-
+    pub fn refresh(&mut self) {
+        self.entries.clear();
+        for p in self.path.parent() {
+            self.entries.push(Entry::Parent(fs::canonicalize(p).unwrap()))
+        }
+        for entry in self.path.read_dir().unwrap() {
+            let p = fs::canonicalize(entry.unwrap().path()).unwrap();
+            let e = if p.is_file() {
+                Entry::File(p)
+            } else {
+                Entry::Dir(p)
+            };
+            self.entries.push(e);
+        }
+        self.refresh_memory()
+    }
     pub fn eff_cursor_up(&mut self, _: Key) {
         self.rb.cursor_up();
     }
