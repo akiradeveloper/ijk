@@ -20,6 +20,7 @@ pub struct Directory {
     pub rb: ReadBuffer,
     path: path::PathBuf,
     entries: Vec<Entry>,
+    evacuated_entries: Vec<Entry>,
     navigator: Rc<RefCell<Navigator>>,
 }
 impl Directory {
@@ -27,11 +28,38 @@ impl Directory {
         let mut r = Self {
             path: fs::canonicalize(path).unwrap(),
             entries: vec![],
+            evacuated_entries: vec![],
             rb: ReadBuffer::new(vec![]), // not valid
             navigator: navigator,
         };
         r.refresh();
+        r.toggle_hide();
         r
+    }
+    fn toggle_hide(&mut self) {
+        if self.evacuated_entries.is_empty() {
+            for i in (0..self.entries.len()).rev() {
+                let e = &self.entries[i];
+                match *e {
+                    Entry::Parent(_) => {},
+                    Entry::Dir(ref path) => {
+                        if path.file_name().unwrap().to_str().unwrap().starts_with('.') {
+                            let removed = self.entries.remove(i);
+                            self.evacuated_entries.push(removed);
+                        }
+                    }
+                    Entry::File(ref path) => {
+                        if path.file_name().unwrap().to_str().unwrap().starts_with('.') {
+                            let removed = self.entries.remove(i);
+                            self.evacuated_entries.push(removed);
+                        }
+                    }
+                }
+            }
+        } else {
+            self.entries.append(&mut self.evacuated_entries);
+        }
+        self.refresh_memory();
     }
     fn cmp(x: &PathBuf, y: &PathBuf) -> std::cmp::Ordering {
         let x = x.to_str().unwrap().to_lowercase();
@@ -144,6 +172,9 @@ impl Directory {
             }
         }
     }
+    fn eff_toggle_hide(&mut self, _: Key) {
+        self.toggle_hide()
+    }
 }
 
 use crate::controller::Effect;
@@ -155,6 +186,7 @@ def_effect!(CursorDown, Directory, eff_cursor_down);
 def_effect!(Select, Directory, eff_select);
 def_effect!(GoDown, Directory, eff_go_down);
 def_effect!(GoUp, Directory, eff_go_up);
+def_effect!(ToggleHide, Directory, eff_toggle_hide);
 
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     use crate::Key::*;
@@ -164,6 +196,7 @@ pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
     g.add_edge("init", "init", Char('l'), Rc::new(GoDown(x.clone())));
     g.add_edge("init", "init", Char('h'), Rc::new(GoUp(x.clone())));
+    g.add_edge("init", "init", Char('.'), Rc::new(ToggleHide(x.clone())));
     controller::ControllerFSM::new("init", Box::new(g))
 }
 
