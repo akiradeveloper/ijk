@@ -43,6 +43,11 @@ impl Editor {
             let page_view = page.view_gen().gen(page_area);
 
             let message_view = message_box::View::new(message_box::SINGLETON.clone());
+            let message_view = view::TranslateView::new(
+                message_view,
+                message_area.col as i32,
+                message_area.row as i32,
+            );
             let view = view::MergeVertical {
                 top: page_view,
                 bottom: message_view,

@@ -12,7 +12,6 @@ use crate::navigator;
 use std::path;
 use std::fs;
 use crate::screen;
-use crate::message_box as message_box_lib;
 use crate::message_box::SINGLETON as message_box;
 
 #[derive(Copy, Clone)]
@@ -790,8 +789,7 @@ impl ViewGen {
 }
 impl view::ViewGen for ViewGen {
     fn gen(&self, region: view::Area) -> Box<view::View> {
-        let (edit_reg, search_reg) = region.split_vertical(region.height-1);
-        let (lineno_reg, buf_reg) = edit_reg.split_horizontal(view::LINE_NUMBER_W);
+        let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
 
         self.buf.borrow_mut().rb.stabilize();
         self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
@@ -799,8 +797,8 @@ impl view::ViewGen for ViewGen {
 
         let lineno_range = self.buf.borrow().rb.lineno_range();
         let lineno_view = view::LineNumber {
-            from: lineno_range.start+1 ,
-            to: lineno_range.end ,
+            from: lineno_range.start+1,
+            to: lineno_range.end,
         };
         let lineno_view =
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
@@ -831,19 +829,6 @@ impl view::ViewGen for ViewGen {
             right: buf_view,
             col_offset: buf_reg.col,
         };
-
-        let search_bar = message_box_lib::View::new(message_box.clone());
-        let search_bar = view::TranslateView::new(
-            search_bar,
-            search_reg.col as i32,
-            search_reg.row as i32,
-        );
-        let view = view::MergeVertical {
-            top: view,
-            bottom: search_bar,
-            row_offset: search_reg.row,
-        };
-
         Box::new(view)
     }
 }
