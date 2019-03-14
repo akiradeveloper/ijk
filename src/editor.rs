@@ -1,7 +1,7 @@
 use crate::navigator::{self, Page};
 use crate::screen::*;
 use crate::view;
-use crate::Key;
+use crate::{Key, Cursor, BufElem};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::{thread, time};
@@ -9,6 +9,34 @@ use termion::event::Key as TermKey;
 use termion::input::TermRead;
 use crate::message_box;
 use crate::view::View;
+
+struct StatusView {
+    x: Vec<char>,
+}
+impl StatusView {
+    fn new(x: &str) -> Self {
+        let mut v = vec![];
+        for c in x.chars() {
+            v.push(c);
+        }
+        Self {
+            x: v
+        }
+    }
+}
+impl view::View for StatusView {
+    fn get(&self, col: usize, row: usize) -> view::ViewElem {
+        if row == 0 && col < self.x.len() {
+            let c = self.x[col];
+            (c, Color::Black, Color::White)
+        } else {
+            (' ', Color::Black, Color::White)
+        }
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
 
 pub struct Editor {
     navigator: Rc<RefCell<navigator::Navigator>>,
@@ -38,9 +66,23 @@ impl Editor {
                 width: term_w as usize,
                 height: term_h as usize,
             };
-            let (page_area, message_area) = area.split_vertical(area.height - 1);
+            let (page_area, common_area) = area.split_vertical(area.height - 2);
+            let (status_area, message_area) = common_area.split_vertical(1);
             let page = self.navigator.borrow().current.clone();
             let page_view = page.view_gen().gen(page_area);
+            let view = page_view;
+
+            let status_view = StatusView::new(&page.status());
+            let status_view = view::TranslateView::new(
+                status_view,
+                status_area.col as i32,
+                status_area.row as i32,
+            );
+            let view = view::MergeVertical {
+                top: view,
+                bottom: status_view,
+                row_offset: status_area.row,
+            };
 
             let message_view = message_box::View::new(message_box::SINGLETON.clone());
             let message_view = view::TranslateView::new(
@@ -49,7 +91,7 @@ impl Editor {
                 message_area.row as i32,
             );
             let view = view::MergeVertical {
-                top: page_view,
+                top: view,
                 bottom: message_view,
                 row_offset: message_area.row,
             };
