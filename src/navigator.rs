@@ -1,15 +1,17 @@
-use super::controller;
-use super::view;
-use super::read_buffer;
-use crate::BufElem;
+use super::controller::{self, Controller};
+use super::view::{self, View, Area};
+use super::read_buffer::{self, ReadBuffer};
+use crate::{BufElem, Cursor};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::PathBuf;
+use crate::screen::Color;
 
 #[derive(PartialEq)]
 pub enum PageKind {
     Buffer,
     Directory,
+    Help,
     Other,
 }
 
@@ -24,12 +26,12 @@ pub trait Page {
     }
 }
 
-struct NullPage {
+struct HelpPage {
     controller: Box<controller::Controller>,
     view_gen: Box<view::ViewGen>,
 }
 
-impl Page for NullPage {
+impl Page for HelpPage {
     fn controller(&self) -> &Box<controller::Controller> {
         &self.controller
     }
@@ -40,28 +42,52 @@ impl Page for NullPage {
         PageKind::Other
     }
     fn id(&self) -> String {
-        "null".to_owned()
+        "help".to_owned()
     }
     fn desc(&self) -> String {
-        "null".to_owned()
+        "[HELP]".to_owned()
+    }
+}
+
+pub struct HelpController {}
+impl Controller for HelpController {
+    fn receive(&self, k: Key) {}
+}
+
+pub struct HelpView {}
+impl View for HelpView {
+    fn get(&self, col: usize, row: usize) -> view::ViewElem {
+        (' ', Color::Black, Color::Black)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
+pub struct HelpViewGen {}
+impl view::ViewGen for HelpViewGen {
+    fn gen(&self, _: Area) -> Box<View> {
+        Box::new(HelpView {})
     }
 }
 
 pub struct Navigator {
     pub current: Rc<Page>,
     list: Vec<Rc<Page>>,
-    rb: read_buffer::ReadBuffer,
+    rb: ReadBuffer,
 }
 impl Navigator {
     pub fn new() -> Self {
-        Self {
-            current: Rc::new(NullPage {
-                controller: Box::new(controller::NullController {}),
-                view_gen: Box::new(view::NullViewGen {}),
-            }),
-            list: Vec::new(),
-            rb: read_buffer::ReadBuffer::new(vec![]),
-        }
+        let help_page = Rc::new(HelpPage {
+            controller: Box::new(HelpController {}),
+            view_gen: Box::new(HelpViewGen {}),
+        });
+        let mut r = Self {
+            current: help_page.clone(),
+            list: vec![help_page],
+            rb: read_buffer::ReadBuffer::new(vec![]), // not valid
+        };
+        r.refresh_buffer();
+        r
     }
     fn refresh_buffer(&mut self) {
         let mut v = vec![];

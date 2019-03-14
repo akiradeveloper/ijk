@@ -27,7 +27,7 @@ impl Directory {
         let mut r = Self {
             path: fs::canonicalize(path).unwrap(),
             entries: vec![],
-            rb: ReadBuffer::new(vec![]),
+            rb: ReadBuffer::new(vec![]), // not valid
             navigator: navigator,
         };
         r.refresh();
