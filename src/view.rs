@@ -55,6 +55,15 @@ pub trait View {
     fn get_cursor_pos(&self) -> Option<Cursor>;
 }
 
+impl <V: View + ?Sized> View for Box<V> {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        (**self).get(col, row)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        (**self).get_cursor_pos()
+    }
+}
+
 pub struct NullView {}
 impl View for NullView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
@@ -75,25 +84,25 @@ pub trait DiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }
 
-pub struct MapBuffer<'a> {
-    pub back: &'a[Vec<BufElem>],
-    pub area: Area,
-}
-impl <'a> View for MapBuffer<'a> {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        if row > self.back.len() - 1 || col > self.back[row].len() - 1 {
-            (' ', Color::Black, Color::Black)
-        } else {
-            let e = &self.back[row][col];
-            let c = match *e {
-                BufElem::Char(c) => c,
-                BufElem::Eol => ' ',
-            };
-            (c, Color::White, Color::Black)
-        }
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> { None }
-}
+// pub struct MapBuffer<'a> {
+//     pub back: &'a[Vec<BufElem>],
+//     pub area: Area,
+// }
+// impl <'a> View for MapBuffer<'a> {
+//     fn get(&self, col: usize, row: usize) -> ViewElem {
+//         if row > self.back.len() - 1 || col > self.back[row].len() - 1 {
+//             (' ', Color::Black, Color::Black)
+//         } else {
+//             let e = &self.back[row][col];
+//             let c = match *e {
+//                 BufElem::Char(c) => c,
+//                 BufElem::Eol => ' ',
+//             };
+//             (c, Color::White, Color::Black)
+//         }
+//     }
+//     fn get_cursor_pos(&self) -> Option<Cursor> { None }
+// }
 
 pub struct CutBuffer {
     copy: Vec<Vec<BufElem>>,
@@ -140,31 +149,6 @@ impl View for CutBuffer {
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         None
-    }
-}
-
-pub struct ToView {
-    x: Vec<Vec<BufElem>>,
-}
-impl View for ToView {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        if row >= self.x.len() || col >= self.x[row].len() {
-            return (' ', Color::Black, Color::Black);
-        }
-        let e: &BufElem = &self.x[row][col];
-        let c = match *e {
-            BufElem::Char(c) => c,
-            BufElem::Eol => ' ',
-        };
-        (c, Color::White, Color::Black)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
-    }
-}
-impl ToView {
-    pub fn new(x: Vec<Vec<BufElem>>) -> Self {
-        Self { x }
     }
 }
 
@@ -304,35 +288,35 @@ fn test_lineno() {
     }
 }
 
-pub struct SearchBar {
-    s: Vec<char>,
-}
-impl SearchBar {
-    pub fn new(s: &str) -> Self {
-        let mut v = vec!['/'];
-        for c in s.chars() {
-            v.push(c);
-        }
-        Self { s: v }
-    }
-}
-impl View for SearchBar {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        if row == 0 {
-            let c = if 0 <= col && col < self.s.len() {
-                self.s[col]
-            } else {
-                ' '
-            };
-            (c, Color::White, Color::Black)
-        } else {
-            (' ', Color::White, Color::Black)
-        }
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
-    }
-}
+// pub struct SearchBar {
+//     s: Vec<char>,
+// }
+// impl SearchBar {
+//     pub fn new(s: &str) -> Self {
+//         let mut v = vec!['/'];
+//         for c in s.chars() {
+//             v.push(c);
+//         }
+//         Self { s: v }
+//     }
+// }
+// impl View for SearchBar {
+//     fn get(&self, col: usize, row: usize) -> ViewElem {
+//         if row == 0 {
+//             let c = if 0 <= col && col < self.s.len() {
+//                 self.s[col]
+//             } else {
+//                 ' '
+//             };
+//             (c, Color::White, Color::Black)
+//         } else {
+//             (' ', Color::White, Color::Black)
+//         }
+//     }
+//     fn get_cursor_pos(&self) -> Option<Cursor> {
+//         None
+//     }
+// }
 
 pub struct OverlayView<V, D> {
     v: V,
@@ -362,10 +346,37 @@ where
     }
 }
 
+#[cfg(test)]
 struct TestDiffView {}
+#[cfg(test)]
 impl DiffView for TestDiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff {
         (Some('a'), Some(Color::Red), None)
+    }
+}
+
+pub struct ToView {
+    x: Vec<Vec<BufElem>>,
+}
+impl View for ToView {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        if row >= self.x.len() || col >= self.x[row].len() {
+            return (' ', Color::Black, Color::Black);
+        }
+        let e: &BufElem = &self.x[row][col];
+        let c = match *e {
+            BufElem::Char(c) => c,
+            BufElem::Eol => ' ',
+        };
+        (c, Color::White, Color::Black)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
+impl ToView {
+    pub fn new(x: Vec<Vec<BufElem>>) -> Self {
+        Self { x }
     }
 }
 

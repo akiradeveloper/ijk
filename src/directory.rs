@@ -144,6 +144,7 @@ pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     g.add_edge("init", "init", Char('h'), Rc::new(GoUp(x.clone())));
     controller::ControllerFSM::new("init", Box::new(g))
 }
+
 struct AddColor {
     x: Rc<RefCell<Directory>>,
 }
@@ -209,6 +210,7 @@ impl view::ViewGen for ViewGen {
         Box::new(view)
     }
 }
+
 pub struct Page {
     controller: Box<controller::Controller>,
     view_gen: Box<view::ViewGen>,

@@ -1,13 +1,14 @@
-use termion::event::Key as TermKey;
-use crate::Key as Key;
-use termion::input::TermRead;
+use crate::navigator::{self, Page};
+use crate::screen::*;
+use crate::view;
+use crate::Key;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::{thread, time};
-use crate::screen::*;
-use crate::view;
-use crate::navigator::{self, Page};
-use crate::controller;
+use termion::event::Key as TermKey;
+use termion::input::TermRead;
+use crate::message_box;
+use crate::view::View;
 
 pub struct Editor {
     navigator: Rc<RefCell<navigator::Navigator>>,
@@ -31,19 +32,28 @@ impl Editor {
         let mut keys = stdin.keys();
 
         loop {
-            let region = view::Area {
+            let area = view::Area {
                 col: 0,
                 row: 0,
                 width: term_w as usize,
                 height: term_h as usize,
             };
+            let (page_area, message_area) = area.split_vertical(area.height - 1);
             let page = self.navigator.borrow().current.clone();
-            let view = page.view_gen().gen(region);
+            let page_view = page.view_gen().gen(page_area);
+
+            let message_view = message_box::View::new(message_box::SINGLETON.clone());
+            let view = view::MergeVertical {
+                top: page_view,
+                bottom: message_view,
+                row_offset: message_area.row,
+            };
+
             screen.clear();
-            for row in 0 .. region.height {
-                for col in 0 .. region.width {
-                    let (c,fg,bg) = view.get(col,row);
-                    screen.draw(col, row, c, Style(fg,bg))
+            for row in 0..area.height {
+                for col in 0..area.width {
+                    let (c, fg, bg) = view.get(col, row);
+                    screen.draw(col, row, c, Style(fg, bg))
                 }
             }
             for cursor in view.get_cursor_pos() {
@@ -55,7 +65,7 @@ impl Editor {
                 Some(Ok(TermKey::Ctrl('z'))) => break,
                 Some(Ok(TermKey::Ctrl('w'))) => {
                     self.navigator.borrow_mut().set(self.navi_page.clone());
-                },
+                }
                 other_key => {
                     let kk = match other_key {
                         Some(Ok(TermKey::Ctrl('c'))) => Key::Esc,
@@ -64,8 +74,8 @@ impl Editor {
                         Some(Ok(TermKey::Char(c))) => Key::Char(c),
                         _ => {
                             thread::sleep(time::Duration::from_millis(100));
-                            continue
-                        },
+                            continue;
+                        }
                     };
                     let page = self.navigator.borrow().current.clone();
                     page.controller().receive(kk);
