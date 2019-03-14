@@ -33,6 +33,11 @@ impl Directory {
         r.refresh();
         r
     }
+    fn cmp(x: &PathBuf, y: &PathBuf) -> std::cmp::Ordering {
+        let x = x.to_str().unwrap().to_lowercase();
+        let y = y.to_str().unwrap().to_lowercase();
+        x.cmp(&y)
+    }
     fn sort_entries(&mut self) {
         use std::cmp::Ordering;
         use self::Entry::*;
@@ -42,8 +47,8 @@ impl Directory {
                 (_, Parent(_)) => Ordering::Greater,
                 (Dir(_), File(_)) => Ordering::Less,
                 (File(_), Dir(_)) => Ordering::Greater,
-                (Dir(x), Dir(y)) => x.cmp(&y),
-                (File(x), File(y)) => x.cmp(&y),
+                (Dir(x), Dir(y)) => Self::cmp(&x, &y),
+                (File(x), File(y)) => Self::cmp(&x, &y),
             }
         })
     }
