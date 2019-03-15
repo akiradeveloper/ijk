@@ -7,6 +7,7 @@ pub mod change_log;
 use self::diff_buffer::DiffBuffer;
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 
+use std::time::Instant;
 use crate::{BufElem, Cursor};
 use crate::read_buffer::*;
 use crate::navigator;
@@ -75,6 +76,7 @@ pub struct EditBuffer {
     change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
     path: Option<path::PathBuf>,
+    saved_tick: Option<Instant>,
     message_box: MessageBox,
 }
 
@@ -117,7 +119,15 @@ impl EditBuffer {
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
             path: path.map(|x| x.to_owned()),
+            saved_tick: None,
             message_box,
+        }
+    }
+    fn is_dirty(&self) -> bool {
+        match (self.saved_tick, self.change_log_buffer.tick()) {
+            (_, None) => false,
+            (None, Some(_)) => true,
+            (Some(x), Some(y)) => x < y,
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
@@ -422,11 +432,11 @@ impl EditBuffer {
         // take(): replace the memory region with None and take out the owrnership of the object
         let edit_state = self.edit_state.take().unwrap();
         assert!(self.edit_state.is_none());
-        let change_log = ChangeLog {
-            at: edit_state.at,
-            deleted: edit_state.removed,
-            inserted: edit_state.diff_buffer.diff_buf,
-        };
+        let change_log = ChangeLog::new(
+            edit_state.at,
+            edit_state.removed,
+            edit_state.diff_buffer.diff_buf,
+        );
         // self.rb.search.update(&change_log);
         self.rb.clear_search_struct(); // tmp
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
@@ -450,11 +460,11 @@ impl EditBuffer {
             &mut b,
         );
 
-        let log = ChangeLog {
-            at: range.start.clone(),
-            deleted: removed,
-            inserted: vec![],
-        };
+        let log = ChangeLog::new(
+            range.start.clone(),
+            removed,
+            vec![],
+        );
         // self.rb.search.update(&log);
         self.change_log_buffer.push(log);
         self.rb.clear_search_struct(); // tmp
@@ -511,11 +521,11 @@ impl EditBuffer {
             v.push(e)
         }
         
-        let mut log = ChangeLog {
-            at: self.rb.cursor,
-            deleted: vec![],
-            inserted: v,
-        };
+        let mut log = ChangeLog::new(
+            self.rb.cursor,
+            vec![],
+            v,
+        );
         self.change_log_buffer.push(log.clone());
         self.apply_log(&mut log);
     }
@@ -573,7 +583,7 @@ impl EditBuffer {
     pub fn eff_reset(&mut self, _: Key) {
         self.visual_cursor = None;
     }
-    pub fn eff_save_to_file(&self, _: Key) {
+    pub fn eff_save_to_file(&mut self, _: Key) {
         use std::io::Write;
         if self.path.is_none() {
             return;
@@ -590,6 +600,7 @@ impl EditBuffer {
                     }
                 }
             }
+            self.saved_tick = Some(Instant::now());
             self.message_box.send("Saved")
         }
     }
@@ -847,7 +858,12 @@ impl navigator::Page for Page {
             Some(p) => p.to_str().unwrap().to_owned(),
             None => "noname".to_owned(),
         };
-        format!("[BUFFER] {}", s)
+        let dirty_mark = if self.x.borrow().is_dirty() {
+            "[D] "
+        } else {
+            ""
+        };
+        format!("[BUFFER] {}{}", dirty_mark, s)
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Buffer

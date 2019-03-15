@@ -24,6 +24,9 @@ impl <T: Clone> UndoBuffer<T> {
     pub fn peek(&self) -> Option<&T> {
         self.undo_queue.back()
     }
+    pub fn last(&self) -> Option<&T> {
+        self.redo_stack.first().or(self.undo_queue.back())
+    }
     pub fn push(&mut self, x: T) {
         self.redo_stack.clear();
         self.undo_queue.push_back(x);

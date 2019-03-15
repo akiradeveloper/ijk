@@ -1,15 +1,19 @@
 use crate::{BufElem, Cursor};
 use super::undo_buffer::UndoBuffer;
+use std::time::Instant;
 
 #[derive(Clone)]
 pub struct ChangeLog {
+    tick: Instant,
     pub at: Cursor,
     pub deleted: Vec<BufElem>,
     pub inserted: Vec<BufElem>,
 }
 impl ChangeLog {
     pub fn new(at: Cursor, deleted: Vec<BufElem>, inserted: Vec<BufElem>) -> Self {
+        let tick = Instant::now();
         Self {
+            tick: tick,
             at: at,
             deleted: deleted,
             inserted: inserted,
@@ -17,6 +21,7 @@ impl ChangeLog {
     }
     pub fn swap(&self) -> Self {
         Self {
+            tick: self.tick,
             at: self.at,
             deleted: self.inserted.clone(),
             inserted: self.deleted.clone(),
@@ -32,6 +37,9 @@ impl ChangeLogBuffer {
         Self {
             buf: UndoBuffer::new(20),
         }
+    }
+    pub fn tick(&self) -> Option<Instant> {
+        self.buf.peek().map(|x| x.tick)
     }
     pub fn peek(&self) -> Option<&ChangeLog> {
         self.buf.peek()
