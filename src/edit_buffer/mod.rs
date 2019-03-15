@@ -70,8 +70,15 @@ fn calc_n_rows_affected(deleted: &[BufElem], inserted: &[BufElem]) -> (usize, us
     }
 }
 
+enum Mode {
+    Normal,
+    Search,
+    Insert,
+}
+
 pub struct EditBuffer {
     pub rb: ReadBuffer,
+    mode: Mode,
     visual_cursor: Option<Cursor>,
     change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
@@ -115,6 +122,7 @@ impl EditBuffer {
         let message_box = MessageBox::new();
         EditBuffer {
             rb: ReadBuffer::new(init_buf, message_box.clone()),
+            mode: Mode::Normal,
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
@@ -684,45 +692,46 @@ use std::rc::Rc;
 
 use crate::controller::{Effect};
 use crate::def_effect;
+use self::Mode::*;
 
-def_effect!(Undo, EditBuffer, eff_undo);
-def_effect!(Redo, EditBuffer, eff_redo);
-def_effect!(JoinNextLine, EditBuffer, eff_join_next_line);
-def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline);
-def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
-def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
-def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
-def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
-def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode);
-def_effect!(DeleteLine, EditBuffer, eff_delete_line);
-def_effect!(DeleteChar, EditBuffer, eff_delete_char);
-def_effect!(Paste, EditBuffer, eff_paste);
-def_effect!(Yank, EditBuffer, eff_yank);
-def_effect!(IndentBack, EditBuffer, eff_indent_back);
-def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
-def_effect!(SaveToFile, EditBuffer, eff_save_to_file);
-def_effect!(Reset, EditBuffer, eff_reset);
+def_effect!(Undo, EditBuffer, eff_undo, Normal);
+def_effect!(Redo, EditBuffer, eff_redo, Normal);
+def_effect!(JoinNextLine, EditBuffer, eff_join_next_line, Insert);
+def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline, Insert);
+def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode, Insert);
+def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode, Insert);
+def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode, Insert);
+def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input, Insert);
+def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode, Normal);
+def_effect!(DeleteLine, EditBuffer, eff_delete_line, Normal);
+def_effect!(DeleteChar, EditBuffer, eff_delete_char, Normal);
+def_effect!(Paste, EditBuffer, eff_paste, Normal);
+def_effect!(Yank, EditBuffer, eff_yank, Normal);
+def_effect!(IndentBack, EditBuffer, eff_indent_back, Normal);
+def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode, Normal);
+def_effect!(SaveToFile, EditBuffer, eff_save_to_file, Normal);
+def_effect!(Reset, EditBuffer, eff_reset, Normal);
 
-def_effect!(CursorUp, EditBuffer, eff_cursor_up);
-def_effect!(CursorDown, EditBuffer, eff_cursor_down);
-def_effect!(CursorLeft, EditBuffer, eff_cursor_left);
-def_effect!(CursorRight, EditBuffer, eff_cursor_right);
-def_effect!(JumpLineHead, EditBuffer, eff_jump_line_head);
-def_effect!(JumpLineLast, EditBuffer, eff_jump_line_last);
-def_effect!(JumpPageForward, EditBuffer, eff_jump_page_forward);
-def_effect!(JumpPageBackward, EditBuffer, eff_jump_page_backward);
-def_effect!(EnterJumpMode, EditBuffer, eff_enter_jump_mode);
-def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num);
-def_effect!(Jump, EditBuffer, eff_jump);
-def_effect!(CancelJump, EditBuffer, eff_cancel_jump);
-def_effect!(JumpLast, EditBuffer, eff_jump_last);
+def_effect!(CursorUp, EditBuffer, eff_cursor_up, Normal);
+def_effect!(CursorDown, EditBuffer, eff_cursor_down, Normal);
+def_effect!(CursorLeft, EditBuffer, eff_cursor_left, Normal);
+def_effect!(CursorRight, EditBuffer, eff_cursor_right, Normal);
+def_effect!(JumpLineHead, EditBuffer, eff_jump_line_head, Normal);
+def_effect!(JumpLineLast, EditBuffer, eff_jump_line_last, Normal);
+def_effect!(JumpPageForward, EditBuffer, eff_jump_page_forward, Normal);
+def_effect!(JumpPageBackward, EditBuffer, eff_jump_page_backward, Normal);
+def_effect!(EnterJumpMode, EditBuffer, eff_enter_jump_mode, Normal);
+def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num, Normal);
+def_effect!(Jump, EditBuffer, eff_jump, Normal);
+def_effect!(CancelJump, EditBuffer, eff_cancel_jump, Normal);
+def_effect!(JumpLast, EditBuffer, eff_jump_last, Normal);
 
-def_effect!(EnterSearchMode, EditBuffer, eff_enter_search_mode);
-def_effect!(SearchModeInput, EditBuffer, eff_search_mode_input);
-def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode);
-def_effect!(CancelSearchMode, EditBuffer, eff_cancel_search_mode);
-def_effect!(SearchJumpForward, EditBuffer, eff_search_jump_forward);
-def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward);
+def_effect!(EnterSearchMode, EditBuffer, eff_enter_search_mode, Search);
+def_effect!(SearchModeInput, EditBuffer, eff_search_mode_input, Search);
+def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode, Normal);
+def_effect!(CancelSearchMode, EditBuffer, eff_cancel_search_mode, Normal);
+def_effect!(SearchJumpForward, EditBuffer, eff_search_jump_forward, Normal);
+def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward, Normal);
 
 use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
@@ -874,6 +883,11 @@ impl navigator::Page for Page {
         &self.view_gen
     }
     fn status(&self) -> String {
+        let mode = match self.x.borrow().mode {
+            Mode::Normal => "NORMAL",
+            Mode::Insert => "INSERT",
+            Mode::Search => "SEARCH",
+        };
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
             None => "noname".to_owned(),
@@ -883,7 +897,7 @@ impl navigator::Page for Page {
         } else {
             ""
         };
-        format!("[BUFFER] {}{}", dirty_mark, s)
+        format!("[{}] {}{}", mode, dirty_mark, s)
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Buffer

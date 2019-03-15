@@ -72,10 +72,15 @@ impl view::ViewGen for HelpViewGen {
     }
 }
 
+enum Mode {
+    Normal,
+}
+
 pub struct Navigator {
     pub current: Rc<Page>,
     list: Vec<Rc<Page>>,
     rb: ReadBuffer,
+    mode: Mode,
     message_box: MessageBox,
 }
 impl Navigator {
@@ -89,6 +94,7 @@ impl Navigator {
             current: help_page.clone(),
             list: vec![help_page],
             rb: read_buffer::ReadBuffer::new(vec![], message_box.clone()), // not valid
+            mode: Mode::Normal,
             message_box,
         };
         r.refresh_buffer();
@@ -170,13 +176,14 @@ impl Navigator {
 use crate::controller::Effect;
 use crate::def_effect;
 use crate::Key;
+use self::Mode::*;
 
-def_effect!(CursorUp, Navigator, eff_cursor_up);
-def_effect!(CursorDown, Navigator, eff_cursor_down);
-def_effect!(Select, Navigator, eff_select);
-def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory);
-def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer);
-def_effect!(CloseSelected, Navigator, eff_close_selected);
+def_effect!(CursorUp, Navigator, eff_cursor_up, Normal);
+def_effect!(CursorDown, Navigator, eff_cursor_down, Normal);
+def_effect!(Select, Navigator, eff_select, Normal);
+def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory, Normal);
+def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer, Normal);
+def_effect!(CloseSelected, Navigator, eff_close_selected, Normal);
 
 pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     use crate::Key::*;

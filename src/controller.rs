@@ -9,11 +9,12 @@ pub trait Effect {
 
 #[macro_export]
 macro_rules! def_effect {
-    ($eff_name:ident, $t:ty, $fun_name:ident) => {
+    ($eff_name:ident, $t:ty, $fun_name:ident, $next:expr) => {
         struct $eff_name(Rc<RefCell<$t>>);
         impl Effect for $eff_name {
             fn run(&self, k: Key) {
                 self.0.borrow_mut().$fun_name(k);
+                self.0.borrow_mut().mode = $next;
             }
         }
     };

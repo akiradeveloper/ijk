@@ -17,8 +17,13 @@ enum Entry {
     File(path::PathBuf),
 }
 
+enum Mode {
+    Normal,
+}
+
 pub struct Directory {
     pub rb: ReadBuffer,
+    mode: Mode,
     path: path::PathBuf,
     entries: Vec<Entry>,
     evacuated_entries: Vec<Entry>,
@@ -33,6 +38,7 @@ impl Directory {
             entries: vec![],
             evacuated_entries: vec![],
             rb: ReadBuffer::new(vec![], message_box.clone()), // not valid
+            mode: Mode::Normal,
             navigator: navigator,
             message_box,
         };
@@ -184,13 +190,14 @@ impl Directory {
 use crate::controller::Effect;
 use crate::def_effect;
 use crate::Key;
+use self::Mode::*;
 
-def_effect!(CursorUp, Directory, eff_cursor_up);
-def_effect!(CursorDown, Directory, eff_cursor_down);
-def_effect!(Select, Directory, eff_select);
-def_effect!(GoDown, Directory, eff_go_down);
-def_effect!(GoUp, Directory, eff_go_up);
-def_effect!(ToggleHide, Directory, eff_toggle_hide);
+def_effect!(CursorUp, Directory, eff_cursor_up, Normal);
+def_effect!(CursorDown, Directory, eff_cursor_down, Normal);
+def_effect!(Select, Directory, eff_select, Normal);
+def_effect!(GoDown, Directory, eff_go_down, Normal);
+def_effect!(GoUp, Directory, eff_go_up, Normal);
+def_effect!(ToggleHide, Directory, eff_toggle_hide, Normal);
 
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     use crate::Key::*;
