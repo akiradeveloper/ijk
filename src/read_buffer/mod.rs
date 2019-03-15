@@ -28,6 +28,9 @@ impl ReadBuffer {
             message_box,
         }
     }
+    pub fn reset(&mut self) {
+        self.search.clear_search_word()
+    }
     fn stabilize_buffer(&mut self) {
         if self.buf.is_empty() {
             self.buf = vec![vec![BufElem::Eol]];
@@ -135,6 +138,9 @@ impl ReadBuffer {
         }
     }
     pub fn leave_search_mode(&mut self) {}
+    pub fn cancel_search_mode(&mut self) {
+        self.search.clear_search_word();
+    }
     pub fn search_jump_forward(&mut self) {
         let next = self.search.next(self.cursor);
         for x in next {

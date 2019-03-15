@@ -115,6 +115,7 @@ impl Editor {
                 }
                 other_key => {
                     let kk = match other_key {
+                        Some(Ok(TermKey::Esc)) => Key::Esc,
                         Some(Ok(TermKey::Ctrl('c'))) => Key::Esc,
                         Some(Ok(TermKey::Backspace)) => Key::Backspace,
                         Some(Ok(TermKey::Ctrl(c))) => Key::Ctrl(c),

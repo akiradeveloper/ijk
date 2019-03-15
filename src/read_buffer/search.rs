@@ -127,12 +127,15 @@ impl Search {
         self.show_search_word();
     }
     fn show_search_word(&self) {
-        let mut x = String::new();
-        x.push('/');
-        for c in &self.cur_word {
-            x.push(*c)
+        if self.cur_word.is_empty() {
+            self.message_box.send("");
+        } else {
+            let mut x = String::new();
+            for c in &self.cur_word {
+                x.push(*c)
+            }
+            self.message_box.send(&x);
         }
-        self.message_box.send(&x);
     }
     pub fn push_search_word(&mut self, c: char) {
         self.cur_word.push(c);

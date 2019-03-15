@@ -596,6 +596,7 @@ impl EditBuffer {
     }
     pub fn eff_reset(&mut self, _: Key) {
         self.visual_cursor = None;
+        self.rb.reset();
     }
     pub fn eff_save_to_file(&mut self, _: Key) {
         use std::io::Write;
@@ -666,6 +667,9 @@ impl EditBuffer {
     pub fn eff_leave_search_mode(&mut self, _: Key) {
         self.rb.leave_search_mode();
     }
+    fn eff_cancel_search_mode(&mut self, _: Key) {
+        self.rb.cancel_search_mode();
+    }
     pub fn eff_search_jump_forward(&mut self, _: Key) {
         self.rb.search_jump_forward();
     }
@@ -716,6 +720,7 @@ def_effect!(JumpLast, EditBuffer, eff_jump_last);
 def_effect!(EnterSearchMode, EditBuffer, eff_enter_search_mode);
 def_effect!(SearchModeInput, EditBuffer, eff_search_mode_input);
 def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode);
+def_effect!(CancelSearchMode, EditBuffer, eff_cancel_search_mode);
 def_effect!(SearchJumpForward, EditBuffer, eff_search_jump_forward);
 def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward);
 
@@ -762,6 +767,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     // search
     g.add_edge("init", "search", Char('/'), Rc::new(EnterSearchMode(x.clone())));
     g.add_edge("search", "init", Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
+    g.add_edge("search", "init", Esc, Rc::new(CancelSearchMode(x.clone())));
     g.add_edge("search", "search", Otherwise, Rc::new(SearchModeInput(x.clone())));
     g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(x.clone())));
     g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(x.clone())));
