@@ -72,7 +72,7 @@ impl Editor {
             let page_view = page.view_gen().gen(page_area);
             let view = page_view;
 
-            let status_view = StatusView::new(&page.status());
+            let status_view = StatusView::new(&page.desc());
             let status_view = view::TranslateView::new(
                 status_view,
                 status_area.col as i32,

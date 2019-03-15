@@ -22,9 +22,6 @@ pub trait Page {
     fn kind(&self) -> PageKind;
     fn id(&self) -> String;
     fn desc(&self) -> String;
-    fn status(&self) -> String {
-        self.desc()
-    }
     fn message(&self) -> MessageBox;
 }
 
