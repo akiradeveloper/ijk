@@ -21,7 +21,7 @@ pub trait Page {
     fn view_gen(&self) -> &Box<view::ViewGen>;
     fn kind(&self) -> PageKind;
     fn id(&self) -> String;
-    fn desc(&self) -> String;
+    fn status(&self) -> String;
     fn message(&self) -> MessageBox;
 }
 
@@ -43,7 +43,7 @@ impl Page for HelpPage {
     fn id(&self) -> String {
         "help".to_owned()
     }
-    fn desc(&self) -> String {
+    fn status(&self) -> String {
         "[HELP]".to_owned()
     }
     fn message(&self) -> MessageBox {
@@ -98,7 +98,7 @@ impl Navigator {
         let mut v = vec![];
         for e in &self.list {
             let mut vv = vec![];
-            for c in e.desc().chars() {
+            for c in e.status().chars() {
                 vv.push(BufElem::Char(c));
             }
             vv.push(BufElem::Eol);
@@ -254,7 +254,7 @@ impl Page for NavigatorPage {
     fn view_gen(&self) -> &Box<view::ViewGen> {
         &self.view_gen
     }
-    fn desc(&self) -> String {
+    fn status(&self) -> String {
         "[NAVIGATOR]".to_owned()
     }
     fn kind(&self) -> PageKind {

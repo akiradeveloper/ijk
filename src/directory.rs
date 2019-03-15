@@ -299,7 +299,7 @@ impl navigator::Page for Page {
     fn view_gen(&self) -> &Box<view::ViewGen> {
         &self.view_gen
     }
-    fn desc(&self) -> String {
+    fn status(&self) -> String {
         format!("[DIRECTORY] {}", self.path.to_str().unwrap().to_owned())
     }
     fn kind(&self) -> navigator::PageKind {

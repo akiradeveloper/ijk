@@ -857,7 +857,7 @@ impl navigator::Page for Page {
     fn view_gen(&self) -> &Box<view::ViewGen> {
         &self.view_gen
     }
-    fn desc(&self) -> String {
+    fn status(&self) -> String {
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
             None => "noname".to_owned(),
