@@ -76,7 +76,7 @@ pub struct EditBuffer {
     change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
     path: Option<path::PathBuf>,
-    saved_tick: Option<Instant>,
+    sync_clock: Option<Instant>,
     message_box: MessageBox,
 }
 
@@ -119,12 +119,12 @@ impl EditBuffer {
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
             path: path.map(|x| x.to_owned()),
-            saved_tick: None,
+            sync_clock: None,
             message_box,
         }
     }
     fn is_dirty(&self) -> bool {
-        match (self.saved_tick, self.change_log_buffer.tick()) {
+        match (self.sync_clock, self.change_log_buffer.clock()) {
             (_, None) => false,
             (None, Some(_)) => true,
             (Some(x), Some(y)) => x < y,
@@ -154,11 +154,25 @@ impl EditBuffer {
         );
         self.rb.clear_search_struct(); // tmp
     }
+    fn rollback_sync_clock(&mut self) {
+        match (self.sync_clock, self.change_log_buffer.clock()) {
+            (Some(a), Some(b)) => {
+                if a > b {
+                    self.sync_clock = None;
+                }
+            },
+            (Some(_), None) => {
+                self.sync_clock = None;
+            },
+            (None, _) => {},
+        }
+    }
     fn undo(&mut self) -> bool {
         let log = self.change_log_buffer.pop_undo();
         if log.is_none() {
             return false;
         }
+        self.rollback_sync_clock();
         let mut log = log.unwrap().swap();
         self.apply_log(&mut log);
         self.rb.cursor = log.at;
@@ -600,7 +614,7 @@ impl EditBuffer {
                     }
                 }
             }
-            self.saved_tick = Some(Instant::now());
+            self.sync_clock = self.change_log_buffer.clock();
             self.message_box.send("Saved")
         }
     }
