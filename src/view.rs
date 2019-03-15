@@ -84,26 +84,6 @@ pub trait DiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }
 
-// pub struct MapBuffer<'a> {
-//     pub back: &'a[Vec<BufElem>],
-//     pub area: Area,
-// }
-// impl <'a> View for MapBuffer<'a> {
-//     fn get(&self, col: usize, row: usize) -> ViewElem {
-//         if row > self.back.len() - 1 || col > self.back[row].len() - 1 {
-//             (' ', Color::Black, Color::Black)
-//         } else {
-//             let e = &self.back[row][col];
-//             let c = match *e {
-//                 BufElem::Char(c) => c,
-//                 BufElem::Eol => ' ',
-//             };
-//             (c, Color::White, Color::Black)
-//         }
-//     }
-//     fn get_cursor_pos(&self) -> Option<Cursor> { None }
-// }
-
 pub struct CutBuffer {
     copy: Vec<Vec<BufElem>>,
     area: Area,
@@ -161,6 +141,34 @@ impl View for BgColor {
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         None
+    }
+}
+
+pub const LINE_NUMBER_W: usize = 7;
+pub struct LineNumber {
+    pub from: usize,
+    pub to: usize,
+}
+impl View for LineNumber {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        let n = self.from + row;
+        let c = if n <= self.to {
+            let line: Vec<char> = format!("{0:>5}  ", n).chars().collect();
+            line[col]
+        } else {
+            ' '
+        };
+        (c, Color::White, Color::Black)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
+#[test]
+fn test_lineno() {
+    let view = LineNumber { from: 15, to: 15 };
+    for (i, &c) in [' ', ' ', ' ', '1', '5', ' '].iter().enumerate() {
+        assert_eq!(view.get(i, 0).0, c);
     }
 }
 
@@ -257,34 +265,6 @@ where
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         self.left.get_cursor_pos().or(self.right.get_cursor_pos())
-    }
-}
-
-pub const LINE_NUMBER_W: usize = 7;
-pub struct LineNumber {
-    pub from: usize,
-    pub to: usize,
-}
-impl View for LineNumber {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        let n = self.from + row;
-        let c = if n <= self.to {
-            let line: Vec<char> = format!("{0:>5}  ", n).chars().collect();
-            line[col]
-        } else {
-            ' '
-        };
-        (c, Color::White, Color::Black)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
-    }
-}
-#[test]
-fn test_lineno() {
-    let view = LineNumber { from: 15, to: 15 };
-    for (i, &c) in [' ', ' ', ' ', '1', '5', ' '].iter().enumerate() {
-        assert_eq!(view.get(i, 0).0, c);
     }
 }
 
