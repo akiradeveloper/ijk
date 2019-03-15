@@ -1,10 +1,11 @@
-mod diff_buffer;
-mod undo_buffer;
-mod indent;
-mod clipboard;
+pub mod diff_buffer;
+pub mod undo_buffer;
+pub mod indent;
+pub mod clipboard;
+pub mod change_log;
 
 use self::diff_buffer::DiffBuffer;
-use self::undo_buffer::UndoBuffer;
+use self::change_log::{ChangeLog, ChangeLogBuffer};
 
 use crate::{BufElem, Cursor};
 use crate::read_buffer::*;
@@ -18,22 +19,6 @@ use crate::message_box::MessageBox;
 pub struct CursorRange {
     pub start: Cursor,
     pub end: Cursor,
-}
-
-#[derive(Clone)]
-pub struct ChangeLog {
-    at: Cursor,
-    deleted: Vec<BufElem>,
-    inserted: Vec<BufElem>,
-}
-impl ChangeLog {
-    pub fn swap(&self) -> Self {
-        Self {
-            at: self.at,
-            deleted: self.inserted.clone(),
-            inserted: self.deleted.clone(),
-        }
-    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -87,7 +72,7 @@ fn calc_n_rows_affected(deleted: &[BufElem], inserted: &[BufElem]) -> (usize, us
 pub struct EditBuffer {
     pub rb: ReadBuffer,
     visual_cursor: Option<Cursor>,
-    change_log_buffer: UndoBuffer<ChangeLog>,
+    change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
     path: Option<path::PathBuf>,
     message_box: MessageBox,
@@ -129,7 +114,7 @@ impl EditBuffer {
         EditBuffer {
             rb: ReadBuffer::new(init_buf, message_box.clone()),
             visual_cursor: None,
-            change_log_buffer: UndoBuffer::new(20),
+            change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
             path: path.map(|x| x.to_owned()),
             message_box,
