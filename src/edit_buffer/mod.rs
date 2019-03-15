@@ -26,6 +26,7 @@ enum Mode {
     Normal,
     Search,
     Insert,
+    Jump,
 }
 
 pub struct EditBuffer {
@@ -676,8 +677,8 @@ def_effect!(JumpLineHead, EditBuffer, eff_jump_line_head, Normal);
 def_effect!(JumpLineLast, EditBuffer, eff_jump_line_last, Normal);
 def_effect!(JumpPageForward, EditBuffer, eff_jump_page_forward, Normal);
 def_effect!(JumpPageBackward, EditBuffer, eff_jump_page_backward, Normal);
-def_effect!(EnterJumpMode, EditBuffer, eff_enter_jump_mode, Normal);
-def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num, Normal);
+def_effect!(EnterJumpMode, EditBuffer, eff_enter_jump_mode, Mode::Jump);
+def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num, Mode::Jump);
 def_effect!(Jump, EditBuffer, eff_jump, Normal);
 def_effect!(CancelJump, EditBuffer, eff_cancel_jump, Normal);
 def_effect!(JumpLast, EditBuffer, eff_jump_last, Normal);
@@ -843,6 +844,7 @@ impl navigator::Page for Page {
             Mode::Normal => "NORMAL",
             Mode::Insert => "INSERT",
             Mode::Search => "SEARCH",
+            Mode::Jump => "Jump",
         };
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
