@@ -107,12 +107,12 @@ impl Navigator {
         self.rb = read_buffer::ReadBuffer::new(v, self.message_box.clone());
     }
     pub fn set(&mut self, page: Rc<Page>) {
+        self.refresh_buffer();
         self.current = page;
     }
     fn select(&mut self, i: usize) {
         let e = self.list.remove(i);
         self.list.insert(0, e);
-        self.refresh_buffer();
         self.set(self.list[0].clone());
     }
     fn delete(&mut self, i: usize) {
