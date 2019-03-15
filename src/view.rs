@@ -288,36 +288,6 @@ fn test_lineno() {
     }
 }
 
-// pub struct SearchBar {
-//     s: Vec<char>,
-// }
-// impl SearchBar {
-//     pub fn new(s: &str) -> Self {
-//         let mut v = vec!['/'];
-//         for c in s.chars() {
-//             v.push(c);
-//         }
-//         Self { s: v }
-//     }
-// }
-// impl View for SearchBar {
-//     fn get(&self, col: usize, row: usize) -> ViewElem {
-//         if row == 0 {
-//             let c = if 0 <= col && col < self.s.len() {
-//                 self.s[col]
-//             } else {
-//                 ' '
-//             };
-//             (c, Color::White, Color::Black)
-//         } else {
-//             (' ', Color::White, Color::Black)
-//         }
-//     }
-//     fn get_cursor_pos(&self) -> Option<Cursor> {
-//         None
-//     }
-// }
-
 pub struct OverlayView<V, D> {
     v: V,
     d: D,
@@ -355,45 +325,21 @@ impl DiffView for TestDiffView {
     }
 }
 
-pub struct ToView {
-    x: Vec<Vec<BufElem>>,
-}
-impl View for ToView {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        if row >= self.x.len() || col >= self.x[row].len() {
-            return (' ', Color::Black, Color::Black);
-        }
-        let e: &BufElem = &self.x[row][col];
-        let c = match *e {
-            BufElem::Char(c) => c,
-            BufElem::Eol => ' ',
-        };
-        (c, Color::White, Color::Black)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
-    }
-}
-impl ToView {
-    pub fn new(x: Vec<Vec<BufElem>>) -> Self {
-        Self { x }
-    }
-}
-
 #[test]
 fn test_view_overlay() {
     let buf = vec![vec![BufElem::Eol]];
-    let v0 = ToView { x: buf };
-    let d0 = TestDiffView {};
-    let v1 = OverlayView { v: v0, d: d0 };
-
-    let view: Box<dyn View> = Box::new(v1);
-    let reg = Area {
+    let area = Area {
         col: 0,
         row: 0,
         width: 1,
         height: 1,
     };
+    let v0 = CutBuffer::new(&buf, area);
+    let d0 = TestDiffView {};
+    let v1 = OverlayView { v: v0, d: d0 };
+
+    let view: Box<dyn View> = Box::new(v1);
+
     let e = view.get(0, 0);
     assert_eq!(e, ('a', Color::Red, Color::Black));
 }
