@@ -1,5 +1,6 @@
 use crate::{BufElem, Cursor, Key};
 use crate::view;
+use crate::message_box::MessageBox;
 use self::visibility_window::VisibilityWindow;
 use self::search::Search;
 
@@ -12,23 +13,25 @@ pub struct ReadBuffer {
     num_buffer: Vec<char>,
     pub window: VisibilityWindow,
     pub search: Search,
+    message_box: MessageBox,
 }
 
 impl ReadBuffer {
-    pub fn new(init_buf: Vec<Vec<BufElem>>) -> Self {
+    pub fn new(init_buf: Vec<Vec<BufElem>>, message_box: MessageBox) -> Self {
         let n_rows = init_buf.len();
         Self {
             buf: init_buf,
             cursor: Cursor { row: 0, col: 0 },
             num_buffer: vec![],
             window: VisibilityWindow::new(Cursor { col: 0, row: 0 }),
-            search: Search::new(n_rows),
+            search: Search::new(n_rows, message_box.clone()),
+            message_box,
         }
     }
     fn stabilize_buffer(&mut self) {
         if self.buf.is_empty() {
             self.buf = vec![vec![BufElem::Eol]];
-            self.search = Search::new(1);
+            self.search = Search::new(1, self.message_box.clone());
         }
     }
     fn stabilize_cursor(&mut self) {

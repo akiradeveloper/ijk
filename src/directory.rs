@@ -9,6 +9,7 @@ use std::path::{self, Path, PathBuf};
 use std::fs;
 use crate::BufElem;
 use crate::screen::Color;
+use crate::message_box::MessageBox;
 
 enum Entry {
     Parent(path::PathBuf),
@@ -22,15 +23,18 @@ pub struct Directory {
     entries: Vec<Entry>,
     evacuated_entries: Vec<Entry>,
     navigator: Rc<RefCell<Navigator>>,
+    message_box: MessageBox,
 }
 impl Directory {
     pub fn open(path: &Path, navigator: Rc<RefCell<Navigator>>) -> Self {
+        let message_box = MessageBox::new();
         let mut r = Self {
             path: fs::canonicalize(path).unwrap(),
             entries: vec![],
             evacuated_entries: vec![],
-            rb: ReadBuffer::new(vec![]), // not valid
+            rb: ReadBuffer::new(vec![], message_box.clone()), // not valid
             navigator: navigator,
+            message_box,
         };
         r.refresh();
         r.toggle_hide();
@@ -105,7 +109,7 @@ impl Directory {
             vv.push(BufElem::Eol);
             v.push(vv);
         }
-        self.rb = ReadBuffer::new(v);
+        self.rb = ReadBuffer::new(v, self.message_box.clone());
     }
     pub fn refresh(&mut self) {
         self.entries.clear();
@@ -304,5 +308,8 @@ impl navigator::Page for Page {
     fn id(&self) -> String {
         // should not call self.x.borrow() here
         self.path.to_str().unwrap().to_owned()
+    }
+    fn message(&self) -> MessageBox {
+        self.x.borrow().message_box.clone()
     }
 }

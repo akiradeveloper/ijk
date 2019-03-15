@@ -84,7 +84,7 @@ impl Editor {
                 row_offset: status_area.row,
             };
 
-            let message_view = message_box::View::new(message_box::SINGLETON.clone());
+            let message_view = message_box::View::new(page.message());
             let message_view = view::TranslateView::new(
                 message_view,
                 message_area.col as i32,

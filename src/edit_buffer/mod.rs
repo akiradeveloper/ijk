@@ -12,7 +12,7 @@ use crate::navigator;
 use std::path;
 use std::fs;
 use crate::screen;
-use crate::message_box::SINGLETON as message_box;
+use crate::message_box::MessageBox;
 
 #[derive(Copy, Clone)]
 pub struct CursorRange {
@@ -90,6 +90,7 @@ pub struct EditBuffer {
     change_log_buffer: UndoBuffer<ChangeLog>,
     edit_state: Option<EditState>,
     path: Option<path::PathBuf>,
+    message_box: MessageBox,
 }
 
 #[derive(Clone)]
@@ -124,12 +125,14 @@ fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
 impl EditBuffer {
     pub fn open(path: Option<&path::Path>) -> EditBuffer {
         let init_buf = read_buffer(path);
+        let message_box = MessageBox::new();
         EditBuffer {
-            rb: ReadBuffer::new(init_buf),
+            rb: ReadBuffer::new(init_buf, message_box.clone()),
             visual_cursor: None,
             change_log_buffer: UndoBuffer::new(20),
             edit_state: None,
             path: path.map(|x| x.to_owned()),
+            message_box,
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
@@ -602,7 +605,7 @@ impl EditBuffer {
                     }
                 }
             }
-            message_box.send_str("Saved")
+            self.message_box.send("Saved")
         }
     }
     pub fn eff_cursor_up(&mut self, _: Key) {
@@ -870,5 +873,8 @@ impl navigator::Page for Page {
             Some(p) => p.to_str().unwrap().to_owned(),
             None => "noname".to_owned(),
         }
+    }
+    fn message(&self) -> MessageBox {
+        self.x.borrow().message_box.clone()
     }
 }

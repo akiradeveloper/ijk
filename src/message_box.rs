@@ -2,13 +2,8 @@ use crate::{BufElem, Cursor};
 use crate::screen::Color;
 use std::sync::{Arc, Mutex};
 
-use lazy_static::lazy_static;
-lazy_static! {
-    pub static ref SINGLETON: MessageBox = MessageBox::new();
-}
-
 struct MessageBoxImpl {
-    buf: Vec<BufElem>,
+    buf: Vec<char>,
 }
 impl MessageBoxImpl {
     fn new() -> Self {
@@ -16,14 +11,7 @@ impl MessageBoxImpl {
             buf: vec![],
         }
     }
-    fn send_str(&mut self, x: &str) {
-        let mut v = vec![];
-        for c in x.chars() {
-            v.push(BufElem::Char(c))
-        }
-        self.buf = v;
-    }
-    fn send(&mut self, x: Vec<BufElem>) {
+    fn send(&mut self, x: Vec<char>) {
         self.buf = x;
     }
 }
@@ -38,11 +26,12 @@ impl MessageBox {
             x: Arc::new(Mutex::new(MessageBoxImpl::new()))
         }
     }
-    pub fn send_str(&self, x: &str) {
-        self.x.lock().unwrap().send_str(x)
-    }
-    pub fn send(&self, x: Vec<BufElem>) {
-        self.x.lock().unwrap().send(x)
+    pub fn send(&self, x: &str) {
+        let mut v = vec![];
+        for c in x.chars() {
+            v.push(c);
+        }
+        self.x.lock().unwrap().send(v)
     }
 }
 
@@ -58,10 +47,7 @@ impl self::View {
 impl view::View for self::View {
     fn get(&self, col: usize, row: usize) -> view::ViewElem {
         if row == 0 && col < self.x.lock().unwrap().buf.len() {
-            let c = match self.x.lock().unwrap().buf[col] {
-                BufElem::Char(c) => c,
-                BufElem::Eol => ' ',
-            };
+            let c = self.x.lock().unwrap().buf[col];
             (c, Color::White, Color::Black)
         } else {
             (' ', Color::White, Color::Black)

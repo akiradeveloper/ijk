@@ -6,6 +6,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use crate::screen::Color;
+use crate::message_box::MessageBox;
 
 #[derive(PartialEq)]
 pub enum PageKind {
@@ -24,6 +25,7 @@ pub trait Page {
     fn status(&self) -> String {
         self.desc()
     }
+    fn message(&self) -> MessageBox;
 }
 
 struct HelpPage {
@@ -46,6 +48,9 @@ impl Page for HelpPage {
     }
     fn desc(&self) -> String {
         "[HELP]".to_owned()
+    }
+    fn message(&self) -> MessageBox {
+        MessageBox::new()
     }
 }
 
@@ -74,6 +79,7 @@ pub struct Navigator {
     pub current: Rc<Page>,
     list: Vec<Rc<Page>>,
     rb: ReadBuffer,
+    message_box: MessageBox,
 }
 impl Navigator {
     pub fn new() -> Self {
@@ -81,10 +87,12 @@ impl Navigator {
             controller: Box::new(HelpController {}),
             view_gen: Box::new(HelpViewGen {}),
         });
+        let message_box = MessageBox::new();
         let mut r = Self {
             current: help_page.clone(),
             list: vec![help_page],
-            rb: read_buffer::ReadBuffer::new(vec![]), // not valid
+            rb: read_buffer::ReadBuffer::new(vec![], message_box.clone()), // not valid
+            message_box,
         };
         r.refresh_buffer();
         r
@@ -99,7 +107,7 @@ impl Navigator {
             vv.push(BufElem::Eol);
             v.push(vv);
         }
-        self.rb = read_buffer::ReadBuffer::new(v);
+        self.rb = read_buffer::ReadBuffer::new(v, self.message_box.clone());
     }
     pub fn set(&mut self, page: Rc<Page>) {
         self.current = page;
@@ -257,5 +265,8 @@ impl Page for NavigatorPage {
     }
     fn id(&self) -> String {
         "navigator".to_owned()
+    }
+    fn message(&self) -> MessageBox {
+        self.x.borrow().message_box.clone()
     }
 }

@@ -1,7 +1,7 @@
 use crate::view;
 use crate::screen;
 use crate::{Cursor, BufElem};
-use crate::message_box::SINGLETON as message_box;
+use crate::message_box::MessageBox;
 
 #[derive(Clone, Debug)]
 /// invariant: L(search_word) == L(results)
@@ -112,12 +112,14 @@ fn test_hit() {
 pub struct Search {
     pub cur_word: Vec<char>,
     hits: Vec<Hit>,
+    message_box: MessageBox,
 }
 impl Search {
-    pub fn new(n_rows: usize) -> Self {
+    pub fn new(n_rows: usize, message_box: MessageBox) -> Self {
         Self {
             cur_word: vec![],
             hits: vec![Hit::new(); n_rows],
+            message_box,
         }
     }
     pub fn clear_search_word(&mut self) {
@@ -125,12 +127,12 @@ impl Search {
         self.show_search_word();
     }
     fn show_search_word(&self) {
-        let mut x = vec![];
-        x.push(BufElem::Char('/'));
+        let mut x = String::new();
+        x.push('/');
         for c in &self.cur_word {
-            x.push(BufElem::Char(*c))
+            x.push(*c)
         }
-        message_box.send(x);
+        self.message_box.send(&x);
     }
     pub fn push_search_word(&mut self, c: char) {
         self.cur_word.push(c);
