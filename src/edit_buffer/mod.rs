@@ -374,11 +374,15 @@ impl EditBuffer {
         self.eff_enter_insert_mode(k);
     }
     pub fn eff_enter_change_mode(&mut self, _: Key) {
-        if self.visual_range().is_none() {
-            return;
-        }
-        let vr = self.visual_range().unwrap();
-        self.enter_update_mode(&vr, vec![]);
+        let delete_range = if self.visual_range().is_none() {
+            CursorRange {
+                start: self.rb.cursor,
+                end: self.rb.cursor,
+            }
+        } else {
+            self.visual_range().unwrap()
+        };
+        self.enter_update_mode(&delete_range, vec![]);
     }
     pub fn eff_edit_mode_input(&mut self, k: Key) {
         let es = self.edit_state.as_mut().unwrap();
