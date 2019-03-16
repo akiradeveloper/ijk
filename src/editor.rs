@@ -88,16 +88,22 @@ impl Editor {
         let _flame_guard = flame::start_guard("editor.draw");
 
         self.screen.clear();
+
+        flame::start("screen.draw");
         for row in 0..self.screen.h {
             for col in 0..self.screen.w {
                 let (c, fg, bg) = view.get(col, row);
                 self.screen.draw(col, row, c, Style(fg, bg))
             }
         }
+        flame::end("screen.draw");
+
         for cursor in view.get_cursor_pos() {
             self.screen.move_cursor(cursor.col, cursor.row);
         }
+        flame::start("screen.present");
         self.screen.present();
+        flame::end("screen.present");
     }
     pub fn run<I: Iterator<Item = Result<termion::event::Key, std::io::Error>>>(
         &mut self,

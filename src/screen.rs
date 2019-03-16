@@ -56,8 +56,6 @@ impl Screen {
     }
 
     pub fn present(&self) {
-        let _frame_guard = flame::start_guard("screen.present");
-
         let mut out = self.out.borrow_mut();
         write!(out, "{}", termion::cursor::Hide).unwrap();
 
@@ -66,9 +64,11 @@ impl Screen {
         let mut last_style = DEFAULT.0;
         write!(out, "{}", last_style).unwrap();
 
+        flame::start("present.write");
         for y in 0..self.h {
             write!(out, "{}", termion::cursor::Goto(1, y as u16 + 1)).unwrap();
             for x in 0..self.w {
+
                 let (style, ref c) = buf[y * self.w + x];
                 if style != last_style {
                     write!(out, "{}", style).unwrap();
@@ -77,6 +77,7 @@ impl Screen {
                 write!(out, "{}", c).unwrap();
             }
         }
+        flame::end("present.write");
 
         if self.cursor_visible {
             let (cx, cy) = self.cursor_pos;
@@ -89,11 +90,12 @@ impl Screen {
             .unwrap();
         }
 
+        flame::start("present.flush");
         out.flush().unwrap();
+        flame::end("present.flush");
     }
 
     pub fn draw(&self, x: usize, y: usize, c: char, style: Style) {
-        let _frame_guard = flame::start_guard("screen.draw");
         if x < self.w && y < self.h {
             let mut buf = self.buf.borrow_mut();
             if x < self.w {
