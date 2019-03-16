@@ -51,13 +51,9 @@ impl Editor {
         }
     }
     // fn draw() {}
-    pub fn run(&mut self) {
-        let stdin = termion::async_stdin();
-
+    pub fn run<I: Iterator<Item=Result<termion::event::Key, std::io::Error>>>(&mut self, mut keys: I) {
         let (term_w, term_h) = termion::terminal_size().unwrap();
         let mut screen = Screen::new(term_w as usize, term_h as usize);
-
-        let mut keys = stdin.keys();
 
         loop {
             let area = view::Area {

@@ -6,6 +6,7 @@ use std::fs;
 use clap::{App, Arg};
 use std::cell::RefCell;
 use std::rc::Rc;
+use termion::input::TermRead;
 
 use ijk::directory;
 use ijk::edit_buffer;
@@ -41,5 +42,7 @@ fn main() {
     navigator.borrow_mut().push(page);
     let mut editor = ijk::editor::Editor::new(navigator);
 
-    editor.run();
+    let stdin = termion::async_stdin();
+    let keys = stdin.keys();
+    editor.run(keys);
 }
