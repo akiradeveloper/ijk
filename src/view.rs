@@ -125,48 +125,27 @@ impl <T: Clone> BufArea<T> {
 }
 
 pub struct ToView {
-    copy: Vec<Vec<BufElem>>,
-    area: Area,
+    buf_area: BufArea<BufElem>,
 }
 impl ToView {
     pub fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
         let _flame_guard = flame::start_guard("clone area buf");
-
-        let mut v = vec![];
-        for i in 0..area.height {
-            let row = area.row + i;
-            if row > orig.len() - 1 {
-                break;
-            }
-            let mut vv = vec![];
-            for j in 0..area.width {
-                let col = area.col + j;
-                if col > orig[row].len() - 1 {
-                    break;
-                }
-                vv.push(orig[row][col].clone());
-            }
-            v.push(vv);
-        }
         Self {
-            copy: v,
-            area: area,
+            buf_area: BufArea::new(orig, area)
         }
     }
 }
 impl View for ToView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        let copy_row = row - self.area.row;
-        let copy_col = col - self.area.col;
-        if copy_row > self.copy.len() - 1 || copy_col > self.copy[copy_row].len() - 1 {
-            (' ', Color::Black, Color::Black)
-        } else {
-            let e = &self.copy[copy_row][copy_col];
-            let c = match *e {
-                BufElem::Char(c) => c,
-                BufElem::Eol => ' ',
-            };
-            (c, Color::White, Color::Black)
+        match self.buf_area.get(col, row) {
+            Some(e) => {
+                let c = match *e {
+                    BufElem::Char(c) => c,
+                    BufElem::Eol => ' ',
+                };
+                (c, Color::White, Color::Black)
+            },
+            None => (' ', Color::Black, Color::Black)
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
