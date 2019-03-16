@@ -213,7 +213,7 @@ impl view::ViewGen for ViewGen {
         self.x.borrow_mut().rb.update_search_results();
 
         let (lineno_area, navi_area) = region.split_horizontal(view::LINE_NUMBER_W);
-        let navi_view = view::CutBuffer::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
+        let navi_view = view::ToView::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
         let navi_view = view::AddCursor::new(
             navi_view,
             Some(self.x.borrow().rb.cursor), // tmp: the cursor is always visible

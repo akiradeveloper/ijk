@@ -86,11 +86,11 @@ pub trait DiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }
 
-pub struct CutBuffer {
+pub struct ToView {
     copy: Vec<Vec<BufElem>>,
     area: Area,
 }
-impl CutBuffer {
+impl ToView {
     pub fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
         let _flame_guard = flame::start_guard("clone area buf");
 
@@ -116,7 +116,7 @@ impl CutBuffer {
         }
     }
 }
-impl View for CutBuffer {
+impl View for ToView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         let copy_row = row - self.area.row;
         let copy_col = col - self.area.col;
@@ -318,7 +318,7 @@ fn test_view_overlay() {
         width: 1,
         height: 1,
     };
-    let v0 = CutBuffer::new(&buf, area);
+    let v0 = ToView::new(&buf, area);
     let d0 = TestDiffView {};
     let v1 = OverlayView { v: v0, d: d0 };
 

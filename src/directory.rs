@@ -249,7 +249,7 @@ impl view::ViewGen for ViewGen {
         self.x.borrow_mut().rb.update_search_results();
 
         let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
-        let dir_view = view::CutBuffer::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
+        let dir_view = view::ToView::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
         let add_color = AddColor::new(self.x.clone());
         let dir_view = view::OverlayView::new(dir_view, add_color);
         let dir_view = view::AddCursor::new(

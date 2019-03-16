@@ -3,6 +3,7 @@ pub mod undo_buffer;
 pub mod indent;
 pub mod clipboard;
 pub mod change_log;
+pub mod highlight;
 
 use self::diff_buffer::DiffBuffer;
 use self::change_log::{ChangeLog, ChangeLogBuffer};
@@ -790,7 +791,7 @@ impl view::ViewGen for ViewGen {
 
         // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
         let buf_window = self.buf.borrow().rb.current_window();
-        let buf_view = view::CutBuffer::new(&self.buf.borrow().rb.buf, buf_window);
+        let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
         let buf_view = view::OverlayView::new(
             buf_view,
             search::DiffView::new(self.buf.borrow().rb.search.clone()),
