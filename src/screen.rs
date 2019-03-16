@@ -1,3 +1,5 @@
+extern crate flame;
+
 use std;
 use std::cell::RefCell;
 use std::io;
@@ -54,6 +56,8 @@ impl Screen {
     }
 
     pub fn present(&self) {
+        let _frame_guard = flame::start_guard("screen.present");
+
         let mut out = self.out.borrow_mut();
         write!(out, "{}", termion::cursor::Hide).unwrap();
 
@@ -89,6 +93,7 @@ impl Screen {
     }
 
     pub fn draw(&self, x: usize, y: usize, c: char, style: Style) {
+        let _frame_guard = flame::start_guard("screen.draw");
         if x < self.w && y < self.h {
             let mut buf = self.buf.borrow_mut();
             if x < self.w {

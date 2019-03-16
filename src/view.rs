@@ -1,3 +1,5 @@
+extern crate flame;
+
 use crate::edit_buffer::CursorRange;
 use crate::screen::Color;
 use crate::BufElem;
@@ -90,6 +92,8 @@ pub struct CutBuffer {
 }
 impl CutBuffer {
     pub fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
+        let _flame_guard = flame::start_guard("clone area buf");
+
         let mut v = vec![];
         for i in 0..area.height {
             let row = area.row + i;

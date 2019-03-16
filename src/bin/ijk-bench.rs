@@ -1,4 +1,5 @@
 extern crate termion;
+extern crate flame;
 
 use std::ffi::OsStr;
 use std::path;
@@ -13,9 +14,9 @@ use ijk::navigator;
 
 fn to_term_key(s: &str) -> termion::event::Key {
     match s {
-        "k" => Char('k'),
-        "j" => Char('j'),
-        _ => panic!(),
+        "EOL" => Char('\n'),
+        c => Char(c.chars().nth(0).unwrap()),
+        _ => panic!(), // other keys are not necessary in benchmark
     }
 }
 fn read_buffer(path: &path::Path) -> Vec<Result<termion::event::Key, std::io::Error>> {
@@ -52,5 +53,9 @@ fn main() {
     navigator.borrow_mut().push(page);
     let mut editor = ijk::editor::Editor::new(navigator);
 
+    flame::start("run");
     editor.run(keys);
+    flame::end("run");
+
+    flame::dump_html(&mut std::fs::File::create("output.html").unwrap()).unwrap();
 }

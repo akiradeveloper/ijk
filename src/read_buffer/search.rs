@@ -85,7 +85,7 @@ fn test_hit() {
     use crate::BufElem::*;
     let mut hit = Hit::new();
     assert_eq!(hit.rollback_search(&[]), 0);
-    assert_eq!(hit.result(), &[]);
+    assert!(hit.result().is_empty());
 
     let line = [Char('a'),Char('b'),Char('a'),Char('b'),Char('a'),Eol];
     let sw = ['a','b','a','b'];
@@ -105,7 +105,7 @@ fn test_hit() {
     assert_eq!(hit.result(), &[0,2,4]);
 
     assert_eq!(hit.rollback_search(&[]), 0);
-    assert_eq!(hit.result(), &[]);
+    assert!(hit.result().is_empty());
 }
 
 #[derive(Clone)]

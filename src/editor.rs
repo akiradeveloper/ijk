@@ -1,3 +1,5 @@
+extern crate flame;
+
 use crate::message_box;
 use crate::navigator::{self, Page};
 use crate::screen::*;
@@ -52,6 +54,8 @@ impl Editor {
         }
     }
     fn view_gen(&self, area: view::Area) -> Box<View> {
+        let _flame_guard = flame::start_guard("editor.view_gen");
+
         let (page_area, common_area) = area.split_vertical(area.height - 2);
         let (status_area, message_area) = common_area.split_vertical(1);
         let page = self.navigator.borrow().current.clone();
@@ -81,6 +85,8 @@ impl Editor {
         Box::new(view)
     }
     fn draw<V: View>(&mut self, view: V) {
+        let _flame_guard = flame::start_guard("editor.draw");
+
         self.screen.clear();
         for row in 0..self.screen.h {
             for col in 0..self.screen.h {
@@ -128,7 +134,10 @@ impl Editor {
                         }
                     };
                     let page = self.navigator.borrow().current.clone();
+
+                    flame::start("editor.receive");
                     page.controller().receive(kk);
+                    flame::end("editor.receive");
                 }
             }
         }
