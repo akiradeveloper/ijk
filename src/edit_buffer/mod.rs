@@ -802,6 +802,11 @@ impl view::ViewGen for ViewGen {
         // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
         let buf_window = self.buf.borrow().rb.current_window();
         let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
+        let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
+        let buf_view = view::OverlayView::new(
+            buf_view,
+            highlight_diff,
+        );
         let buf_view = view::OverlayView::new(
             buf_view,
             search::DiffView::new(self.buf.borrow().rb.search.clone()),
