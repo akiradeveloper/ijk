@@ -38,6 +38,7 @@ pub struct EditBuffer {
     edit_state: Option<EditState>,
     path: Option<path::PathBuf>,
     sync_clock: Option<Instant>,
+    highlighter: highlight::Highlighter,
     message_box: MessageBox,
 }
 
@@ -82,8 +83,16 @@ impl EditBuffer {
             edit_state: None,
             path: path.map(|x| x.to_owned()),
             sync_clock: None,
+            highlighter: highlight::Highlighter::new(),
             message_box,
         }
+    }
+    fn update_highlight(&mut self) {
+        self.highlighter.clear_cache(self.rb.buf.len());
+
+        flame::start("update highlight");
+        self.highlighter.update_highlight(self.rb.lineno_range(), &self.rb.buf);
+        flame::end("update highlight");
     }
     fn is_dirty(&self) -> bool {
         match (self.sync_clock, self.change_log_buffer.clock()) {
@@ -780,6 +789,7 @@ impl view::ViewGen for ViewGen {
         self.buf.borrow_mut().rb.stabilize();
         self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
         self.buf.borrow_mut().rb.update_search_results();
+        self.buf.borrow_mut().update_highlight();
 
         let lineno_range = self.buf.borrow().rb.lineno_range();
         let lineno_view = view::LineNumber {

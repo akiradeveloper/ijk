@@ -6,22 +6,58 @@ use crate::BufElem;
 use crate::view;
 use crate::screen;
 
-pub struct Highlight {
-    buf: Vec<Vec<BufElem>>,
-    cache: Vec<Vec<Style>>, // L(buf) == L(cache)
+use lazy_static::lazy_static;
+lazy_static! {
+    static ref ts: ThemeSet = ThemeSet::load_defaults();
+    static ref ps: SyntaxSet = SyntaxSet::load_defaults_newlines();
 }
-impl Highlight {
+
+pub struct Highlighter {
+    cache: Vec<Vec<Style>>, // L(buf) == L(cache)
+    highlighter: HighlightLines<'static>,
+}
+impl Highlighter {
     pub fn new() -> Self {
+        let syntax = ps.find_syntax_by_extension("rs").unwrap();
         Self {
-            buf: vec![],
             cache: vec![],
+            highlighter: HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]),
         }
     }
     pub fn update_buffer(&mut self, row: usize, n_deleted: usize, n_inserted: &[Vec<BufElem>]) {
-
+        panic!()
     }
-    pub fn update_highlight(&mut self, range: std::ops::Range<usize>) {
+    // tmp
+    pub fn clear_cache(&mut self, n_rows: usize) {
+        self.cache = vec![vec![]; n_rows];
+    }
+    fn update_highlight_line(&mut self, row: usize, buf: &[Vec<BufElem>]) {
+        if !self.cache[row].is_empty() {
+            return;
+        }
+        let mut s = String::new();
+        for e in &buf[row] {
+            let c = match *e {
+                BufElem::Char(c) => c,
+                BufElem::Eol => '\n'
+            };
+            s.push(c);
+        }
 
+        let highlight_result = self.highlighter.highlight(&s, &ps);
+
+        let mut v = vec![];
+        for (style, s) in highlight_result {
+            for _ in 0 .. s.len() {
+                v.push(style);
+            }
+        }
+        self.cache[row] = v;
+    }
+    pub fn update_highlight(&mut self, row_range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
+        for row in row_range {
+            self.update_highlight_line(row, &buf);
+        }
     }
 }
 
@@ -33,7 +69,7 @@ pub struct HighlightDiffView {
     bg_default: Color,
 }
 impl HighlightDiffView {
-    pub fn new(x: &Highlight, area: view::Area) -> Self {
+    pub fn new(x: &Highlighter, area: view::Area) -> Self {
         let buf_area = view::BufArea::new(&x.cache, area);
         let bg_default = buf_area.last_some().background;
         Self { buf_area, bg_default }
