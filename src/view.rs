@@ -108,6 +108,8 @@ impl <T: Clone> BufArea<T> {
             }
             v.push(vv);
         }
+        // orig and area should have some overwrap
+        assert!(!v.is_empty());
         Self {
             copy: v,
             area: area,
@@ -121,6 +123,11 @@ impl <T: Clone> BufArea<T> {
         } else {
             Some(&self.copy[copy_row][copy_col])
         }
+    }
+    pub fn last_some(&self) -> &T {
+        let row = self.copy.len() - 1;
+        let col = self.copy[row].len() - 1;
+        &self.copy[row][col]
     }
 }
 
