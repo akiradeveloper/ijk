@@ -24,7 +24,7 @@ Buffer page is where you edit your file. The commands are similar to vi but cust
 
 ## Tasks
 
-- [ ] Syntax highlighting (probably the syntect is a good choice)
+- [x] Syntax highlighting (probably the syntect is a good choice)
 - [ ] Integration with language server
 - [ ] Integration with Git
 - [x] Automated benchmarking (using flamer is planned) and performance optimization
