@@ -15,6 +15,7 @@ use ijk::navigator;
 fn to_term_key(s: &str) -> termion::event::Key {
     match s {
         "EOL" => Char('\n'),
+        c if c.starts_with('C') => Ctrl(c.chars().nth(2).unwrap()),
         c => Char(c.chars().nth(0).unwrap()),
         _ => panic!(), // other keys are not necessary in benchmark
     }

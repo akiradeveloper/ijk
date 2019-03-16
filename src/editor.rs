@@ -87,7 +87,9 @@ impl Editor {
     fn draw<V: View>(&mut self, view: V) {
         let _flame_guard = flame::start_guard("editor.draw");
 
+        flame::start("screen.clear");
         self.screen.clear();
+        flame::end("screen.clear");
 
         flame::start("screen.draw");
         for row in 0..self.screen.h {

@@ -1,0 +1,21 @@
+require 'rake/clean'
+
+FILENAME = "ab60_1000"
+OUTPUTS = (0..4).map { |i| "#{i}.html" }
+
+task 'g' => FILENAME
+task 't' => OUTPUTS
+
+file FILENAME do
+  open(FILENAME, 'w') do |f|
+    line = "ab" * 60
+    1000.times do
+      f.puts(line)
+    end
+  end
+end
+
+rule ".html" => ".test" do |t|
+  sh "ijk-bench #{FILENAME} #{t.source}"
+  sh "mv output.html #{t.name}"
+end
