@@ -11,8 +11,8 @@ use termion::screen::AlternateScreen;
 pub struct Screen {
     out: RefCell<AlternateScreen<RawTerminal<BufWriter<io::Stdout>>>>,
     buf: RefCell<Vec<(Style, char)>>,
-    w: usize,
-    h: usize,
+    pub w: usize,
+    pub h: usize,
     cursor_pos: (usize, usize),
     cursor_visible: bool
 }
