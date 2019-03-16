@@ -42,7 +42,8 @@ fn main() {
     navigator.borrow_mut().push(page);
     let mut editor = ijk::editor::Editor::new(navigator);
 
-    let stdin = termion::async_stdin();
+    let stdin = std::io::stdin();
+    // let stdin = termion::async_stdin();
     let keys = stdin.keys();
     editor.run(keys);
 }
