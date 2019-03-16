@@ -89,7 +89,7 @@ impl Editor {
 
         self.screen.clear();
         for row in 0..self.screen.h {
-            for col in 0..self.screen.h {
+            for col in 0..self.screen.w {
                 let (c, fg, bg) = view.get(col, row);
                 self.screen.draw(col, row, c, Style(fg, bg))
             }
