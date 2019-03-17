@@ -1,8 +1,3 @@
-pub struct Result {
-    pub n_delete: usize,
-    pub n_insert: usize,
-}
-
 #[derive(PartialEq, Debug)]
 enum AffectRange {
     Empty,
@@ -50,5 +45,5 @@ pub fn calc_n_lines_affected(deleted: &[BufElem], inserted: &[BufElem]) -> (usiz
         (EndEol(n), Mid(m)) => (n+1, m),
         (EndEol(n), EndEol(m)) => (n+1, m+1),
     };
-    Result { n_delete, n_insert }
+    (n_delete, n_insert)
 }
