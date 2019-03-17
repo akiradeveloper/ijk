@@ -88,6 +88,12 @@ impl EditBuffer {
             message_box,
         }
     }
+    fn insert_new_line(&mut self, row: usize) {
+        self.rb.buf.insert(row, vec![])
+    }
+    fn remove_line(&mut self, row: usize) {
+        self.rb.buf.remove(row);
+    }
     fn clear_cache(&mut self) {
         self.rb.clear_cache();
         self.highlighter.clear_cache(self.rb.buf.len());
@@ -117,7 +123,7 @@ impl EditBuffer {
         pre_survivors.append(&mut log.inserted);
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
-            self.rb.buf.insert(log.at.row, vec![])
+            self.insert_new_line(log.at.row);
         }
         let mut b = false;
         self.insert(
@@ -209,7 +215,7 @@ impl EditBuffer {
         let mut col = at.col;
         for e in buf {
             if *should_insert_newline {
-                self.rb.buf.insert(row, vec![]);
+                self.insert_new_line(row);
                 *should_insert_newline = false;
             }
             match e {
@@ -307,7 +313,7 @@ impl EditBuffer {
 
         // write back the initial diff buffer
         let es = self.edit_state.clone().unwrap();
-        self.rb.buf.insert(es.at.row, vec![]);
+        self.insert_new_line(es.at.row);
         let mut b = false;
         let after_pre_inserted = self.insert(
             Cursor {
@@ -406,7 +412,7 @@ impl EditBuffer {
 
         let es = self.edit_state.clone().unwrap();
         self.rb.buf = es.orig_buf;
-        self.rb.buf.insert(es.at.row, vec![]);
+        self.insert_new_line(es.at.row);
         let mut b = false;
         let after_pre_inserted = self.insert(
             Cursor {
@@ -442,7 +448,7 @@ impl EditBuffer {
 
         pre_survivors.append(&mut post_survivors);
         if !pre_survivors.is_empty() {
-            self.rb.buf.insert(range.start.row, vec![])
+            self.insert_new_line(range.start.row);
         }
         let mut b = false;
         self.insert(
