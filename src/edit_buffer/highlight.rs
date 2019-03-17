@@ -24,7 +24,7 @@ impl Highlighter {
             highlighter: HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]),
         }
     }
-    pub fn update_buffer(&mut self, row: usize, n_deleted: usize, n_inserted: &[Vec<BufElem>]) {
+    pub fn restruct_cache(&mut self, row: usize, n_deleted: usize, n_inserted: usize) {
         panic!()
     }
     // tmp
@@ -54,7 +54,7 @@ impl Highlighter {
         }
         self.cache[row] = v;
     }
-    pub fn update_highlight(&mut self, row_range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
+    pub fn update_cache(&mut self, row_range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
         for row in row_range {
             self.update_highlight_line(row, &buf);
         }

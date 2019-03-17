@@ -165,10 +165,10 @@ impl ReadBuffer {
         self.window.area()
     }
     pub fn clear_search_struct(&mut self) {
-        self.search.clear_struct(self.buf.len())
+        self.search.clear_cache(self.buf.len())
     }
     pub fn update_search_results(&mut self) {
-        self.search.update_results(self.lineno_range(), &self.buf)
+        self.search.update_cache(self.lineno_range(), &self.buf)
     }
     pub fn lineno_range(&self) -> std::ops::Range<usize> {
         self.window.row_low .. std::cmp::min(self.window.row_high+1, self.buf.len())

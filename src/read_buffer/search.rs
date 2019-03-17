@@ -145,7 +145,7 @@ impl Search {
         self.cur_word.pop();
         self.show_search_word();
     }
-    pub fn update_struct(&mut self, row: usize, deleted: usize, inserted: usize) {
+    pub fn restruct_cache(&mut self, row: usize, deleted: usize, inserted: usize) {
         for _ in 0..deleted {
             self.hits.remove(row);
         }
@@ -155,12 +155,12 @@ impl Search {
     }
     // tmp: instead of update
     // slow version. clear the data on every change
-    pub fn clear_struct(&mut self, n_rows_after_change: usize) {
-        self.hits = vec![Hit::new(); n_rows_after_change];
+    pub fn clear_cache(&mut self, n_rows: usize) {
+        self.hits = vec![Hit::new(); n_rows];
     }
     /// ensure:
     /// L(this) == L(buf)
-    pub fn update_results(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
+    pub fn update_cache(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
         for i in range {
             let n = self.hits[i].rollback_search(&self.cur_word);
             // if L(cur_word) == n this slice is empty

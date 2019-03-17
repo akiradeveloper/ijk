@@ -91,7 +91,7 @@ impl EditBuffer {
         self.highlighter.clear_cache(self.rb.buf.len());
 
         flame::start("update highlight");
-        self.highlighter.update_highlight(self.rb.lineno_range(), &self.rb.buf);
+        self.highlighter.update_cache(self.rb.lineno_range(), &self.rb.buf);
         flame::end("update highlight");
     }
     fn is_dirty(&self) -> bool {
