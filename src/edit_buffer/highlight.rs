@@ -17,10 +17,10 @@ pub struct Highlighter {
     highlighter: HighlightLines<'static>,
 }
 impl Highlighter {
-    pub fn new() -> Self {
+    pub fn new(n_rows: usize) -> Self {
         let syntax = ps.find_syntax_by_extension("rs").unwrap();
         Self {
-            cache: vec![],
+            cache: vec![vec![]; n_rows],
             highlighter: HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]),
         }
     }

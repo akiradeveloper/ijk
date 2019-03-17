@@ -46,6 +46,9 @@ impl Directory {
         r.toggle_hide();
         r
     }
+    fn update_cache(&mut self) {
+
+    }
     fn toggle_hide(&mut self) {
         if self.evacuated_entries.is_empty() {
             for i in (0..self.entries.len()).rev() {
@@ -246,7 +249,7 @@ impl view::ViewGen for ViewGen {
     fn gen(&self, region: view::Area) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
-        self.x.borrow_mut().rb.update_search_results();
+        self.x.borrow_mut().update_cache();
 
         let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
         let dir_view = view::ToView::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());

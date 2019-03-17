@@ -164,11 +164,13 @@ impl ReadBuffer {
     pub fn current_window(&self) -> view::Area {
         self.window.area()
     }
-    pub fn clear_search_struct(&mut self) {
+    pub fn clear_cache(&mut self) {
         self.search.clear_cache(self.buf.len())
     }
-    pub fn update_search_results(&mut self) {
-        self.search.update_cache(self.lineno_range(), &self.buf)
+    pub fn update_cache(&mut self) {
+        flame::start("update search");
+        self.search.update_cache(self.lineno_range(), &self.buf);
+        flame::end("update search");
     }
     pub fn lineno_range(&self) -> std::ops::Range<usize> {
         self.window.row_low .. std::cmp::min(self.window.row_high+1, self.buf.len())

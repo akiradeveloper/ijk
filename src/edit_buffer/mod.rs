@@ -74,6 +74,7 @@ fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
 impl EditBuffer {
     pub fn open(path: Option<&path::Path>) -> EditBuffer {
         let init_buf = read_buffer(path);
+        let n_rows = init_buf.len();
         let message_box = MessageBox::new();
         EditBuffer {
             rb: ReadBuffer::new(init_buf, message_box.clone()),
@@ -83,12 +84,16 @@ impl EditBuffer {
             edit_state: None,
             path: path.map(|x| x.to_owned()),
             sync_clock: None,
-            highlighter: highlight::Highlighter::new(),
+            highlighter: highlight::Highlighter::new(n_rows),
             message_box,
         }
     }
-    fn update_highlight(&mut self) {
+    fn clear_cache(&mut self) {
+        self.rb.clear_cache();
         self.highlighter.clear_cache(self.rb.buf.len());
+    }
+    fn update_cache(&mut self) {
+        self.rb.update_cache();
 
         flame::start("update highlight");
         self.highlighter.update_cache(self.rb.lineno_range(), &self.rb.buf);
@@ -123,7 +128,7 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
-        self.rb.clear_search_struct(); // tmp
+        self.clear_cache(); // tmp
     }
     fn rollback_sync_clock(&mut self) {
         match (self.sync_clock, self.change_log_buffer.clock()) {
@@ -314,7 +319,7 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
-        self.rb.clear_search_struct();
+        self.clear_cache();
         self.rb.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
@@ -413,7 +418,7 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
-        self.rb.clear_search_struct(); // tmp (too slow)
+        self.clear_cache(); // tmp (too slow)
         self.rb.cursor = after_diff_inserted;
     }
     pub fn eff_leave_edit_mode(&mut self, _: Key) {
@@ -427,7 +432,7 @@ impl EditBuffer {
             edit_state.diff_buffer.diff_buf,
         );
         // self.rb.search.update(&change_log);
-        self.rb.clear_search_struct(); // tmp
+        self.clear_cache(); // tmp
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
             self.change_log_buffer.push(change_log);
         }
@@ -456,7 +461,7 @@ impl EditBuffer {
         );
         // self.rb.search.update(&log);
         self.change_log_buffer.push(log);
-        self.rb.clear_search_struct(); // tmp
+        self.clear_cache(); // tmp
 
         self.rb.cursor = range.start;
         // this ensures visual mode is cancelled whenever it starts insertion mode.
@@ -788,8 +793,7 @@ impl view::ViewGen for ViewGen {
 
         self.buf.borrow_mut().rb.stabilize();
         self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
-        self.buf.borrow_mut().rb.update_search_results();
-        self.buf.borrow_mut().update_highlight();
+        self.buf.borrow_mut().update_cache();
 
         let lineno_range = self.buf.borrow().rb.lineno_range();
         let lineno_view = view::LineNumber {

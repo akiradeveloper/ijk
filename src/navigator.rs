@@ -100,6 +100,9 @@ impl Navigator {
         r.refresh_buffer();
         r
     }
+    fn update_cache(&mut self) {
+
+    }
     fn refresh_buffer(&mut self) {
         let mut v = vec![];
         for e in &self.list {
@@ -210,7 +213,7 @@ impl view::ViewGen for ViewGen {
     fn gen(&self, region: view::Area) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
-        self.x.borrow_mut().rb.update_search_results();
+        self.x.borrow_mut().update_cache();
 
         let (lineno_area, navi_area) = region.split_horizontal(view::LINE_NUMBER_W);
         let navi_view = view::ToView::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
