@@ -90,13 +90,15 @@ impl EditBuffer {
     }
     fn insert_new_line(&mut self, row: usize) {
         self.rb.buf.insert(row, vec![]);
-        self.rb.cache_insert_new_line(row);
-        self.highlighter.cache_insert_new_line(row);
+        // self.rb.cache_insert_new_line(row);
+        // self.highlighter.cache_insert_new_line(row);
+        self.clear_cache(); // tmp
     }
     fn remove_line(&mut self, row: usize) {
-        self.highlighter.cache_remove_line(row);
-        self.rb.cache_remove_line(row);
-        self.rb.buf.remove(row);
+        self.clear_cache();
+        // self.highlighter.cache_remove_line(row);
+        // self.rb.cache_remove_line(row);
+        self.rb.buf.remove(row); // tmp
     }
     fn clear_cache(&mut self) {
         self.rb.clear_cache();
