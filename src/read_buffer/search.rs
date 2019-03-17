@@ -153,20 +153,23 @@ impl Search {
             self.hits.insert(row, Hit::new());
         }
     }
-    // tmp: instead of update
+    // tmp: instead of diff update
     // slow version. clear the data on every change
     pub fn clear_cache(&mut self, n_rows: usize) {
         self.hits = vec![Hit::new(); n_rows];
     }
+    fn update_cache_line(&mut self, row: usize, buf: &[Vec<BufElem>]) {
+        let n = self.hits[row].rollback_search(&self.cur_word);
+        // if L(cur_word) == n this slice is empty
+        for c in &self.cur_word[n..] {
+            self.hits[row].inc_search(*c, &buf[row]);
+        }
+    }
     /// ensure:
     /// L(this) == L(buf)
     pub fn update_cache(&mut self, range: std::ops::Range<usize>, buf: &[Vec<BufElem>]) {
-        for i in range {
-            let n = self.hits[i].rollback_search(&self.cur_word);
-            // if L(cur_word) == n this slice is empty
-            for c in &self.cur_word[n..] {
-                self.hits[i].inc_search(*c, &buf[i]);
-            }
+        for row in range {
+            self.update_cache_line(row, buf)
         }
     }
     pub fn next(&self, cur: Cursor) -> Option<Cursor> {
