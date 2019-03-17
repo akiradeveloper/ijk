@@ -89,9 +89,13 @@ impl EditBuffer {
         }
     }
     fn insert_new_line(&mut self, row: usize) {
-        self.rb.buf.insert(row, vec![])
+        self.rb.buf.insert(row, vec![]);
+        self.rb.cache_insert_new_line(row);
+        self.highlighter.cache_insert_new_line(row);
     }
     fn remove_line(&mut self, row: usize) {
+        self.highlighter.cache_remove_line(row);
+        self.rb.cache_remove_line(row);
         self.rb.buf.remove(row);
     }
     fn clear_cache(&mut self) {
@@ -113,8 +117,6 @@ impl EditBuffer {
         }
     }
     fn apply_log(&mut self, log: &mut ChangeLog) {
-        // self.rb.search.update(&log);
-
         let delete_range = CursorRange {
             start: log.at,
             end: self.find_cursor_pair(log.at, log.deleted.len()),
@@ -134,7 +136,6 @@ impl EditBuffer {
             pre_survivors,
             &mut b,
         );
-        self.clear_cache(); // tmp
     }
     fn rollback_sync_clock(&mut self) {
         match (self.sync_clock, self.change_log_buffer.clock()) {
@@ -325,7 +326,6 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
-        self.clear_cache();
         self.rb.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
@@ -437,8 +437,6 @@ impl EditBuffer {
             edit_state.removed,
             edit_state.diff_buffer.diff_buf,
         );
-        // self.rb.search.update(&change_log);
-        self.clear_cache(); // tmp
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
             self.change_log_buffer.push(change_log);
         }
@@ -465,9 +463,7 @@ impl EditBuffer {
             removed,
             vec![],
         );
-        // self.rb.search.update(&log);
         self.change_log_buffer.push(log);
-        self.clear_cache(); // tmp
 
         self.rb.cursor = range.start;
         // this ensures visual mode is cancelled whenever it starts insertion mode.
