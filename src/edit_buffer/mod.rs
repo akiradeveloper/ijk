@@ -90,18 +90,14 @@ impl EditBuffer {
     }
     fn insert_new_line(&mut self, row: usize) {
         self.rb.buf.insert(row, vec![]);
-        // self.rb.cache_insert_new_line(row);
+        self.rb.cache_insert_new_line(row);
         // self.highlighter.cache_insert_new_line(row);
-        self.clear_cache(); // tmp
+        self.highlighter.clear_cache(self.rb.buf.len());
     }
     fn remove_line(&mut self, row: usize) {
-        self.clear_cache();
+        self.rb.buf.remove(row);
+        self.rb.cache_remove_line(row);
         // self.highlighter.cache_remove_line(row);
-        // self.rb.cache_remove_line(row);
-        self.rb.buf.remove(row); // tmp
-    }
-    fn clear_cache(&mut self) {
-        self.rb.clear_cache();
         self.highlighter.clear_cache(self.rb.buf.len());
     }
     fn update_cache(&mut self) {
@@ -438,7 +434,6 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
-        // self.clear_cache(); // tmp (too slow)
         self.rb.cursor = after_diff_inserted;
     }
     pub fn eff_leave_edit_mode(&mut self, _: Key) {
