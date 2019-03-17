@@ -411,8 +411,20 @@ impl EditBuffer {
         es.diff_buffer.input(k.clone());
 
         let es = self.edit_state.clone().unwrap();
+
+        {
+            let n = self.rb.buf.len();
+            let m = es.orig_buf.len();
+            let rows_to_remove = n - m;
+            for i in (0..rows_to_remove).rev() {
+                let row = es.at.row + i;
+                self.remove_line(row);
+            }
+        }
+
         self.rb.buf = es.orig_buf;
         self.insert_new_line(es.at.row);
+
         let mut b = false;
         let after_pre_inserted = self.insert(
             Cursor {
@@ -424,7 +436,7 @@ impl EditBuffer {
         );
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
-        self.clear_cache(); // tmp (too slow)
+        // self.clear_cache(); // tmp (too slow)
         self.rb.cursor = after_diff_inserted;
     }
     pub fn eff_leave_edit_mode(&mut self, _: Key) {
