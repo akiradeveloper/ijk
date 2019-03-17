@@ -164,6 +164,12 @@ impl ReadBuffer {
     pub fn current_window(&self) -> view::Area {
         self.window.area()
     }
+    pub fn cache_insert_new_line(&mut self, row: usize) {
+        self.search.cache_insert_new_line(row);
+    }
+    pub fn cache_remove_line(&mut self, row: usize) {
+        self.search.cache_remove_line(row);
+    }
     pub fn clear_cache(&mut self) {
         self.search.clear_cache(self.buf.len())
     }

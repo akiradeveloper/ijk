@@ -145,13 +145,19 @@ impl Search {
         self.cur_word.pop();
         self.show_search_word();
     }
-    pub fn restruct_cache(&mut self, row: usize, deleted: usize, inserted: usize) {
+    fn restruct_cache(&mut self, row: usize, deleted: usize, inserted: usize) {
         for _ in 0..deleted {
             self.hits.remove(row);
         }
         for _ in 0..inserted {
             self.hits.insert(row, Hit::new());
         }
+    }
+    pub fn cache_insert_new_line(&mut self, row: usize) {
+        self.hits.insert(row, Hit::new());
+    }
+    pub fn cache_remove_line(&mut self, row: usize) {
+        self.hits.remove(row);
     }
     // tmp: instead of diff update
     // slow version. clear the data on every change

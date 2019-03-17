@@ -24,7 +24,13 @@ impl Highlighter {
             highlighter: HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]),
         }
     }
-    pub fn restruct_cache(&mut self, row: usize, n_deleted: usize, n_inserted: usize) {
+    pub fn cache_insert_new_line(&mut self, row: usize) {
+        self.cache.insert(row, vec![]);
+    }
+    pub fn cache_remove_line(&mut self, row: usize) {
+        self.cache.remove(row);
+    }
+    fn restruct_cache(&mut self, row: usize, n_deleted: usize, n_inserted: usize) {
         panic!()
     }
     // tmp
