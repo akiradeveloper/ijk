@@ -292,7 +292,7 @@ impl EditBuffer {
             }
         }
         for (row, _) in target_region.into_iter().rev() {
-            self.rb.buf.remove(row);
+            self.remove_line(row);
         }
 
         (pre_survivors, removed, post_survivors)
