@@ -71,11 +71,19 @@ fn conv(c: Color) -> screen::Color {
     screen::Color::Rgb(c.r, c.g, c.b)
 }
 
-pub struct HighlightViewRef<'a> {
+pub struct HighlightDiffViewRef<'a> {
     back: &'a Highlighter,
     bg_default: Color,
 }
-impl <'a> view::DiffView for HighlightViewRef<'a> {
+impl <'a> HighlightDiffViewRef<'a> {
+    pub fn new(x: &'a Highlighter) -> Self {
+        Self {
+            back: x,
+            bg_default: ts.themes["base16-ocean.dark"].settings.background.unwrap(),
+        }
+    }
+}
+impl <'a> view::DiffView for HighlightDiffViewRef<'a> {
     fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
         match self.back.cache.get(row).and_then(|x| x.get(col)) {
             Some(style) => {

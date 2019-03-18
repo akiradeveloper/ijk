@@ -170,7 +170,11 @@ impl <T: Clone> BufArea<T> {
 
 pub struct ToViewRef<'a> {
     pub back: &'a[Vec<BufElem>],
-    pub area: Area,
+}
+impl <'a> ToViewRef<'a> {
+    pub fn new(back: &'a[Vec<BufElem>]) -> Self {
+        Self { back }
+    }
 }
 impl <'a> View for ToViewRef<'a> {
     fn get(&self, col: usize, row: usize) -> ViewElem {
