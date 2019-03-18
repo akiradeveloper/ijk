@@ -70,6 +70,27 @@ impl Highlighter {
 fn conv(c: Color) -> screen::Color {
     screen::Color::Rgb(c.r, c.g, c.b)
 }
+
+pub struct HighlightViewRef<'a> {
+    back: &'a Highlighter,
+    bg_default: Color,
+}
+impl <'a> view::DiffView for HighlightViewRef<'a> {
+    fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
+        match self.back.cache.get(row).and_then(|x| x.get(col)) {
+            Some(style) => {
+                let fg = conv(style.foreground);
+                let bg = conv(style.background);
+                (None, Some(fg), Some(bg))
+            },
+            None => {
+                let bg = conv(self.bg_default);
+                (None, None, Some(bg))
+            },
+        }
+    }
+}
+
 pub struct HighlightDiffView {
     buf_area: view::BufArea<Style>,
     bg_default: Color,
