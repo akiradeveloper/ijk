@@ -17,22 +17,20 @@ use std::fs;
 use crate::screen;
 use crate::message_box::MessageBox;
 
+const INIT: &str = "Normal";
+const INSERT: &str = "Insert";
+const SEARCH: &str = "Search";
+const JUMP: &str = "Jump";
+
 #[derive(Copy, Clone)]
 pub struct CursorRange {
     pub start: Cursor,
     pub end: Cursor,
 }
 
-enum Mode {
-    Normal,
-    Search,
-    Insert,
-    Jump,
-}
-
 pub struct EditBuffer {
     pub rb: ReadBuffer,
-    mode: Mode,
+    state: String,
     visual_cursor: Option<Cursor>,
     change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
@@ -78,7 +76,7 @@ impl EditBuffer {
         let message_box = MessageBox::new();
         EditBuffer {
             rb: ReadBuffer::new(init_buf, message_box.clone()),
-            mode: Mode::Normal,
+            state: INIT.to_owned(),
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
@@ -332,13 +330,15 @@ impl EditBuffer {
     // effect functions
     //
 
-    pub fn eff_undo(&mut self, _: Key) {
+    pub fn eff_undo(&mut self, _: Key) -> String {
         self.undo();
+        INIT.to_owned()
     }
-    pub fn eff_redo(&mut self, _: Key) {
+    pub fn eff_redo(&mut self, _: Key) -> String {
         self.redo();
+        INIT.to_owned()
     }
-    pub fn eff_enter_insert_newline(&mut self, _: Key) {
+    pub fn eff_enter_insert_newline(&mut self, _: Key) -> String {
         let row = self.rb.cursor.row;
         let delete_range = CursorRange {
             start: Cursor {
@@ -356,11 +356,12 @@ impl EditBuffer {
         let mut v = vec![BufElem::Eol];
         v.append(&mut auto_indent.next_indent());
         self.enter_update_mode(&delete_range, v);
+        INSERT.to_owned()
     }
-    pub fn eff_join_next_line(&mut self, _: Key) {
+    pub fn eff_join_next_line(&mut self, _: Key) -> String {
         let row = self.rb.cursor.row;
         if row == self.rb.buf.len() - 1 {
-            return;
+            return INIT.to_owned()
         }
         let mut next_line_first_nonspace_pos = 0;
         for x in &self.rb.buf[row+1] {
@@ -380,20 +381,23 @@ impl EditBuffer {
             }
         };
         self.enter_update_mode(&delete_range, vec![]);
+        INSERT.to_owned()
     }
-    pub fn eff_enter_insert_mode(&mut self, _: Key) {
+    pub fn eff_enter_insert_mode(&mut self, _: Key) -> String {
         assert!(self.edit_state.is_none());
         let delete_range = CursorRange {
             start: self.rb.cursor,
             end: self.rb.cursor,
         };
         self.enter_update_mode(&delete_range, vec![]);
+        INSERT.to_owned()
     }
-    pub fn eff_enter_append_mode(&mut self, k: Key) {
+    pub fn eff_enter_append_mode(&mut self, k: Key) -> String {
         self.eff_cursor_right(k.clone());
         self.eff_enter_insert_mode(k);
+        INSERT.to_owned()
     }
-    pub fn eff_enter_change_mode(&mut self, _: Key) {
+    pub fn eff_enter_change_mode(&mut self, _: Key) -> String {
         let delete_range = if self.visual_range().is_none() {
             CursorRange {
                 start: self.rb.cursor,
@@ -403,8 +407,9 @@ impl EditBuffer {
             self.visual_range().unwrap()
         };
         self.enter_update_mode(&delete_range, vec![]);
+        INSERT.to_owned()
     }
-    pub fn eff_edit_mode_input(&mut self, k: Key) {
+    pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
         let es = self.edit_state.as_mut().unwrap();
         es.diff_buffer.input(k.clone());
 
@@ -435,8 +440,10 @@ impl EditBuffer {
         let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
         self.rb.cursor = after_diff_inserted;
+
+        INSERT.to_owned()
     }
-    pub fn eff_leave_edit_mode(&mut self, _: Key) {
+    pub fn eff_leave_edit_mode(&mut self, _: Key) -> String {
         assert!(self.edit_state.is_some());
         // take(): replace the memory region with None and take out the owrnership of the object
         let edit_state = self.edit_state.take().unwrap();
@@ -449,6 +456,8 @@ impl EditBuffer {
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
             self.change_log_buffer.push(change_log);
         }
+
+        INIT.to_owned()
     }
     fn delete_range(&mut self, range: CursorRange) {
         let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&range);
@@ -478,7 +487,7 @@ impl EditBuffer {
         // this ensures visual mode is cancelled whenever it starts insertion mode.
         self.visual_cursor = None;
     }
-    pub fn eff_delete_line(&mut self, _: Key) {
+    pub fn eff_delete_line(&mut self, _: Key) -> String {
         if self.visual_range().is_none() {
             self.visual_cursor = Some(Cursor {
                 row: self.rb.cursor.row,
@@ -499,8 +508,10 @@ impl EditBuffer {
             self.rb.jump_line_last();
             self.delete_range(self.visual_range().unwrap());
         }
+
+        INIT.to_owned()
     }
-    pub fn eff_delete_char(&mut self, _: Key) {
+    pub fn eff_delete_char(&mut self, _: Key) -> String {
         let range = self.visual_range().unwrap_or(
             CursorRange {
                 start: self.rb.cursor,
@@ -511,10 +522,12 @@ impl EditBuffer {
             }
         );
         self.delete_range(range);
+
+        INIT.to_owned()
     }
-    pub fn eff_paste(&mut self, _: Key) {
+    pub fn eff_paste(&mut self, _: Key) -> String {
         let pasted = clipboard::SINGLETON.paste();
-        if pasted.is_none() { return; }
+        if pasted.is_none() { return INIT.to_owned(); }
 
         let pasted = pasted.unwrap();
         let mut v = vec![];
@@ -533,11 +546,13 @@ impl EditBuffer {
         );
         self.change_log_buffer.push(log.clone());
         self.apply_log(&mut log);
+
+        INIT.to_owned()
     }
-    pub fn eff_yank(&mut self, _: Key) {
+    pub fn eff_yank(&mut self, _: Key) -> String {
         let orig_cursor = self.rb.cursor;
         let vr = self.visual_range();
-        if vr.is_none() { return; }
+        if vr.is_none() { return INIT.to_owned() }
 
         let vr = vr.unwrap();
         self.delete_range(vr);
@@ -553,6 +568,8 @@ impl EditBuffer {
         }
         clipboard::SINGLETON.copy(&s);
         self.rb.cursor = orig_cursor;
+
+        INIT.to_owned()
     }
     fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
         let mut cnt = 0;
@@ -572,27 +589,31 @@ impl EditBuffer {
             self.indent_back_line(row, &vec![BufElem::Char(' '); 4]);
         }
     }
-    pub fn eff_indent_back(&mut self, _: Key) {
+    pub fn eff_indent_back(&mut self, _: Key) -> String {
         if self.visual_range().is_none() {
             self.indent_back_range(self.rb.cursor.row .. self.rb.cursor.row+1);
-            return;
+            return INIT.to_owned()
         }
         let vr = self.visual_range().unwrap();
         self.indent_back_range(vr.start.row .. vr.end.row+1);
         self.visual_cursor = None;
         // TODO atomic change log
+
+        INIT.to_owned()
     }
-    pub fn eff_enter_visual_mode(&mut self, _: Key) {
+    pub fn eff_enter_visual_mode(&mut self, _: Key) -> String {
         self.visual_cursor = Some(self.rb.cursor.clone());
+        INIT.to_owned()
     }
-    pub fn eff_reset(&mut self, _: Key) {
+    pub fn eff_reset(&mut self, _: Key) -> String {
         self.visual_cursor = None;
         self.rb.reset();
+        INIT.to_owned()
     }
-    pub fn eff_save_to_file(&mut self, _: Key) {
+    pub fn eff_save_to_file(&mut self, _: Key) -> String {
         use std::io::Write;
         if self.path.is_none() {
-            return;
+            return INIT.to_owned()
         }
         let path = self.path.clone().unwrap();
         if let Ok(mut file) = fs::File::create(path) {
@@ -609,63 +630,83 @@ impl EditBuffer {
             self.sync_clock = self.change_log_buffer.clock();
             self.message_box.send("Saved")
         }
+        INIT.to_owned()
     }
-    pub fn eff_cursor_up(&mut self, _: Key) {
+    pub fn eff_cursor_up(&mut self, _: Key) -> String {
         self.rb.cursor_up();
+        INIT.to_owned()
     }
-    pub fn eff_cursor_down(&mut self, _: Key) {
+    pub fn eff_cursor_down(&mut self, _: Key) -> String {
         self.rb.cursor_down();
+        INIT.to_owned()
     }
-    pub fn eff_cursor_left(&mut self, _: Key) {
+    pub fn eff_cursor_left(&mut self, _: Key) -> String {
         self.rb.cursor_left();
+        INIT.to_owned()
     }
-    pub fn eff_cursor_right(&mut self, _: Key) {
+    pub fn eff_cursor_right(&mut self, _: Key) -> String {
         self.rb.cursor_right();
+        INIT.to_owned()
     }
-    pub fn eff_jump_line_head(&mut self, _: Key) {
+    pub fn eff_jump_line_head(&mut self, _: Key) -> String {
         self.rb.jump_line_head();
+        INIT.to_owned()
     }
-    pub fn eff_jump_line_last(&mut self, _: Key) {
+    pub fn eff_jump_line_last(&mut self, _: Key) -> String {
         self.rb.jump_line_last();
+        INIT.to_owned()
     }
-    pub fn eff_jump_page_forward(&mut self, _: Key) {
+    pub fn eff_jump_page_forward(&mut self, _: Key) -> String {
         self.rb.jump_page_forward();
+        INIT.to_owned()
     }
-    pub fn eff_jump_page_backward(&mut self, _: Key) {
+    pub fn eff_jump_page_backward(&mut self, _: Key) -> String {
         self.rb.jump_page_backward();
+        INIT.to_owned()
     }
-    pub fn eff_enter_jump_mode(&mut self, k: Key) {
+    pub fn eff_enter_jump_mode(&mut self, k: Key) -> String {
         self.rb.enter_jump_mode(k);
+        JUMP.to_owned()
     }
-    pub fn eff_acc_jump_num(&mut self, k: Key) {
+    pub fn eff_acc_jump_num(&mut self, k: Key) -> String {
         self.rb.acc_jump_num(k);
+        JUMP.to_owned()
     }
-    pub fn eff_jump(&mut self, _: Key) {
+    pub fn eff_jump(&mut self, _: Key) -> String {
         self.rb.jump();
+        INIT.to_owned()
     }
-    pub fn eff_cancel_jump(&mut self, _: Key) {
+    pub fn eff_cancel_jump(&mut self, _: Key) -> String {
         self.rb.cancel_jump();
+        INIT.to_owned()
     }
-    pub fn eff_jump_last(&mut self, _: Key) {
+    pub fn eff_jump_last(&mut self, _: Key) -> String {
         self.rb.jump_last();
+        INIT.to_owned()
     }
-    pub fn eff_enter_search_mode(&mut self, _: Key) {
+    pub fn eff_enter_search_mode(&mut self, _: Key) -> String {
         self.rb.enter_search_mode();
+        SEARCH.to_owned()
     }
-    pub fn eff_search_mode_input(&mut self, k: Key) {
+    pub fn eff_search_mode_input(&mut self, k: Key) -> String {
         self.rb.search_mode_input(k);
+        SEARCH.to_owned()
     }
-    pub fn eff_leave_search_mode(&mut self, _: Key) {
+    pub fn eff_leave_search_mode(&mut self, _: Key) -> String {
         self.rb.leave_search_mode();
+        INIT.to_owned()
     }
-    fn eff_cancel_search_mode(&mut self, _: Key) {
+    fn eff_cancel_search_mode(&mut self, _: Key) -> String {
         self.rb.cancel_search_mode();
+        INIT.to_owned()
     }
-    pub fn eff_search_jump_forward(&mut self, _: Key) {
+    pub fn eff_search_jump_forward(&mut self, _: Key) -> String {
         self.rb.search_jump_forward();
+        INIT.to_owned()
     }
-    pub fn eff_search_jump_backward(&mut self, _: Key) {
+    pub fn eff_search_jump_backward(&mut self, _: Key) -> String {
         self.rb.search_jump_backward();
+        INIT.to_owned()
     }
 }
 
@@ -675,46 +716,45 @@ use std::rc::Rc;
 
 use crate::controller::{Effect};
 use crate::def_effect;
-use self::Mode::*;
 
-def_effect!(Undo, EditBuffer, eff_undo, Normal);
-def_effect!(Redo, EditBuffer, eff_redo, Normal);
-def_effect!(JoinNextLine, EditBuffer, eff_join_next_line, Insert);
-def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline, Insert);
-def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode, Insert);
-def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode, Insert);
-def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode, Insert);
-def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input, Insert);
-def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode, Normal);
-def_effect!(DeleteLine, EditBuffer, eff_delete_line, Normal);
-def_effect!(DeleteChar, EditBuffer, eff_delete_char, Normal);
-def_effect!(Paste, EditBuffer, eff_paste, Normal);
-def_effect!(Yank, EditBuffer, eff_yank, Normal);
-def_effect!(IndentBack, EditBuffer, eff_indent_back, Normal);
-def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode, Normal);
-def_effect!(SaveToFile, EditBuffer, eff_save_to_file, Normal);
-def_effect!(Reset, EditBuffer, eff_reset, Normal);
+def_effect!(Undo, EditBuffer, eff_undo);
+def_effect!(Redo, EditBuffer, eff_redo);
+def_effect!(JoinNextLine, EditBuffer, eff_join_next_line);
+def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline);
+def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
+def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
+def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
+def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
+def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode);
+def_effect!(DeleteLine, EditBuffer, eff_delete_line);
+def_effect!(DeleteChar, EditBuffer, eff_delete_char);
+def_effect!(Paste, EditBuffer, eff_paste);
+def_effect!(Yank, EditBuffer, eff_yank);
+def_effect!(IndentBack, EditBuffer, eff_indent_back);
+def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
+def_effect!(SaveToFile, EditBuffer, eff_save_to_file);
+def_effect!(Reset, EditBuffer, eff_reset);
 
-def_effect!(CursorUp, EditBuffer, eff_cursor_up, Normal);
-def_effect!(CursorDown, EditBuffer, eff_cursor_down, Normal);
-def_effect!(CursorLeft, EditBuffer, eff_cursor_left, Normal);
-def_effect!(CursorRight, EditBuffer, eff_cursor_right, Normal);
-def_effect!(JumpLineHead, EditBuffer, eff_jump_line_head, Normal);
-def_effect!(JumpLineLast, EditBuffer, eff_jump_line_last, Normal);
-def_effect!(JumpPageForward, EditBuffer, eff_jump_page_forward, Normal);
-def_effect!(JumpPageBackward, EditBuffer, eff_jump_page_backward, Normal);
-def_effect!(EnterJumpMode, EditBuffer, eff_enter_jump_mode, Mode::Jump);
-def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num, Mode::Jump);
-def_effect!(Jump, EditBuffer, eff_jump, Normal);
-def_effect!(CancelJump, EditBuffer, eff_cancel_jump, Normal);
-def_effect!(JumpLast, EditBuffer, eff_jump_last, Normal);
+def_effect!(CursorUp, EditBuffer, eff_cursor_up);
+def_effect!(CursorDown, EditBuffer, eff_cursor_down);
+def_effect!(CursorLeft, EditBuffer, eff_cursor_left);
+def_effect!(CursorRight, EditBuffer, eff_cursor_right);
+def_effect!(JumpLineHead, EditBuffer, eff_jump_line_head);
+def_effect!(JumpLineLast, EditBuffer, eff_jump_line_last);
+def_effect!(JumpPageForward, EditBuffer, eff_jump_page_forward);
+def_effect!(JumpPageBackward, EditBuffer, eff_jump_page_backward);
+def_effect!(EnterJumpMode, EditBuffer, eff_enter_jump_mode);
+def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num);
+def_effect!(Jump, EditBuffer, eff_jump);
+def_effect!(CancelJump, EditBuffer, eff_cancel_jump);
+def_effect!(JumpLast, EditBuffer, eff_jump_last);
 
-def_effect!(EnterSearchMode, EditBuffer, eff_enter_search_mode, Search);
-def_effect!(SearchModeInput, EditBuffer, eff_search_mode_input, Search);
-def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode, Normal);
-def_effect!(CancelSearchMode, EditBuffer, eff_cancel_search_mode, Normal);
-def_effect!(SearchJumpForward, EditBuffer, eff_search_jump_forward, Normal);
-def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward, Normal);
+def_effect!(EnterSearchMode, EditBuffer, eff_enter_search_mode);
+def_effect!(SearchModeInput, EditBuffer, eff_search_mode_input);
+def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode);
+def_effect!(CancelSearchMode, EditBuffer, eff_cancel_search_mode);
+def_effect!(SearchJumpForward, EditBuffer, eff_search_jump_forward);
+def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward);
 
 use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
@@ -722,49 +762,49 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     let mut g = controller::GraphImpl::new();
 
     // mutable
-    g.add_edge("init", "init", Ctrl('s'), Rc::new(SaveToFile(x.clone())));
-    g.add_edge("init", "init", Char('v'), Rc::new(EnterVisualMode(x.clone())));
-    g.add_edge("init", "init", Esc, Rc::new(Reset(x.clone())));
-    g.add_edge("init", "init", Char('d'), Rc::new(DeleteLine(x.clone())));
-    g.add_edge("init", "init", Char('x'), Rc::new(DeleteChar(x.clone())));
-    g.add_edge("init", "init", Char('<'), Rc::new(IndentBack(x.clone())));
-    g.add_edge("init", "insert", Char('J'), Rc::new(JoinNextLine(x.clone())));
-    g.add_edge("init", "insert", Char('o'), Rc::new(EnterInsertNewline(x.clone())));
-    g.add_edge("init", "insert", Char('i'), Rc::new(EnterInsertMode(x.clone())));
-    g.add_edge("init", "insert", Char('a'), Rc::new(EnterAppendMode(x.clone())));
-    g.add_edge("init", "insert", Char('c'), Rc::new(EnterChangeMode(x.clone())));
-    g.add_edge("init", "init", Char('p'), Rc::new(Paste(x.clone())));
-    g.add_edge("init", "init", Char('y'), Rc::new(Yank(x.clone())));
-    g.add_edge("insert", "init", Esc, Rc::new(LeaveEditMode(x.clone())));
-    g.add_edge("insert", "insert", Otherwise, Rc::new(EditModeInput(x.clone())));
+    g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
+    g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
+    g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
+    g.add_edge(INIT, Char('d'), Rc::new(DeleteLine(x.clone())));
+    g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
+    g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
+    g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
+    g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
+    g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
+    g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
+    g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
+    g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
+    g.add_edge(INIT, Char('y'), Rc::new(Yank(x.clone())));
+    g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
+    g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
 
-    g.add_edge("init", "init", Ctrl('r'), Rc::new(Redo(x.clone())));
-    g.add_edge("init", "init", Char('u'), Rc::new(Undo(x.clone())));
+    g.add_edge(INIT, Ctrl('r'), Rc::new(Redo(x.clone())));
+    g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
 
     // immutable
-    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
-    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
-    g.add_edge("init", "init", Char('h'), Rc::new(CursorLeft(x.clone())));
-    g.add_edge("init", "init", Char('l'), Rc::new(CursorRight(x.clone())));
-    g.add_edge("init", "init", Char('0'), Rc::new(JumpLineHead(x.clone())));
-    g.add_edge("init", "init", Char('$'), Rc::new(JumpLineLast(x.clone())));
-    g.add_edge("init", "init", Ctrl('f'), Rc::new(JumpPageForward(x.clone())));
-    g.add_edge("init", "init", Ctrl('b'), Rc::new(JumpPageBackward(x.clone())));
-    g.add_edge("init", "jump", CharRange('1','9'), Rc::new(EnterJumpMode(x.clone())));
-    g.add_edge("jump", "jump", CharRange('0','9'), Rc::new(AccJumpNum(x.clone())));
-    g.add_edge("jump", "init", Char('G'), Rc::new(Jump(x.clone())));
-    g.add_edge("jump", "init", Esc, Rc::new(CancelJump(x.clone())));
-    g.add_edge("init", "init", Char('G'), Rc::new(JumpLast(x.clone())));
+    g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
+    g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
+    g.add_edge(INIT, Char('h'), Rc::new(CursorLeft(x.clone())));
+    g.add_edge(INIT, Char('l'), Rc::new(CursorRight(x.clone())));
+    g.add_edge(INIT, Char('0'), Rc::new(JumpLineHead(x.clone())));
+    g.add_edge(INIT, Char('$'), Rc::new(JumpLineLast(x.clone())));
+    g.add_edge(INIT, Ctrl('f'), Rc::new(JumpPageForward(x.clone())));
+    g.add_edge(INIT, Ctrl('b'), Rc::new(JumpPageBackward(x.clone())));
+    g.add_edge(INIT, CharRange('1','9'), Rc::new(EnterJumpMode(x.clone())));
+    g.add_edge(JUMP, CharRange('0','9'), Rc::new(AccJumpNum(x.clone())));
+    g.add_edge(JUMP, Char('G'), Rc::new(Jump(x.clone())));
+    g.add_edge(JUMP, Esc, Rc::new(CancelJump(x.clone())));
+    g.add_edge(INIT, Char('G'), Rc::new(JumpLast(x.clone())));
 
     // search
-    g.add_edge("init", "search", Char('/'), Rc::new(EnterSearchMode(x.clone())));
-    g.add_edge("search", "init", Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
-    g.add_edge("search", "init", Esc, Rc::new(CancelSearchMode(x.clone())));
-    g.add_edge("search", "search", Otherwise, Rc::new(SearchModeInput(x.clone())));
-    g.add_edge("init", "init", Char('n'), Rc::new(SearchJumpForward(x.clone())));
-    g.add_edge("init", "init", Char('N'), Rc::new(SearchJumpBackward(x.clone())));
+    g.add_edge(INIT, Char('/'), Rc::new(EnterSearchMode(x.clone())));
+    g.add_edge(SEARCH, Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
+    g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
+    g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())));
+    g.add_edge(INIT, Char('n'), Rc::new(SearchJumpForward(x.clone())));
+    g.add_edge(INIT, Char('N'), Rc::new(SearchJumpBackward(x.clone())));
 
-    controller::ControllerFSM::new("init", Box::new(g))
+    controller::ControllerFSM::new(INIT, Box::new(g))
 }
 
 use crate::view;
@@ -871,12 +911,6 @@ impl navigator::Page for Page {
         &self.view_gen
     }
     fn status(&self) -> String {
-        let mode = match self.x.borrow().mode {
-            Mode::Normal => "NORMAL",
-            Mode::Insert => "INSERT",
-            Mode::Search => "SEARCH",
-            Mode::Jump => "Jump",
-        };
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
             None => "noname".to_owned(),
@@ -886,7 +920,8 @@ impl navigator::Page for Page {
         } else {
             ""
         };
-        format!("[{}] {}{}", mode, dirty_mark, s)
+        let state = self.x.borrow().state.clone();
+        format!("[{}] {}{}", state, dirty_mark, s)
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Buffer

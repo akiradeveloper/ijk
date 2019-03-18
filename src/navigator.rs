@@ -72,15 +72,13 @@ impl view::ViewGen for HelpViewGen {
     }
 }
 
-enum Mode {
-    Normal,
-}
+const INIT: &str = "Normal";
 
 pub struct Navigator {
     pub current: Rc<Page>,
     list: Vec<Rc<Page>>,
     rb: ReadBuffer,
-    mode: Mode,
+    state: String,
     message_box: MessageBox,
 }
 impl Navigator {
@@ -94,7 +92,7 @@ impl Navigator {
             current: help_page.clone(),
             list: vec![help_page],
             rb: read_buffer::ReadBuffer::new(vec![], message_box.clone()), // not valid
-            mode: Mode::Normal,
+            state: INIT.to_owned(),
             message_box,
         };
         r.refresh_buffer();
@@ -152,52 +150,57 @@ impl Navigator {
         self.list.remove(0);
         self.select(0);
     }
-    pub fn eff_cursor_up(&mut self, _: Key) {
+    pub fn eff_cursor_up(&mut self, _: Key) -> String {
         self.rb.cursor_up();
+        INIT.to_owned()
     }
-    pub fn eff_cursor_down(&mut self, _: Key) {
+    pub fn eff_cursor_down(&mut self, _: Key) -> String {
         self.rb.cursor_down();
+        INIT.to_owned()
     }
-    pub fn eff_select(&mut self, _: Key) {
+    pub fn eff_select(&mut self, _: Key) -> String {
         self.select(self.rb.cursor.row);
+        INIT.to_owned()
     }
-    pub fn eff_select_cur_directory(&mut self, _: Key) {
+    pub fn eff_select_cur_directory(&mut self, _: Key) -> String {
         for i in self.list.iter().position(|e| e.kind() == PageKind::Directory) {
             self.select(i);
         }
+        INIT.to_owned()
     }
-    pub fn eff_select_cur_buffer(&mut self, _: Key) {
+    pub fn eff_select_cur_buffer(&mut self, _: Key) -> String {
         for i in self.list.iter().position(|e| e.kind() == PageKind::Buffer) {
             self.select(i);
         }
+        INIT.to_owned()
     }
-    pub fn eff_close_selected(&mut self, _: Key) {
+    pub fn eff_close_selected(&mut self, _: Key) -> String {
         self.delete(self.rb.cursor.row);
+        INIT.to_owned()
     }
 }
 
 use crate::controller::Effect;
 use crate::def_effect;
 use crate::Key;
-use self::Mode::*;
 
-def_effect!(CursorUp, Navigator, eff_cursor_up, Normal);
-def_effect!(CursorDown, Navigator, eff_cursor_down, Normal);
-def_effect!(Select, Navigator, eff_select, Normal);
-def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory, Normal);
-def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer, Normal);
-def_effect!(CloseSelected, Navigator, eff_close_selected, Normal);
+def_effect!(CursorUp, Navigator, eff_cursor_up);
+def_effect!(CursorDown, Navigator, eff_cursor_down);
+def_effect!(Select, Navigator, eff_select);
+def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory);
+def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer);
+def_effect!(CloseSelected, Navigator, eff_close_selected);
 
 pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::GraphImpl::new();
-    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
-    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
-    g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
-    g.add_edge("init", "init", Char('h'), Rc::new(SelectCurDirectory(x.clone())));
-    g.add_edge("init", "init", Char('l'), Rc::new(SelectCurBuffer(x.clone())));
-    g.add_edge("init", "init", Char('d'), Rc::new(CloseSelected(x.clone())));
-    controller::ControllerFSM::new("init", Box::new(g))
+    g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
+    g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
+    g.add_edge(INIT, Char('\n'), Rc::new(Select(x.clone())));
+    g.add_edge(INIT, Char('h'), Rc::new(SelectCurDirectory(x.clone())));
+    g.add_edge(INIT, Char('l'), Rc::new(SelectCurBuffer(x.clone())));
+    g.add_edge(INIT, Char('d'), Rc::new(CloseSelected(x.clone())));
+    controller::ControllerFSM::new(INIT, Box::new(g))
 }
 pub struct ViewGen {
     x: Rc<RefCell<Navigator>>,

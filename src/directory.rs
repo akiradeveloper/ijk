@@ -17,13 +17,11 @@ enum Entry {
     File(path::PathBuf),
 }
 
-enum Mode {
-    Normal,
-}
+const INIT: &str = "Normal";
 
 pub struct Directory {
     pub rb: ReadBuffer,
-    mode: Mode,
+    state: String,
     path: path::PathBuf,
     entries: Vec<Entry>,
     evacuated_entries: Vec<Entry>,
@@ -38,7 +36,7 @@ impl Directory {
             entries: vec![],
             evacuated_entries: vec![],
             rb: ReadBuffer::new(vec![], message_box.clone()), // not valid
-            mode: Mode::Normal,
+            state: INIT.to_owned(),
             navigator: navigator,
             message_box,
         };
@@ -136,13 +134,15 @@ impl Directory {
         }
         self.refresh_memory()
     }
-    pub fn eff_cursor_up(&mut self, _: Key) {
+    pub fn eff_cursor_up(&mut self, _: Key) -> String {
         self.rb.cursor_up();
+        INIT.to_owned()
     }
-    pub fn eff_cursor_down(&mut self, _: Key) {
+    pub fn eff_cursor_down(&mut self, _: Key) -> String {
         self.rb.cursor_down();
+        INIT.to_owned()
     }
-    pub fn eff_select(&mut self, _: Key) {
+    pub fn eff_select(&mut self, _: Key) -> String {
         let i = self.rb.cursor.row;
         let entry = &self.entries[i];
         let page: Rc<navigator::Page> = match entry.clone() {
@@ -160,8 +160,9 @@ impl Directory {
             },
         };
         self.navigator.borrow_mut().push(page);
+        INIT.to_owned()
     }
-    pub fn eff_go_down(&mut self, _: Key) {
+    pub fn eff_go_down(&mut self, _: Key) -> String {
         let i = self.rb.cursor.row;
         let entry = &self.entries[i];
         match entry.clone() {
@@ -172,8 +173,9 @@ impl Directory {
             },
             _ => {}
         };
+        INIT.to_owned()
     }
-    pub fn eff_go_up(&mut self, _: Key) {
+    pub fn eff_go_up(&mut self, _: Key) -> String {
         for e in &self.entries {
             match e {
                 Entry::Parent(path) => {
@@ -184,34 +186,35 @@ impl Directory {
                 _ => {},
             }
         }
+        INIT.to_owned()
     }
-    fn eff_toggle_hide(&mut self, _: Key) {
-        self.toggle_hide()
+    fn eff_toggle_hide(&mut self, _: Key) -> String {
+        self.toggle_hide();
+        INIT.to_owned()
     }
 }
 
 use crate::controller::Effect;
 use crate::def_effect;
 use crate::Key;
-use self::Mode::*;
 
-def_effect!(CursorUp, Directory, eff_cursor_up, Normal);
-def_effect!(CursorDown, Directory, eff_cursor_down, Normal);
-def_effect!(Select, Directory, eff_select, Normal);
-def_effect!(GoDown, Directory, eff_go_down, Normal);
-def_effect!(GoUp, Directory, eff_go_up, Normal);
-def_effect!(ToggleHide, Directory, eff_toggle_hide, Normal);
+def_effect!(CursorUp, Directory, eff_cursor_up);
+def_effect!(CursorDown, Directory, eff_cursor_down);
+def_effect!(Select, Directory, eff_select);
+def_effect!(GoDown, Directory, eff_go_down);
+def_effect!(GoUp, Directory, eff_go_up);
+def_effect!(ToggleHide, Directory, eff_toggle_hide);
 
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::GraphImpl::new();
-    g.add_edge("init", "init", Char('k'), Rc::new(CursorUp(x.clone())));
-    g.add_edge("init", "init", Char('j'), Rc::new(CursorDown(x.clone())));
-    g.add_edge("init", "init", Char('\n'), Rc::new(Select(x.clone())));
-    g.add_edge("init", "init", Char('l'), Rc::new(GoDown(x.clone())));
-    g.add_edge("init", "init", Char('h'), Rc::new(GoUp(x.clone())));
-    g.add_edge("init", "init", Char('.'), Rc::new(ToggleHide(x.clone())));
-    controller::ControllerFSM::new("init", Box::new(g))
+    g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
+    g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
+    g.add_edge(INIT, Char('\n'), Rc::new(Select(x.clone())));
+    g.add_edge(INIT, Char('l'), Rc::new(GoDown(x.clone())));
+    g.add_edge(INIT, Char('h'), Rc::new(GoUp(x.clone())));
+    g.add_edge(INIT, Char('.'), Rc::new(ToggleHide(x.clone())));
+    controller::ControllerFSM::new(INIT, Box::new(g))
 }
 
 struct AddColor {

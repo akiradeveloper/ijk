@@ -4,17 +4,18 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 pub trait Effect {
-    fn run(&self, k: Key) -> ();
+    fn run(&self, k: Key) -> String;
 }
 
 #[macro_export]
 macro_rules! def_effect {
-    ($eff_name:ident, $t:ty, $fun_name:ident, $next:expr) => {
+    ($eff_name:ident, $t:ty, $fun_name:ident) => {
         struct $eff_name(Rc<RefCell<$t>>);
         impl Effect for $eff_name {
-            fn run(&self, k: Key) {
-                self.0.borrow_mut().$fun_name(k);
-                self.0.borrow_mut().mode = $next;
+            fn run(&self, k: Key) -> String {
+                let next_state: String = self.0.borrow_mut().$fun_name(k);
+                self.0.borrow_mut().state = next_state.clone();
+                next_state
             }
         }
     };
@@ -23,7 +24,6 @@ macro_rules! def_effect {
 struct Edge {
     matcher: Key,
     eff: Rc<Effect>,
-    to: String,
 }
 impl Edge {
     fn matches(&self, k: &Key) -> bool {
@@ -39,7 +39,7 @@ impl Edge {
 }
 
 pub trait Graph {
-    fn find_effect(&self, from: &str, k: &Key) -> Option<(Rc<Effect>, String)>;
+    fn find_effect(&self, from: &str, k: &Key) -> Option<Rc<Effect>>;
 }
 
 pub struct GraphImpl {
@@ -56,25 +56,24 @@ impl GraphImpl {
             self.edges.insert(from.to_owned(), vec![]);
         }
     }
-    pub fn add_edge(&mut self, from: &str, to: &str, matcher: Key, eff: Rc<Effect>) {
+    pub fn add_edge(&mut self, from: &str, matcher: Key, eff: Rc<Effect>) {
         self.ensure_edge_vec(from);
         let v = self.edges.get_mut(from).unwrap();
         v.push(Edge {
             matcher: matcher,
             eff: eff,
-            to: to.to_owned(),
         });
     }
 }
 impl Graph for GraphImpl {
-    fn find_effect(&self, from: &str, k: &Key) -> Option<(Rc<Effect>, String)> {
+    fn find_effect(&self, from: &str, k: &Key) -> Option<Rc<Effect>> {
         if !self.edges.contains_key(from) {
             return None;
         }
         let v = self.edges.get(from).unwrap();
         v.iter()
             .find(|e| e.matches(&k))
-            .map(|x| (x.eff.clone(), x.to.clone()))
+            .map(|x| x.eff.clone())
     }
 }
 
@@ -87,7 +86,7 @@ where
     G1: Graph,
     G2: Graph,
 {
-    fn find_effect(&self, from: &str, k: &Key) -> Option<(Rc<Effect>, String)> {
+    fn find_effect(&self, from: &str, k: &Key) -> Option<Rc<Effect>> {
         self.g1
             .find_effect(from.clone(), k)
             .or(self.g2.find_effect(from, k))
@@ -124,8 +123,8 @@ impl Controller for ControllerFSM {
         let cur = self.cur.borrow().clone();
         let eff0 = self.g.find_effect(&cur, &k);
         match eff0 {
-            Some((eff, to)) => {
-                eff.run(k);
+            Some(eff) => {
+                let to = eff.run(k);
                 *self.cur.borrow_mut() = to;
             }
             None => {}
@@ -142,14 +141,16 @@ mod tests {
     // for test
     struct AppendY(Rc<RefCell<Vec<char>>>);
     impl Effect for AppendY {
-        fn run(&self, k: Key) -> () {
-            self.0.borrow_mut().push('y')
+        fn run(&self, k: Key) -> String {
+            self.0.borrow_mut().push('y');
+            "no".to_owned()
         }
     }
     struct AppendN(Rc<RefCell<Vec<char>>>);
     impl Effect for AppendN {
-        fn run(&self, k: Key) -> () {
-            self.0.borrow_mut().push('n')
+        fn run(&self, k: Key) -> String {
+            self.0.borrow_mut().push('n');
+            "yes".to_owned()
         }
     }
 
@@ -161,11 +162,11 @@ mod tests {
 
         let append_y = AppendY(buf.clone());
         let mut g1 = GraphImpl::new();
-        g1.add_edge("yes", "no", Char('y'), Rc::new(append_y));
+        g1.add_edge("yes", Char('y'), Rc::new(append_y));
 
         let append_n = AppendN(buf.clone());
         let mut g2 = GraphImpl::new();
-        g2.add_edge("no", "yes", Char('n'), Rc::new(append_n));
+        g2.add_edge("no", Char('n'), Rc::new(append_n));
 
         let g = compose(g1, g2);
 
