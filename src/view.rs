@@ -86,6 +86,43 @@ pub trait DiffView {
     fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }
 
+pub struct CloneView {
+    owned: Vec<Vec<ViewElem>>,
+    cursor: Option<Cursor>,
+    area: Area,
+}
+impl CloneView {
+    pub fn new<V: View>(orig: V, area: Area) -> Self {
+        let mut v = vec![];
+        for i in 0..area.height {
+            let mut vv = vec![];
+            let row = area.row + i;
+            for j in 0..area.width {
+                let col = area.col + j;
+                vv.push(orig.get(col, row))
+            }
+            v.push(vv);
+        }
+        // orig and area should have some overwrap
+        assert!(!v.is_empty());
+        Self {
+            owned: v,
+            cursor: orig.get_cursor_pos(),
+            area: area,
+        }
+    }
+}
+impl View for CloneView {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        let i = row - self.area.row;
+        let j = col - self.area.col;
+        self.owned[i][j]
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        self.cursor
+    }
+}
+
 pub struct BufArea<T> {
     copy: Vec<Vec<T>>,
     area: Area,
