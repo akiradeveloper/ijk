@@ -855,10 +855,12 @@ impl view::ViewGen for ViewGen {
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
 
         // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
+        let buf_ref = self.buf.borrow();
         let buf_window = self.buf.borrow().rb.current_window();
-        // let buf_view = view::ToViewRef::new(&self.buf.borrow().rb.buf);
-        let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
-        let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
+        let buf_view = view::ToViewRef::new(&buf_ref.rb.buf);
+        // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
+        // let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
+        let highlight_diff = highlight::HighlightDiffViewRef::new(&buf_ref.highlighter);
         let buf_view = view::OverlayView::new(
             buf_view,
             highlight_diff,
@@ -886,6 +888,8 @@ impl view::ViewGen for ViewGen {
             right: buf_view,
             col_offset: buf_reg.col,
         };
+
+        let view = view::CloneView::new(view, region);
         Box::new(view)
     }
 }
