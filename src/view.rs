@@ -168,6 +168,27 @@ impl <T: Clone> BufArea<T> {
     }
 }
 
+pub struct DefaultView<'a> {
+    pub back: &'a[Vec<BufElem>],
+    pub area: Area,
+}
+impl <'a> View for DefaultView<'a> {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        if row > self.back.len() - 1 || col > self.back[row].len() - 1 {
+            (' ', Color::Black, Color::Black)
+        } else {
+            let e = &self.back[row][col];
+            let c = match *e {
+                BufElem::Char(c) => c,
+                BufElem::Eol => ' ',
+            };
+            (c, Color::White, Color::Black)
+        }
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> { None }
+}
+
+
 pub struct ToView {
     buf_area: BufArea<BufElem>,
 }
