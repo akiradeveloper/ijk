@@ -361,17 +361,19 @@ impl EditBuffer {
         let delete_range = CursorRange {
             start: Cursor {
                 row: row,
-                col: self.rb.buf[row].len(),
+                col: self.rb.buf[row].len()-1,
             },
             end: Cursor {
                 row: row,
-                col: self.rb.buf[row].len(),
+                col: self.rb.buf[row].len()-1,
             },
         };
+        let mut v = vec![BufElem::Eol];
         let auto_indent = indent::AutoIndent {
             line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len()-1]
         };
-        self.enter_edit_mode(&delete_range, auto_indent.next_indent(), vec![BufElem::Eol]);
+        v.append(&mut auto_indent.next_indent());
+        self.enter_edit_mode(&delete_range, v, vec![]);
         INSERT.to_owned()
     }
     pub fn eff_join_next_line(&mut self, _: Key) -> String {
