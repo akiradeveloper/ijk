@@ -323,7 +323,7 @@ impl EditBuffer {
         r: &CursorRange,
         init_pre: Vec<BufElem>,
         init_post: Vec<BufElem>,
-    ) {
+    ) -> Vec<BufElem> {
         let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
         let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
@@ -335,7 +335,7 @@ impl EditBuffer {
                 post_buf_raw: post_survivors,
             },
             at: r.start,
-            removed: removed,
+            removed: removed.clone(),
             orig_buf: orig_buf,
         });
 
@@ -359,6 +359,8 @@ impl EditBuffer {
         self.rb.cursor = after_diff_inserted;
 
         self.visual_cursor = None;
+
+        removed
     }
     fn leave_edit_mode(&mut self) {
         assert!(self.edit_state.is_some());
@@ -517,33 +519,35 @@ impl EditBuffer {
         self.leave_edit_mode();
         INIT.to_owned()
     }
-    fn delete_range(&mut self, range: CursorRange) {
-        self.enter_edit_mode(&range, vec![], vec![]);
+    fn delete_range(&mut self, range: CursorRange) -> Vec<BufElem> {
+        let removed = self.enter_edit_mode(&range, vec![], vec![]);
         self.leave_edit_mode();
+        removed
     }
     pub fn eff_delete_line(&mut self, _: Key) -> String {
-        if self.visual_range().is_none() {
-            self.visual_cursor = Some(Cursor {
+        let range = CursorRange {
+            start: Cursor {
                 row: self.rb.cursor.row,
                 col: 0,
-            });
-            self.rb.jump_line_last();
-            self.delete_range(self.visual_range().unwrap());
+            },
+            end: Cursor {
+                row: self.rb.cursor.row,
+                col: self.rb.buf[self.rb.cursor.row].len(),
+            },
+        };
+        let removed = self.delete_range(range);
+        clipboard::SINGLETON.copy(clipboard::Type::Line(trim_right(removed)));
+        INIT.to_owned()
+    }
+    pub fn eff_delete_range(&mut self, _: Key) -> String {
+        if self.visual_range().is_none() {
+            LINES.to_owned()
         } else {
             let vr = self.visual_range().unwrap();
-            self.rb.cursor = Cursor {
-                row: vr.end.row,
-                col: 0,
-            };
-            self.visual_cursor = Some(Cursor {
-                row: vr.start.row,
-                col: 0,
-            });
-            self.rb.jump_line_last();
-            self.delete_range(self.visual_range().unwrap());
+            let removed = self.delete_range(vr);
+            clipboard::SINGLETON.copy(clipboard::Type::Range(removed));
+            INIT.to_owned()
         }
-
-        INIT.to_owned()
     }
     pub fn eff_delete_char(&mut self, _: Key) -> String {
         let range = self.visual_range().unwrap_or(CursorRange {
@@ -606,7 +610,7 @@ impl EditBuffer {
         self.undo();
         to_copy
     }
-    pub fn eff_yank(&mut self, _: Key) -> String {
+    pub fn eff_yank_range(&mut self, _: Key) -> String {
         let orig_cursor = self.rb.cursor;
         let vr = self.visual_range();
         if vr.is_none() {
@@ -631,8 +635,7 @@ impl EditBuffer {
             },
         };
         let to_copy = self.get_buffer(range);
-        let to_copy = trim_right(to_copy);
-        clipboard::SINGLETON.copy(clipboard::Type::Line(to_copy));
+        clipboard::SINGLETON.copy(clipboard::Type::Line(trim_right(to_copy)));
 
         INIT.to_owned()
     }
@@ -647,7 +650,7 @@ impl EditBuffer {
         self.delete_range(CursorRange {
             start: Cursor { row: row, col: 0 },
             end: Cursor { row: row, col: cnt },
-        })
+        });
     }
     fn indent_back_range(&mut self, row_range: std::ops::Range<usize>) {
         for row in row_range {
@@ -797,9 +800,10 @@ def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
 def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode);
 def_effect!(DeleteLine, EditBuffer, eff_delete_line);
+def_effect!(DeleteRange, EditBuffer, eff_delete_range);
 def_effect!(DeleteChar, EditBuffer, eff_delete_char);
 def_effect!(Paste, EditBuffer, eff_paste);
-def_effect!(Yank, EditBuffer, eff_yank);
+def_effect!(YankRange, EditBuffer, eff_yank_range);
 def_effect!(YankLine, EditBuffer, eff_yank_line);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
 def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
@@ -836,7 +840,8 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
     g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
-    g.add_edge(INIT, Char('d'), Rc::new(DeleteLine(x.clone())));
+    g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
+    g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
     g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
     g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
     g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
@@ -846,7 +851,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
     g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
     g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
-    g.add_edge(INIT, Char('y'), Rc::new(Yank(x.clone())));
+    g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
     g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
     g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
     g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
