@@ -6,24 +6,58 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
 
+use crate::BufElem;
+
 lazy_static! {
     pub static ref SINGLETON: Clipboard = Clipboard::new();
 }
 
+#[derive(Clone)]
+pub enum Type {
+    Range(Vec<BufElem>),
+    Line(Vec<BufElem>),
+}
+
+fn to_str(x: &[BufElem]) -> String {
+    let mut s = String::new();
+    for e in x {
+        let c = match *e {
+            BufElem::Char(c) => c,
+            BufElem::Eol => '\n',
+        };
+        s.push(c)
+    }
+    s
+}
+fn from_str(x: &str) -> Vec<BufElem> {
+    let mut v = vec![];
+    for c in x.chars() {
+        let e = match c {
+            '\n' => BufElem::Eol,
+            c => BufElem::Char(c),
+        };
+        v.push(e)
+    }
+    v
+}
+
 struct ClipboardImpl {
-    x: Option<String>,
+    x: Option<Type>,
 }
 impl ClipboardImpl {
     fn new() -> Self {
         Self { x: None }
     }
-    fn copy(&mut self, x: &str) {
-        if !clipboard_copy(x) {
-            self.x = Some(x.to_owned())
-        }
+    fn copy(&mut self, x: Type) {
+        let v = match &x {
+            Type::Range(a) => a,
+            Type::Line(a) => a,
+        };
+        clipboard_copy(&to_str(&v));
+        self.x = Some(x.clone())
     }
-    fn paste(&mut self) -> Option<String> {
-        clipboard_paste().or(self.x.clone())
+    fn paste(&mut self) -> Option<Type> {
+        self.x.clone()
     }
 }
 
@@ -36,10 +70,10 @@ impl Clipboard {
             imp: Arc::new(Mutex::new(ClipboardImpl::new()))
         }
     }
-    pub fn copy(&self, x: &str) {
+    pub fn copy(&self, x: Type) {
         self.imp.lock().unwrap().copy(x);
     }
-    pub fn paste(&self) -> Option<String> {
+    pub fn paste(&self) -> Option<Type> {
         self.imp.lock().unwrap().paste()
     }
 }
@@ -118,11 +152,4 @@ fn clipboard_paste() -> Option<String> {
         }
     }
     None
-}
-
-#[test]
-fn test_clipboard() {
-    let cl = Clipboard::new();
-    cl.copy("rust");
-    assert_eq!(cl.paste(), Some("rust".to_owned()));
 }

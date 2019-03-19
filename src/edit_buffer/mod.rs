@@ -18,6 +18,7 @@ use crate::screen;
 use crate::message_box::MessageBox;
 
 const INIT: &str = "Normal";
+const LINES: &str = "Lines";
 const INSERT: &str = "Insert";
 const SEARCH: &str = "Search";
 const JUMP: &str = "Jump";
@@ -531,14 +532,10 @@ impl EditBuffer {
         if pasted.is_none() { return INIT.to_owned(); }
 
         let pasted = pasted.unwrap();
-        let mut v = vec![];
-        for c in pasted.chars() {
-            let e = match c {
-                '\n' => BufElem::Eol,
-                c => BufElem::Char(c),
-            };
-            v.push(e)
-        }
+        let v = match pasted {
+            clipboard::Type::Range(es) => es,
+            _ => panic!(), // tmp
+        };
         
         let mut log = ChangeLog::new(
             self.rb.cursor,
@@ -562,15 +559,7 @@ impl EditBuffer {
         let to_copy = self.change_log_buffer.peek().cloned().unwrap().deleted;
         self.undo();
 
-        let mut s = String::new();
-        for e in to_copy {
-            let c = match e {
-                BufElem::Char(c) => c,
-                BufElem::Eol => '\n',
-            };
-            s.push(c)
-        }
-        clipboard::SINGLETON.copy(&s);
+        clipboard::SINGLETON.copy(clipboard::Type::Range(to_copy));
         self.rb.cursor = orig_cursor;
 
         INIT.to_owned()
