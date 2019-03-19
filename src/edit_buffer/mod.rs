@@ -262,7 +262,7 @@ impl EditBuffer {
         //
         // After:
         // xxxxxxe
-        let target_region = if range.end.col == self.rb.buf[range.end.row].len()
+        let target_region = if range.end.col == self.rb.buf[range.end.row].len() // the cursor end is open
             && range.end.row != self.rb.buf.len() - 1
         {
             let mut res = self.expand_range(&range);
@@ -294,7 +294,7 @@ impl EditBuffer {
 
         (pre_survivors, removed, post_survivors)
     }
-    fn enter_update_mode(&mut self, r: &CursorRange, init_diff: Vec<BufElem>) {
+    fn enter_edit_mode(&mut self, r: &CursorRange, init_diff: Vec<BufElem>) {
         let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
         let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
@@ -324,6 +324,20 @@ impl EditBuffer {
         self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
         self.rb.cursor = after_diff_inserted;
         self.visual_cursor = None;
+    }
+    fn leave_edit_mode(&mut self) {
+        assert!(self.edit_state.is_some());
+        // take(): replace the memory region with None and take out the owrnership of the object
+        let edit_state = self.edit_state.take().unwrap();
+        assert!(self.edit_state.is_none());
+        let change_log = ChangeLog::new(
+            edit_state.at,
+            edit_state.removed,
+            edit_state.diff_buffer.diff_buf,
+        );
+        if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
+            self.change_log_buffer.push(change_log);
+        }
     }
 
     //
@@ -355,7 +369,7 @@ impl EditBuffer {
         };
         let mut v = vec![BufElem::Eol];
         v.append(&mut auto_indent.next_indent());
-        self.enter_update_mode(&delete_range, v);
+        self.enter_edit_mode(&delete_range, v);
         INSERT.to_owned()
     }
     pub fn eff_join_next_line(&mut self, _: Key) -> String {
@@ -380,7 +394,7 @@ impl EditBuffer {
                 col: next_line_first_nonspace_pos,
             }
         };
-        self.enter_update_mode(&delete_range, vec![]);
+        self.enter_edit_mode(&delete_range, vec![]);
         INSERT.to_owned()
     }
     pub fn eff_enter_insert_mode(&mut self, _: Key) -> String {
@@ -389,7 +403,7 @@ impl EditBuffer {
             start: self.rb.cursor,
             end: self.rb.cursor,
         };
-        self.enter_update_mode(&delete_range, vec![]);
+        self.enter_edit_mode(&delete_range, vec![]);
         INSERT.to_owned()
     }
     pub fn eff_enter_append_mode(&mut self, k: Key) -> String {
@@ -406,7 +420,7 @@ impl EditBuffer {
         } else {
             self.visual_range().unwrap()
         };
-        self.enter_update_mode(&delete_range, vec![]);
+        self.enter_edit_mode(&delete_range, vec![]);
         INSERT.to_owned()
     }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
@@ -443,20 +457,9 @@ impl EditBuffer {
 
         INSERT.to_owned()
     }
-    pub fn eff_leave_edit_mode(&mut self, _: Key) -> String {
-        assert!(self.edit_state.is_some());
-        // take(): replace the memory region with None and take out the owrnership of the object
-        let edit_state = self.edit_state.take().unwrap();
-        assert!(self.edit_state.is_none());
-        let change_log = ChangeLog::new(
-            edit_state.at,
-            edit_state.removed,
-            edit_state.diff_buffer.diff_buf,
-        );
-        if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
-            self.change_log_buffer.push(change_log);
-        }
 
+    pub fn eff_leave_edit_mode(&mut self, _: Key) -> String {
+        self.leave_edit_mode();
         INIT.to_owned()
     }
     fn delete_range(&mut self, range: CursorRange) {
@@ -554,10 +557,13 @@ impl EditBuffer {
         let vr = self.visual_range();
         if vr.is_none() { return INIT.to_owned() }
 
+        // to get the yank region and restore the editor state
+        // we do this trick of delete and then undo.
         let vr = vr.unwrap();
         self.delete_range(vr);
         let to_copy = self.change_log_buffer.peek().cloned().unwrap().deleted;
         self.undo();
+
         let mut s = String::new();
         for e in to_copy {
             let c = match e {
