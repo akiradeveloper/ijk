@@ -31,13 +31,7 @@ impl ReadBuffer {
     pub fn reset(&mut self) {
         self.search.clear_search_word()
     }
-    fn stabilize_buffer(&mut self) {
-        if self.buf.is_empty() {
-            self.buf = vec![vec![BufElem::Eol]];
-            self.search = Search::new(1, self.message_box.clone());
-        }
-    }
-    fn stabilize_cursor(&mut self) {
+    pub fn stabilize_cursor(&mut self) {
         if self.cursor.row > self.buf.len() - 1 {
             self.cursor.row = self.buf.len() - 1;
         }
@@ -50,10 +44,6 @@ impl ReadBuffer {
         if self.cursor.col > self.buf[self.cursor.row].len() - 1 {
             self.cursor.col = self.buf[self.cursor.row].len() - 1;
         }
-    }
-    pub fn stabilize(&mut self) {
-        self.stabilize_buffer();
-        self.stabilize_cursor();
     }
     pub fn cursor_up(&mut self) {
         if self.cursor.row > 0 {

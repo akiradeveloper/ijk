@@ -99,12 +99,6 @@ impl EditBuffer {
         // self.highlighter.cache_remove_line(row);
         self.highlighter.clear_cache(self.rb.buf.len());
     }
-    fn stabilize(&mut self) {
-        if self.rb.buf.is_empty() {
-            self.highlighter = highlight::Highlighter::new(1);
-        }
-        self.rb.stabilize();
-    }
     fn update_cache(&mut self) {
         self.rb.update_cache();
 
@@ -875,7 +869,7 @@ impl view::ViewGen for ViewGen {
     fn gen(&self, region: view::Area) -> Box<view::View> {
         let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
 
-        self.buf.borrow_mut().stabilize();
+        self.buf.borrow_mut().rb.stabilize_cursor();
         self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
         self.buf.borrow_mut().update_cache();
 

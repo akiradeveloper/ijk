@@ -214,7 +214,7 @@ impl ViewGen {
 }
 impl view::ViewGen for ViewGen {
     fn gen(&self, region: view::Area) -> Box<view::View> {
-        self.x.borrow_mut().rb.stabilize();
+        self.x.borrow_mut().rb.stabilize_cursor();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().update_cache();
 
