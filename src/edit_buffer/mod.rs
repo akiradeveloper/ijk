@@ -1,21 +1,21 @@
-pub mod diff_buffer;
-pub mod undo_buffer;
-pub mod indent;
-pub mod clipboard;
 pub mod change_log;
+pub mod clipboard;
+pub mod diff_buffer;
 pub mod highlight;
+pub mod indent;
+pub mod undo_buffer;
 
-use self::diff_buffer::DiffBuffer;
 use self::change_log::{ChangeLog, ChangeLogBuffer};
+use self::diff_buffer::DiffBuffer;
 
-use std::time::Instant;
-use crate::{BufElem, Cursor};
-use crate::read_buffer::*;
-use crate::navigator;
-use std::path;
-use std::fs;
-use crate::screen;
 use crate::message_box::MessageBox;
+use crate::navigator;
+use crate::read_buffer::*;
+use crate::screen;
+use crate::{BufElem, Cursor};
+use std::fs;
+use std::path;
+use std::time::Instant;
 
 const INIT: &str = "Normal";
 const LINES: &str = "Lines";
@@ -49,6 +49,14 @@ struct EditState {
     orig_buf: Vec<Vec<BufElem>>,
 }
 
+fn trim_right(xs: Vec<BufElem>) -> Vec<BufElem> {
+    let mut v = xs;
+    if v[v.len()-1] == BufElem::Eol {
+        v.pop();
+    }
+    v
+}
+
 fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
     let mut r = vec![];
     for c in cs {
@@ -59,15 +67,18 @@ fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
 }
 
 fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
-    path.and_then(|path|
+    path.and_then(|path| {
         fs::read_to_string(path).ok().map(|s| {
             if s.is_empty() {
                 vec![vec![BufElem::Eol]]
             } else {
-                s.lines().map(|line| convert_to_bufelems(line.chars().collect())).collect()
+                s.lines()
+                    .map(|line| convert_to_bufelems(line.chars().collect()))
+                    .collect()
             }
         })
-    ).unwrap_or(vec![vec![BufElem::Eol]])
+    })
+    .unwrap_or(vec![vec![BufElem::Eol]])
 }
 
 impl EditBuffer {
@@ -103,7 +114,8 @@ impl EditBuffer {
         self.rb.update_cache();
 
         flame::start("update highlight");
-        self.highlighter.update_cache(self.rb.lineno_range(), &self.rb.buf);
+        self.highlighter
+            .update_cache(self.rb.lineno_range(), &self.rb.buf);
         flame::end("update highlight");
     }
     fn is_dirty(&self) -> bool {
@@ -139,11 +151,11 @@ impl EditBuffer {
                 if a > b {
                     self.sync_clock = None;
                 }
-            },
+            }
             (Some(_), None) => {
                 self.sync_clock = None;
-            },
-            (None, _) => {},
+            }
+            (None, _) => {}
         }
     }
     fn undo(&mut self) -> bool {
@@ -246,27 +258,25 @@ impl EditBuffer {
         }
         Cursor { row: row, col: col }
     }
-    fn prepare_delete(
-        &mut self,
-        r: &CursorRange,
-    ) -> (Vec<BufElem>, Vec<BufElem>, Vec<BufElem>) {
+    fn prepare_delete(&mut self, r: &CursorRange) -> (Vec<BufElem>, Vec<BufElem>, Vec<BufElem>) {
         let mut pre_survivors = vec![];
         let mut post_survivors = vec![];
         let mut removed = vec![];
 
         // invariant:
         // never eliminate the last eol
-        let range = if r.end.col == self.rb.buf[r.end.row].len() && r.end.row == self.rb.buf.len() - 1 {
-            CursorRange {
-                start: r.start,
-                end: Cursor {
-                    row: r.end.row,
-                    col: r.end.col - 1,
+        let range =
+            if r.end.col == self.rb.buf[r.end.row].len() && r.end.row == self.rb.buf.len() - 1 {
+                CursorRange {
+                    start: r.start,
+                    end: Cursor {
+                        row: r.end.row,
+                        col: r.end.col - 1,
+                    },
                 }
-            }
-        } else {
-            r.clone()
-        };
+            } else {
+                r.clone()
+            };
 
         // if the end of the range is some eol then the current line should be joined with the next line
         //
@@ -276,7 +286,9 @@ impl EditBuffer {
         //
         // After:
         // xxxxxxe
-        let target_region = if range.end.col == self.rb.buf[range.end.row].len() && range.end.row != self.rb.buf.len() - 1 {
+        let target_region = if range.end.col == self.rb.buf[range.end.row].len()
+            && range.end.row != self.rb.buf.len() - 1
+        {
             let mut res = self.expand_range(&range);
             res.push((range.end.row + 1, 0..0));
             res
@@ -306,7 +318,12 @@ impl EditBuffer {
 
         (pre_survivors, removed, post_survivors)
     }
-    fn enter_edit_mode(&mut self, r: &CursorRange, init_pre: Vec<BufElem>, init_post: Vec<BufElem>) {
+    fn enter_edit_mode(
+        &mut self,
+        r: &CursorRange,
+        init_pre: Vec<BufElem>,
+        init_post: Vec<BufElem>,
+    ) {
         let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
         let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
@@ -321,7 +338,7 @@ impl EditBuffer {
             removed: removed,
             orig_buf: orig_buf,
         });
-        
+
         let es = self.edit_state.clone().unwrap();
         self.insert_new_line(es.at.row);
         let mut b = false;
@@ -333,7 +350,11 @@ impl EditBuffer {
             es.diff_buffer.pre_buf(),
             &mut b,
         );
-        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b); // will delete
+        let after_diff_inserted = self.insert(
+            after_pre_inserted,
+            es.diff_buffer.diff_buf_raw.clone(),
+            &mut b,
+        ); // will delete
         self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
         self.rb.cursor = after_diff_inserted;
 
@@ -371,16 +392,16 @@ impl EditBuffer {
         let delete_range = CursorRange {
             start: Cursor {
                 row: row,
-                col: self.rb.buf[row].len()-1,
+                col: self.rb.buf[row].len() - 1,
             },
             end: Cursor {
                 row: row,
-                col: self.rb.buf[row].len()-1,
+                col: self.rb.buf[row].len() - 1,
             },
         };
         let mut v = vec![BufElem::Eol];
         let auto_indent = indent::AutoIndent {
-            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len()-1]
+            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
         };
         v.append(&mut auto_indent.next_indent());
         self.enter_edit_mode(&delete_range, v, vec![]);
@@ -389,31 +410,29 @@ impl EditBuffer {
     pub fn eff_enter_insert_newline_above(&mut self, _: Key) -> String {
         let row = self.rb.cursor.row;
         let delete_range = CursorRange {
-            start: Cursor {
-                row: row,
-                col: 0,
-            },
-            end: Cursor {
-                row: row,
-                col: 0,
-            },
+            start: Cursor { row: row, col: 0 },
+            end: Cursor { row: row, col: 0 },
         };
         let auto_indent = indent::AutoIndent {
-            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len()-1]
+            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
         };
-        self.enter_edit_mode(&delete_range, auto_indent.current_indent(), vec![BufElem::Eol]);
+        self.enter_edit_mode(
+            &delete_range,
+            auto_indent.current_indent(),
+            vec![BufElem::Eol],
+        );
         INSERT.to_owned()
     }
     pub fn eff_join_next_line(&mut self, _: Key) -> String {
         let row = self.rb.cursor.row;
         if row == self.rb.buf.len() - 1 {
-            return INIT.to_owned()
+            return INIT.to_owned();
         }
         let mut next_line_first_nonspace_pos = 0;
-        for x in &self.rb.buf[row+1] {
+        for x in &self.rb.buf[row + 1] {
             match *x {
                 BufElem::Char(' ') | BufElem::Char('\t') => next_line_first_nonspace_pos += 1,
-                _ => break
+                _ => break,
             }
         }
         let delete_range = CursorRange {
@@ -424,7 +443,7 @@ impl EditBuffer {
             end: Cursor {
                 row: row + 1,
                 col: next_line_first_nonspace_pos,
-            }
+            },
         };
         self.enter_edit_mode(&delete_range, vec![], vec![]);
         INSERT.to_owned()
@@ -483,7 +502,11 @@ impl EditBuffer {
             es.diff_buffer.pre_buf(),
             &mut b,
         );
-        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b);
+        let after_diff_inserted = self.insert(
+            after_pre_inserted,
+            es.diff_buffer.diff_buf_raw.clone(),
+            &mut b,
+        );
         self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
         self.rb.cursor = after_diff_inserted;
 
@@ -523,38 +546,56 @@ impl EditBuffer {
         INIT.to_owned()
     }
     pub fn eff_delete_char(&mut self, _: Key) -> String {
-        let range = self.visual_range().unwrap_or(
-            CursorRange {
-                start: self.rb.cursor,
-                end: Cursor {
-                    row: self.rb.cursor.row,
-                    col: self.rb.cursor.col + 1,
-                },
-            }
-        );
+        let range = self.visual_range().unwrap_or(CursorRange {
+            start: self.rb.cursor,
+            end: Cursor {
+                row: self.rb.cursor.row,
+                col: self.rb.cursor.col + 1,
+            },
+        });
         self.delete_range(range);
 
         INIT.to_owned()
     }
     pub fn eff_paste(&mut self, _: Key) -> String {
         let pasted = clipboard::SINGLETON.paste();
-        if pasted.is_none() { return INIT.to_owned(); }
+        if pasted.is_none() {
+            return INIT.to_owned();
+        }
 
         let pasted = pasted.unwrap();
-        let v = match pasted {
-            clipboard::Type::Range(es) => es,
-            _ => panic!(), // tmp
-        };
-        
-        let mut log = ChangeLog::new(
-            self.rb.cursor,
-            vec![],
-            v,
-        );
-        self.change_log_buffer.push(log.clone());
-        self.apply_log(&mut log);
+        match pasted {
+            clipboard::Type::Range(v) => {
+                let mut log = ChangeLog::new(self.rb.cursor, vec![], v);
+                self.change_log_buffer.push(log.clone());
+                self.apply_log(&mut log);
 
-        INIT.to_owned()
+                INIT.to_owned()
+            },
+            clipboard::Type::Line(mut v) => {
+                let row = self.rb.cursor.row;
+                let delete_range = CursorRange {
+                    start: Cursor {
+                        row: row,
+                        col: self.rb.buf[row].len() - 1,
+                    },
+                    end: Cursor {
+                        row: row,
+                        col: self.rb.buf[row].len() - 1,
+                    },
+                };
+                let mut vv = vec![BufElem::Eol];
+                vv.append(&mut v);
+                self.enter_edit_mode(
+                    &delete_range,
+                    vv,
+                    vec![],
+                );
+                self.leave_edit_mode();
+
+                INIT.to_owned()
+            }
+        }
     }
     // tmp:
     // to get the yank region and restore the editor state
@@ -568,8 +609,8 @@ impl EditBuffer {
     pub fn eff_yank(&mut self, _: Key) -> String {
         let orig_cursor = self.rb.cursor;
         let vr = self.visual_range();
-        if vr.is_none() { 
-            return LINES.to_owned() 
+        if vr.is_none() {
+            return LINES.to_owned();
         }
 
         let to_copy = self.get_buffer(vr.unwrap());
@@ -587,24 +628,25 @@ impl EditBuffer {
             end: Cursor {
                 row: self.rb.cursor.row,
                 col: self.rb.buf[self.rb.cursor.row].len(),
-            }
+            },
         };
         let to_copy = self.get_buffer(range);
+        let to_copy = trim_right(to_copy);
         clipboard::SINGLETON.copy(clipboard::Type::Line(to_copy));
 
         INIT.to_owned()
     }
     fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
         let mut cnt = 0;
-        for i in 0 .. indent.len() {
+        for i in 0..indent.len() {
             if self.rb.buf[row][i] != indent[i] {
                 break;
             }
             cnt += 1;
         }
-        self.delete_range(CursorRange{
+        self.delete_range(CursorRange {
             start: Cursor { row: row, col: 0 },
-            end: Cursor { row: row, col: cnt }
+            end: Cursor { row: row, col: cnt },
         })
     }
     fn indent_back_range(&mut self, row_range: std::ops::Range<usize>) {
@@ -614,11 +656,11 @@ impl EditBuffer {
     }
     pub fn eff_indent_back(&mut self, _: Key) -> String {
         if self.visual_range().is_none() {
-            self.indent_back_range(self.rb.cursor.row .. self.rb.cursor.row+1);
-            return INIT.to_owned()
+            self.indent_back_range(self.rb.cursor.row..self.rb.cursor.row + 1);
+            return INIT.to_owned();
         }
         let vr = self.visual_range().unwrap();
-        self.indent_back_range(vr.start.row .. vr.end.row+1);
+        self.indent_back_range(vr.start.row..vr.end.row + 1);
         self.visual_cursor = None;
         // TODO atomic change log
 
@@ -636,7 +678,7 @@ impl EditBuffer {
     pub fn eff_save_to_file(&mut self, _: Key) -> String {
         use std::io::Write;
         if self.path.is_none() {
-            return INIT.to_owned()
+            return INIT.to_owned();
         }
         let path = self.path.clone().unwrap();
         if let Ok(mut file) = fs::File::create(path) {
@@ -737,14 +779,18 @@ use crate::Key;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::controller::{Effect};
+use crate::controller::Effect;
 use crate::def_effect;
 
 def_effect!(Undo, EditBuffer, eff_undo);
 def_effect!(Redo, EditBuffer, eff_redo);
 def_effect!(JoinNextLine, EditBuffer, eff_join_next_line);
 def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline);
-def_effect!(EnterInsertNewlineAbove, EditBuffer, eff_enter_insert_newline_above);
+def_effect!(
+    EnterInsertNewlineAbove,
+    EditBuffer,
+    eff_enter_insert_newline_above
+);
 def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
 def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
 def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
@@ -817,8 +863,8 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('$'), Rc::new(JumpLineLast(x.clone())));
     g.add_edge(INIT, Ctrl('f'), Rc::new(JumpPageForward(x.clone())));
     g.add_edge(INIT, Ctrl('b'), Rc::new(JumpPageBackward(x.clone())));
-    g.add_edge(INIT, CharRange('1','9'), Rc::new(EnterJumpMode(x.clone())));
-    g.add_edge(JUMP, CharRange('0','9'), Rc::new(AccJumpNum(x.clone())));
+    g.add_edge(INIT, CharRange('1', '9'), Rc::new(EnterJumpMode(x.clone())));
+    g.add_edge(JUMP, CharRange('0', '9'), Rc::new(AccJumpNum(x.clone())));
     g.add_edge(JUMP, Char('G'), Rc::new(Jump(x.clone())));
     g.add_edge(JUMP, Esc, Rc::new(CancelJump(x.clone())));
     g.add_edge(INIT, Char('G'), Rc::new(JumpLast(x.clone())));
@@ -841,7 +887,10 @@ pub struct VisualRangeDiffView {
 impl view::DiffView for VisualRangeDiffView {
     fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
         let as_cursor = Cursor { row, col };
-        let in_visual_range = self.range.map(|r| r.start <= as_cursor && as_cursor < r.end).unwrap_or(false);
+        let in_visual_range = self
+            .range
+            .map(|r| r.start <= as_cursor && as_cursor < r.end)
+            .unwrap_or(false);
         if in_visual_range {
             (None, None, Some(screen::Color::Blue))
         } else {
@@ -860,9 +909,7 @@ pub struct ViewGen {
 }
 impl ViewGen {
     pub fn new(buf: Rc<RefCell<EditBuffer>>) -> Self {
-        Self {
-            buf: buf,
-        }
+        Self { buf: buf }
     }
 }
 impl view::ViewGen for ViewGen {
@@ -870,12 +917,15 @@ impl view::ViewGen for ViewGen {
         let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
 
         self.buf.borrow_mut().rb.stabilize_cursor();
-        self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
+        self.buf
+            .borrow_mut()
+            .rb
+            .adjust_window(buf_reg.width, buf_reg.height);
         self.buf.borrow_mut().update_cache();
 
         let lineno_range = self.buf.borrow().rb.lineno_range();
         let lineno_view = view::LineNumber {
-            from: lineno_range.start+1,
+            from: lineno_range.start + 1,
             to: lineno_range.end,
         };
         let lineno_view =
@@ -888,10 +938,7 @@ impl view::ViewGen for ViewGen {
         // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
         // let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
         let highlight_diff = highlight::HighlightDiffViewRef::new(&buf_ref.highlighter);
-        let buf_view = view::OverlayView::new(
-            buf_view,
-            highlight_diff,
-        );
+        let buf_view = view::OverlayView::new(buf_view, highlight_diff);
         let buf_view = view::OverlayView::new(
             buf_view,
             search::DiffView::new(self.buf.borrow().rb.search.clone()),
