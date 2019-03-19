@@ -23,7 +23,7 @@ const INSERT: &str = "Insert";
 const SEARCH: &str = "Search";
 const JUMP: &str = "Jump";
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct CursorRange {
     pub start: Cursor,
     pub end: Cursor,
@@ -127,9 +127,8 @@ impl EditBuffer {
         let (mut pre_survivors, _, mut post_survivors) = self.prepare_delete(&delete_range);
         pre_survivors.append(&mut log.inserted);
         pre_survivors.append(&mut post_survivors);
-        if !pre_survivors.is_empty() {
-            self.insert_new_line(log.at.row);
-        }
+        assert!(!pre_survivors.is_empty());
+        self.insert_new_line(log.at.row);
         let mut b = false;
         self.insert(
             Cursor {
@@ -261,26 +260,14 @@ impl EditBuffer {
         let mut post_survivors = vec![];
         let mut removed = vec![];
 
-        let range: CursorRange = if r.end.col == self.rb.buf[r.end.row].len() && r.end.row == self.rb.buf.len() - 1 {
-            if r.start.col == 0 {
-                if r.start.row > 0 {
-                    r.clone()
-                } else {
-                    CursorRange {
-                        start: r.start,
-                        end: Cursor {
-                            row: r.end.row,
-                            col: r.end.col - 1,
-                        }
-                    }
-                }
-            } else {
-                CursorRange {
-                    start: r.start,
-                    end: Cursor {
-                        row: r.end.row,
-                        col: r.end.col - 1,
-                    }
+        // invariant:
+        // never eliminate the last eol
+        let range = if r.end.col == self.rb.buf[r.end.row].len() && r.end.row == self.rb.buf.len() - 1 {
+            CursorRange {
+                start: r.start,
+                end: Cursor {
+                    row: r.end.row,
+                    col: r.end.col - 1,
                 }
             }
         } else {
@@ -342,23 +329,19 @@ impl EditBuffer {
         });
         
         let es = self.edit_state.clone().unwrap();
-        if es.diff_buffer.pre_buf().is_empty() && es.diff_buffer.post_buf().is_empty() {
-            self.rb.cursor = r.start;
-        } else {
-            self.insert_new_line(es.at.row);
-            let mut b = false;
-            let after_pre_inserted = self.insert(
-                Cursor {
-                    row: es.at.row,
-                    col: 0,
-                },
-                es.diff_buffer.pre_buf(),
-                &mut b,
-            );
-            let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b); // will delete
-            self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
-            self.rb.cursor = after_diff_inserted;
-        }
+        self.insert_new_line(es.at.row);
+        let mut b = false;
+        let after_pre_inserted = self.insert(
+            Cursor {
+                row: es.at.row,
+                col: 0,
+            },
+            es.diff_buffer.pre_buf(),
+            &mut b,
+        );
+        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b); // will delete
+        self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
+        self.rb.cursor = after_diff_inserted;
 
         self.visual_cursor = None;
     }

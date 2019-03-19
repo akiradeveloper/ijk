@@ -27,7 +27,7 @@ pub enum BufElem {
     Eol,
 }
 
-#[derive(Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
 pub struct Cursor {
     pub row: usize,
     pub col: usize,
