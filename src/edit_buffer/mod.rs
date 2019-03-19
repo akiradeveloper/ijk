@@ -255,11 +255,37 @@ impl EditBuffer {
     }
     fn prepare_delete(
         &mut self,
-        range: &CursorRange,
+        r: &CursorRange,
     ) -> (Vec<BufElem>, Vec<BufElem>, Vec<BufElem>) {
         let mut pre_survivors = vec![];
         let mut post_survivors = vec![];
         let mut removed = vec![];
+
+        let range: CursorRange = if r.end.col == self.rb.buf[r.end.row].len() && r.end.row == self.rb.buf.len() - 1 {
+            if r.start.col == 0 {
+                if r.start.row > 0 {
+                    r.clone()
+                } else {
+                    CursorRange {
+                        start: r.start,
+                        end: Cursor {
+                            row: r.end.row,
+                            col: r.end.col - 1,
+                        }
+                    }
+                }
+            } else {
+                CursorRange {
+                    start: r.start,
+                    end: Cursor {
+                        row: r.end.row,
+                        col: r.end.col - 1,
+                    }
+                }
+            }
+        } else {
+            r.clone()
+        };
 
         // if the end of the range is some eol then the current line should be joined with the next line
         //
@@ -269,9 +295,7 @@ impl EditBuffer {
         //
         // After:
         // xxxxxxe
-        let target_region = if range.end.col == self.rb.buf[range.end.row].len() // the cursor end is open
-            && range.end.row != self.rb.buf.len() - 1
-        {
+        let target_region = if range.end.col == self.rb.buf[range.end.row].len() && range.end.row != self.rb.buf.len() - 1 {
             let mut res = self.expand_range(&range);
             res.push((range.end.row + 1, 0..0));
             res
