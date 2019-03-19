@@ -5,6 +5,7 @@ OUTPUTS = (0..4).map { |i| "#{i}.html" }
 
 task 'g' => FILENAME
 task 't' => OUTPUTS
+CLOBBER.include(OUTPUTS)
 
 file FILENAME do
   open(FILENAME, 'w') do |f|
