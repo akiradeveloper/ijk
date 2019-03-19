@@ -151,3 +151,39 @@ impl Editor {
         }
     }
 }
+
+extern crate test_generator;
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use crate::edit_buffer;
+    use crate::navigator;
+    use super::*;
+
+    test_generator::test_expand_paths! { test_editor; "behavior/*" }
+    fn test_editor(dir_name: &str) {
+        let path = Path::new(dir_name);
+
+        let input = path.join("input");
+
+        let keys = path.join("keys");
+        let keys = crate::util::read_keys_file(&keys);
+        let keys = keys.into_iter();
+
+        let output = path.join("output");
+        let expected: Vec<Vec<BufElem>> = edit_buffer::read_buffer(Some(&output));
+
+        let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
+        let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(&input))));
+        let page = Rc::new(edit_buffer::Page::new(eb.clone()));
+        navigator.borrow_mut().push(page);
+        let mut editor = Editor::new(navigator);
+
+        editor.run(keys);
+        let actual: Vec<Vec<BufElem>> = eb.borrow().rb.buf.clone();
+
+        assert_eq!(actual, expected);
+    }
+}

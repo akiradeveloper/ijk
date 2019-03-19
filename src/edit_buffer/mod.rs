@@ -66,7 +66,7 @@ fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
     r
 }
 
-fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
+pub fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
     path.and_then(|path| {
         fs::read_to_string(path).ok().map(|s| {
             if s.is_empty() {
