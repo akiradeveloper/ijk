@@ -48,12 +48,7 @@ struct EditState {
     orig_buf: Vec<Vec<BufElem>>,
 }
 
-fn concat<T>(x: Vec<T>, y: Vec<T>) -> Vec<T> {
-    let mut x = x;
-    let mut y = y;
-    x.append(&mut y);
-    x
-}
+
 
 fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
     let mut r = vec![];
@@ -301,14 +296,16 @@ impl EditBuffer {
 
         (pre_survivors, removed, post_survivors)
     }
-    fn enter_edit_mode(&mut self, r: &CursorRange, init_pre: Vec<BufElem>, init_diff: Vec<BufElem>, init_post: Vec<BufElem>) {
+    fn enter_edit_mode(&mut self, r: &CursorRange, init_pre: Vec<BufElem>, init_post: Vec<BufElem>) {
         let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
         let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
             diff_buffer: DiffBuffer {
-                pre_buf: concat(pre_survivors, init_pre),
-                diff_buf: init_diff,
-                post_buf: concat(init_post, post_survivors),
+                pre_buf_raw: pre_survivors,
+                diff_buf_pre: init_pre,
+                diff_buf_raw: vec![],
+                diff_buf_post: init_post,
+                post_buf_raw: post_survivors,
             },
             at: r.start,
             removed: removed,
@@ -324,11 +321,11 @@ impl EditBuffer {
                 row: es.at.row,
                 col: 0,
             },
-            es.diff_buffer.pre_buf,
+            es.diff_buffer.pre_buf(),
             &mut b,
         );
-        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
-        self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
+        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b);
+        self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
         self.rb.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
@@ -340,7 +337,7 @@ impl EditBuffer {
         let change_log = ChangeLog::new(
             edit_state.at,
             edit_state.removed,
-            edit_state.diff_buffer.diff_buf,
+            edit_state.diff_buffer.inserted(),
         );
         if change_log.deleted.len() > 0 || change_log.inserted.len() > 0 {
             self.change_log_buffer.push(change_log);
@@ -364,19 +361,17 @@ impl EditBuffer {
         let delete_range = CursorRange {
             start: Cursor {
                 row: row,
-                col: self.rb.buf[row].len() - 1,
+                col: self.rb.buf[row].len(),
             },
             end: Cursor {
                 row: row,
-                col: self.rb.buf[row].len() - 1,
+                col: self.rb.buf[row].len(),
             },
         };
         let auto_indent = indent::AutoIndent {
             line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len()-1]
         };
-        let mut v = vec![BufElem::Eol];
-        v.append(&mut auto_indent.next_indent());
-        self.enter_edit_mode(&delete_range, vec![], v, vec![]);
+        self.enter_edit_mode(&delete_range, auto_indent.next_indent(), vec![BufElem::Eol]);
         INSERT.to_owned()
     }
     pub fn eff_join_next_line(&mut self, _: Key) -> String {
@@ -401,7 +396,7 @@ impl EditBuffer {
                 col: next_line_first_nonspace_pos,
             }
         };
-        self.enter_edit_mode(&delete_range, vec![], vec![], vec![]);
+        self.enter_edit_mode(&delete_range, vec![], vec![]);
         INSERT.to_owned()
     }
     pub fn eff_enter_insert_mode(&mut self, _: Key) -> String {
@@ -410,7 +405,7 @@ impl EditBuffer {
             start: self.rb.cursor,
             end: self.rb.cursor,
         };
-        self.enter_edit_mode(&delete_range, vec![], vec![], vec![]);
+        self.enter_edit_mode(&delete_range, vec![], vec![]);
         INSERT.to_owned()
     }
     pub fn eff_enter_append_mode(&mut self, k: Key) -> String {
@@ -427,7 +422,7 @@ impl EditBuffer {
         } else {
             self.visual_range().unwrap()
         };
-        self.enter_edit_mode(&delete_range, vec![], vec![], vec![]);
+        self.enter_edit_mode(&delete_range, vec![], vec![]);
         INSERT.to_owned()
     }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
@@ -455,11 +450,11 @@ impl EditBuffer {
                 row: es.at.row,
                 col: 0,
             },
-            es.diff_buffer.pre_buf,
+            es.diff_buffer.pre_buf(),
             &mut b,
         );
-        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf, &mut b);
-        self.insert(after_diff_inserted, es.diff_buffer.post_buf, &mut b);
+        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b);
+        self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
         self.rb.cursor = after_diff_inserted;
 
         INSERT.to_owned()
@@ -470,7 +465,7 @@ impl EditBuffer {
         INIT.to_owned()
     }
     fn delete_range(&mut self, range: CursorRange) {
-        self.enter_edit_mode(&range, vec![], vec![], vec![]);
+        self.enter_edit_mode(&range, vec![], vec![]);
         self.leave_edit_mode();
     }
     pub fn eff_delete_line(&mut self, _: Key) -> String {
