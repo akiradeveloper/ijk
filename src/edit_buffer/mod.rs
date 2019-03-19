@@ -601,6 +601,40 @@ impl EditBuffer {
             }
         }
     }
+    pub fn eff_paste_above(&mut self, _: Key) -> String {
+        let pasted = clipboard::SINGLETON.paste();
+        if pasted.is_none() {
+            return INIT.to_owned();
+        }
+
+        let v = match pasted.unwrap() {
+            clipboard::Type::Line(mut v) => {
+                v.push(BufElem::Eol);
+                v
+            },
+            clipboard::Type::Range(v) => v
+        };
+
+        let row = self.rb.cursor.row;
+        let delete_range = CursorRange {
+            start: Cursor {
+                row: row,
+                col: 0,
+            },
+            end: Cursor {
+                row: row,
+                col: 0,
+            },
+        };
+        self.enter_edit_mode(
+            &delete_range,
+            v,
+            vec![],
+        );
+        self.leave_edit_mode();
+
+        INIT.to_owned()
+    }
     // tmp:
     // to get the yank region and restore the editor state
     // we do this trick of delete and then undo.
@@ -803,6 +837,7 @@ def_effect!(DeleteLine, EditBuffer, eff_delete_line);
 def_effect!(DeleteRange, EditBuffer, eff_delete_range);
 def_effect!(DeleteChar, EditBuffer, eff_delete_char);
 def_effect!(Paste, EditBuffer, eff_paste);
+def_effect!(PasteAbove, EditBuffer, eff_paste_above);
 def_effect!(YankRange, EditBuffer, eff_yank_range);
 def_effect!(YankLine, EditBuffer, eff_yank_line);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
@@ -851,6 +886,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
     g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
     g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
+    g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
     g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
     g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
     g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
