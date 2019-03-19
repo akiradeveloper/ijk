@@ -48,10 +48,11 @@ struct EditState {
     orig_buf: Vec<Vec<BufElem>>,
 }
 
-fn prepend(v: &mut Vec<BufElem>, xs: Vec<BufElem>) {
-    for e in xs {
-        v.insert(0, e);
-    }
+fn concat<T>(x: Vec<T>, y: Vec<T>) -> Vec<T> {
+    let mut x = x;
+    let mut y = y;
+    x.append(&mut y);
+    x
 }
 
 fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
@@ -305,9 +306,9 @@ impl EditBuffer {
         let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
             diff_buffer: DiffBuffer {
-                pre_buf: pre_survivors,
+                pre_buf: concat(pre_survivors, init_pre),
                 diff_buf: init_diff,
-                post_buf: post_survivors,
+                post_buf: concat(init_post, post_survivors),
             },
             at: r.start,
             removed: removed,
