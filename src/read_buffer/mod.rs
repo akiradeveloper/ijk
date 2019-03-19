@@ -42,6 +42,7 @@ impl ReadBuffer {
             self.cursor.row = self.buf.len() - 1;
         }
         let line = &self.buf[self.cursor.row];
+        assert!(!line.is_empty());
         let first_unspace_index = line.iter().position(|c| c != &BufElem::Char(' ') && c != &BufElem::Char('\t')).unwrap();
         if self.cursor.col < first_unspace_index {
             self.cursor.col = first_unspace_index;

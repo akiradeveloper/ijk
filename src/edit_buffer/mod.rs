@@ -49,8 +49,6 @@ struct EditState {
     orig_buf: Vec<Vec<BufElem>>,
 }
 
-
-
 fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
     let mut r = vec![];
     for c in cs {
@@ -100,6 +98,12 @@ impl EditBuffer {
         self.rb.cache_remove_line(row);
         // self.highlighter.cache_remove_line(row);
         self.highlighter.clear_cache(self.rb.buf.len());
+    }
+    fn stabilize(&mut self) {
+        if self.rb.buf.is_empty() {
+            self.highlighter = highlight::Highlighter::new(1);
+        }
+        self.rb.stabilize();
     }
     fn update_cache(&mut self) {
         self.rb.update_cache();
@@ -312,22 +316,26 @@ impl EditBuffer {
             removed: removed,
             orig_buf: orig_buf,
         });
-
-        // write back the initial diff buffer
+        
         let es = self.edit_state.clone().unwrap();
-        self.insert_new_line(es.at.row);
-        let mut b = false;
-        let after_pre_inserted = self.insert(
-            Cursor {
-                row: es.at.row,
-                col: 0,
-            },
-            es.diff_buffer.pre_buf(),
-            &mut b,
-        );
-        let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b);
-        self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
-        self.rb.cursor = after_diff_inserted;
+        if es.diff_buffer.pre_buf().is_empty() && es.diff_buffer.post_buf().is_empty() {
+            self.rb.cursor = r.start;
+        } else {
+            self.insert_new_line(es.at.row);
+            let mut b = false;
+            let after_pre_inserted = self.insert(
+                Cursor {
+                    row: es.at.row,
+                    col: 0,
+                },
+                es.diff_buffer.pre_buf(),
+                &mut b,
+            );
+            let after_diff_inserted = self.insert(after_pre_inserted, es.diff_buffer.diff_buf_raw.clone(), &mut b); // will delete
+            self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
+            self.rb.cursor = after_diff_inserted;
+        }
+
         self.visual_cursor = None;
     }
     fn leave_edit_mode(&mut self) {
@@ -860,7 +868,7 @@ impl view::ViewGen for ViewGen {
     fn gen(&self, region: view::Area) -> Box<view::View> {
         let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
 
-        self.buf.borrow_mut().rb.stabilize();
+        self.buf.borrow_mut().stabilize();
         self.buf.borrow_mut().rb.adjust_window(buf_reg.width, buf_reg.height);
         self.buf.borrow_mut().update_cache();
 
