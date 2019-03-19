@@ -4,7 +4,7 @@ pub struct AutoIndent<'a> {
     pub line_predecessors: &'a [BufElem]
 }
 impl <'a> AutoIndent<'a> {
-    fn current_indent(&self) -> Vec<BufElem> {
+    pub fn current_indent(&self) -> Vec<BufElem> {
         let mut v = vec![];
         for e in self.line_predecessors {
             if *e == BufElem::Char(' ') || *e == BufElem::Char('\t') {

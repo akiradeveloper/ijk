@@ -376,6 +376,24 @@ impl EditBuffer {
         self.enter_edit_mode(&delete_range, v, vec![]);
         INSERT.to_owned()
     }
+    pub fn eff_enter_insert_newline_above(&mut self, _: Key) -> String {
+        let row = self.rb.cursor.row;
+        let delete_range = CursorRange {
+            start: Cursor {
+                row: row,
+                col: 0,
+            },
+            end: Cursor {
+                row: row,
+                col: 0,
+            },
+        };
+        let auto_indent = indent::AutoIndent {
+            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len()-1]
+        };
+        self.enter_edit_mode(&delete_range, auto_indent.current_indent(), vec![BufElem::Eol]);
+        INSERT.to_owned()
+    }
     pub fn eff_join_next_line(&mut self, _: Key) -> String {
         let row = self.rb.cursor.row;
         if row == self.rb.buf.len() - 1 {
@@ -707,6 +725,7 @@ def_effect!(Undo, EditBuffer, eff_undo);
 def_effect!(Redo, EditBuffer, eff_redo);
 def_effect!(JoinNextLine, EditBuffer, eff_join_next_line);
 def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline);
+def_effect!(EnterInsertNewlineAbove, EditBuffer, eff_enter_insert_newline_above);
 def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
 def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
 def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
@@ -756,6 +775,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
     g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
     g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
+    g.add_edge(INIT, Char('O'), Rc::new(EnterInsertNewlineAbove(x.clone())));
     g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
     g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
     g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
