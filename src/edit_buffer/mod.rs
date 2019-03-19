@@ -463,32 +463,8 @@ impl EditBuffer {
         INIT.to_owned()
     }
     fn delete_range(&mut self, range: CursorRange) {
-        let (mut pre_survivors, removed, mut post_survivors) = self.prepare_delete(&range);
-
-        pre_survivors.append(&mut post_survivors);
-        if !pre_survivors.is_empty() {
-            self.insert_new_line(range.start.row);
-        }
-        let mut b = false;
-        self.insert(
-            Cursor {
-                row: range.start.row,
-                col: 0,
-            },
-            pre_survivors,
-            &mut b,
-        );
-
-        let log = ChangeLog::new(
-            range.start.clone(),
-            removed,
-            vec![],
-        );
-        self.change_log_buffer.push(log);
-
-        self.rb.cursor = range.start;
-        // this ensures visual mode is cancelled whenever it starts insertion mode.
-        self.visual_cursor = None;
+        self.enter_edit_mode(&range, vec![]);
+        self.leave_edit_mode();
     }
     pub fn eff_delete_line(&mut self, _: Key) -> String {
         if self.visual_range().is_none() {
