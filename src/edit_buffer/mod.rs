@@ -547,20 +547,41 @@ impl EditBuffer {
 
         INIT.to_owned()
     }
+    // tmp:
+    // to get the yank region and restore the editor state
+    // we do this trick of delete and then undo.
+    fn get_buffer(&mut self, range: CursorRange) -> Vec<BufElem> {
+        self.delete_range(range);
+        let to_copy = self.change_log_buffer.peek().cloned().unwrap().deleted;
+        self.undo();
+        to_copy
+    }
     pub fn eff_yank(&mut self, _: Key) -> String {
         let orig_cursor = self.rb.cursor;
         let vr = self.visual_range();
-        if vr.is_none() { return INIT.to_owned() }
+        if vr.is_none() { 
+            return LINES.to_owned() 
+        }
 
-        // to get the yank region and restore the editor state
-        // we do this trick of delete and then undo.
-        let vr = vr.unwrap();
-        self.delete_range(vr);
-        let to_copy = self.change_log_buffer.peek().cloned().unwrap().deleted;
-        self.undo();
-
+        let to_copy = self.get_buffer(vr.unwrap());
         clipboard::SINGLETON.copy(clipboard::Type::Range(to_copy));
         self.rb.cursor = orig_cursor;
+
+        INIT.to_owned()
+    }
+    pub fn eff_yank_line(&mut self, _: Key) -> String {
+        let range = CursorRange {
+            start: Cursor {
+                row: self.rb.cursor.row,
+                col: 0,
+            },
+            end: Cursor {
+                row: self.rb.cursor.row,
+                col: self.rb.buf[self.rb.cursor.row].len(),
+            }
+        };
+        let to_copy = self.get_buffer(range);
+        clipboard::SINGLETON.copy(clipboard::Type::Line(to_copy));
 
         INIT.to_owned()
     }
@@ -724,6 +745,7 @@ def_effect!(DeleteLine, EditBuffer, eff_delete_line);
 def_effect!(DeleteChar, EditBuffer, eff_delete_char);
 def_effect!(Paste, EditBuffer, eff_paste);
 def_effect!(Yank, EditBuffer, eff_yank);
+def_effect!(YankLine, EditBuffer, eff_yank_line);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
 def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
 def_effect!(SaveToFile, EditBuffer, eff_save_to_file);
@@ -770,6 +792,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
     g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
     g.add_edge(INIT, Char('y'), Rc::new(Yank(x.clone())));
+    g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
     g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
     g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
 
