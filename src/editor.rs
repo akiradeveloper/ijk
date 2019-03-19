@@ -152,6 +152,7 @@ impl Editor {
     }
 }
 
+
 extern crate test_generator;
 #[cfg(test)]
 mod tests {
@@ -161,6 +162,15 @@ mod tests {
     use crate::edit_buffer;
     use crate::navigator;
     use super::*;
+
+    fn normalize(x: Vec<Vec<BufElem>>) -> Vec<Vec<BufElem>> {
+        let mut x = x;
+        let last = x.last().cloned().unwrap();
+        if last == vec![BufElem::Eol] {
+            x.pop();
+        }
+        x
+    }
 
     test_generator::test_expand_paths! { test_editor; "behavior/*" }
     fn test_editor(dir_name: &str) {
@@ -173,7 +183,7 @@ mod tests {
         let keys = keys.into_iter();
 
         let output = path.join("output");
-        let expected: Vec<Vec<BufElem>> = edit_buffer::read_buffer(Some(&output));
+        let expected: Vec<Vec<BufElem>> = normalize(edit_buffer::read_buffer(Some(&output)));
 
         let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
         let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(&input))));
@@ -182,7 +192,7 @@ mod tests {
         let mut editor = Editor::new(navigator);
 
         editor.run(keys);
-        let actual: Vec<Vec<BufElem>> = eb.borrow().rb.buf.clone();
+        let actual: Vec<Vec<BufElem>> = normalize(eb.borrow().rb.buf.clone());
 
         assert_eq!(actual, expected);
     }
