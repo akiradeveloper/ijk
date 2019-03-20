@@ -468,6 +468,18 @@ impl EditBuffer {
         self.enter_edit_mode(&delete_range, vec![], vec![]);
         INSERT.to_owned()
     }
+    pub fn eff_enter_insert_mode_line_last(&mut self, _: Key) -> String {
+        let eol_cursor = Cursor {
+            row: self.rb.cursor.row,
+            col: self.rb.buf[self.rb.cursor.row].len() - 1,
+        };
+        let delete_range = CursorRange {
+            start: eol_cursor,
+            end: eol_cursor,
+        };
+        self.enter_edit_mode(&delete_range, vec![], vec![]);
+        INSERT.to_owned()
+    }
     pub fn eff_enter_append_mode(&mut self, k: Key) -> String {
         self.eff_cursor_right(k.clone());
         self.eff_enter_insert_mode(k);
@@ -838,6 +850,7 @@ def_effect!(
     eff_enter_insert_newline_above
 );
 def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
+def_effect!(EnterInsertModeLineLast, EditBuffer, eff_enter_insert_mode_line_last);
 def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
 def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
 def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
@@ -892,6 +905,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
     g.add_edge(INIT, Char('O'), Rc::new(EnterInsertNewlineAbove(x.clone())));
     g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
+    g.add_edge(INIT, Char('A'), Rc::new(EnterInsertModeLineLast(x.clone())));
     g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
     g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
     g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
