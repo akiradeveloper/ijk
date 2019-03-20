@@ -545,6 +545,22 @@ impl EditBuffer {
         self.leave_edit_mode();
         removed
     }
+    pub fn eff_delete_line_tail(&mut self, _: Key) -> String {
+        let start = self.rb.cursor;
+        let line = &self.rb.buf[start.row];
+        assert!(!line.is_empty());
+        let end = if line.len() == 1 {
+            start
+        } else {
+            Cursor {
+                row: start.row,
+                col: line.len() - 1
+            }
+        };
+        let delete_range = CursorRange { start, end };
+        self.delete_range(delete_range);
+        INIT.to_owned()
+    }
     pub fn eff_delete_line(&mut self, _: Key) -> String {
         let range = CursorRange {
             start: Cursor {
@@ -855,6 +871,7 @@ def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
 def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
 def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode);
+def_effect!(DeleteLineTail, EditBuffer, eff_delete_line_tail);
 def_effect!(DeleteLine, EditBuffer, eff_delete_line);
 def_effect!(DeleteRange, EditBuffer, eff_delete_range);
 def_effect!(DeleteChar, EditBuffer, eff_delete_char);
@@ -897,6 +914,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
     g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
+    g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
     g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
     g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
     g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
