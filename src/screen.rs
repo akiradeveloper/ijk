@@ -22,6 +22,14 @@ pub struct Screen {
 static EMPTY: char = ' ';
 static DEFAULT: (Style, char) = (Style(Color::Black, Color::Black), EMPTY);
 
+fn default_fg() -> Color {
+    crate::theme::default().settings.foreground.unwrap().into()
+}
+
+fn default_bg() -> Color {
+    crate::theme::default().settings.background.unwrap().into()
+}
+
 impl Screen {
     pub fn new(w: usize, h: usize) -> Self {
         let buf = std::iter::repeat(DEFAULT)
@@ -127,6 +135,12 @@ impl Drop for Screen {
             termion::clear::All,
         ).unwrap();
         self.show_cursor();
+    }
+}
+
+impl From<syntect::highlighting::Color> for Color {
+    fn from(c: syntect::highlighting::Color) -> Color {
+        Color::Rgb(c.r, c.g, c.b)
     }
 }
 
