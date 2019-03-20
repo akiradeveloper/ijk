@@ -1,7 +1,8 @@
 # ijk
 
-[![tokei](https://tokei.rs/b1/github/akiradeveloper/ijk)](https://github.com/akiradeveloper/ijk)
+[![Tokei](https://tokei.rs/b1/github/akiradeveloper/ijk)](https://github.com/akiradeveloper/ijk)
 [![Build Status](https://travis-ci.org/akiradeveloper/ijk.svg?branch=develop)](https://travis-ci.org/akiradeveloper/ijk)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](YOUR_EMAIL_CODE)
 
 A real editor for real programmers.
 
