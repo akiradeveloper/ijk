@@ -269,18 +269,24 @@ impl EditBuffer {
 
         // invariant:
         // never eliminate the last eol
-        let range =
+        let back_tail: bool =
             if r.end.col == self.rb.buf[r.end.row].len() && r.end.row == self.rb.buf.len() - 1 {
-                CursorRange {
-                    start: r.start,
-                    end: Cursor {
-                        row: r.end.row,
-                        col: r.end.col - 1,
-                    },
-                }
+                true
             } else {
-                r.clone()
+                false
             };
+
+        let range = if back_tail {
+            CursorRange {
+                start: r.start,
+                end: Cursor {
+                    row: r.end.row,
+                    col: r.end.col - 1,
+                },
+            }
+        } else {
+            r.clone()
+        };
 
         // if the end of the range is some eol then the current line should be joined with the next line
         //
@@ -361,7 +367,6 @@ impl EditBuffer {
         ); // will delete
         self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
         self.rb.cursor = after_diff_inserted;
-
         self.visual_cursor = None;
 
         removed
