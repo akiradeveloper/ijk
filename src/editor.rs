@@ -38,19 +38,78 @@ impl view::View for StatusView {
     }
 }
 
-pub struct Editor {
-    navigator: Rc<RefCell<navigator::Navigator>>,
-    navi_page: Rc<Page>,
-    screen: Screen,
+pub trait Drawable {
+    fn dimension(&self) -> (usize, usize);
+    fn draw<V: View>(&mut self, view: V);
 }
 
-impl Editor {
-    pub fn new(navigator: Rc<RefCell<navigator::Navigator>>) -> Self {
-        let (term_w, term_h) = termion::terminal_size().unwrap();
+pub struct TerminalScreen {
+    screen: Screen,
+}
+impl TerminalScreen {
+    pub fn new(w: usize, h: usize) -> Self {
+        Self {
+            screen: Screen::new(w, h)
+        }
+    }
+}
+impl Drawable for TerminalScreen {
+    fn dimension(&self) -> (usize, usize) {
+        (self.screen.w, self.screen.h)
+    }
+    fn draw<V: View>(&mut self, view: V) {
+        let _flame_guard = flame::start_guard("editor.draw");
+
+        flame::start("screen.clear");
+        self.screen.clear();
+        flame::end("screen.clear");
+
+        flame::start("screen.draw");
+        for row in 0..self.screen.h {
+            for col in 0..self.screen.w {
+                let (c, fg, bg) = view.get(col, row);
+                self.screen.draw(col, row, c, Style(fg, bg))
+            }
+        }
+        flame::end("screen.draw");
+
+        for cursor in view.get_cursor_pos() {
+            self.screen.move_cursor(cursor.col, cursor.row);
+        }
+        flame::start("screen.present");
+        self.screen.present();
+        flame::end("screen.present");
+    }
+}
+
+struct NullScreen {
+    w: usize,
+    h: usize,
+}
+impl NullScreen {
+    fn new(w: usize, h: usize) -> Self {
+        Self { w, h }
+    }
+}
+impl Drawable for NullScreen {
+    fn dimension(&self) -> (usize, usize) {
+        (self.w, self.h)
+    }
+    fn draw<V: View>(&mut self, view: V) {}
+}
+
+pub struct Editor<D> {
+    navigator: Rc<RefCell<navigator::Navigator>>,
+    navi_page: Rc<Page>,
+    drawable: D,
+}
+
+impl <D: Drawable> Editor<D> {
+    pub fn new(navigator: Rc<RefCell<navigator::Navigator>>, drawable: D) -> Self {
         Self {
             navi_page: Rc::new(navigator::NavigatorPage::new(navigator.clone())),
             navigator: navigator,
-            screen: Screen::new(term_w as usize, term_h as usize),
+            drawable: drawable,
         }
     }
     fn view_gen(&self, area: view::Area) -> Box<View> {
@@ -85,38 +144,19 @@ impl Editor {
         Box::new(view)
     }
     fn draw<V: View>(&mut self, view: V) {
-        let _flame_guard = flame::start_guard("editor.draw");
-
-        flame::start("screen.clear");
-        self.screen.clear();
-        flame::end("screen.clear");
-
-        flame::start("screen.draw");
-        for row in 0..self.screen.h {
-            for col in 0..self.screen.w {
-                let (c, fg, bg) = view.get(col, row);
-                self.screen.draw(col, row, c, Style(fg, bg))
-            }
-        }
-        flame::end("screen.draw");
-
-        for cursor in view.get_cursor_pos() {
-            self.screen.move_cursor(cursor.col, cursor.row);
-        }
-        flame::start("screen.present");
-        self.screen.present();
-        flame::end("screen.present");
+        self.drawable.draw(view)
     }
     pub fn run<I: Iterator<Item = Result<termion::event::Key, std::io::Error>>>(
         &mut self,
         mut keys: I,
     ) {
         loop {
+            let (w, h) = self.drawable.dimension();
             let area = view::Area {
                 col: 0,
                 row: 0,
-                width: self.screen.w as usize,
-                height: self.screen.h as usize,
+                width: w,
+                height: h,
             };
             let view = self.view_gen(area);
             self.draw(view);
@@ -189,7 +229,7 @@ mod tests {
         let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(&input))));
         let page = Rc::new(edit_buffer::Page::new(eb.clone()));
         navigator.borrow_mut().push(page);
-        let mut editor = Editor::new(navigator);
+        let mut editor = Editor::new(navigator, NullScreen::new(10,10));
 
         editor.run(keys);
         let actual: Vec<Vec<BufElem>> = normalize(eb.borrow().rb.buf.clone());

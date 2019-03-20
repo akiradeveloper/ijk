@@ -40,7 +40,8 @@ fn main() {
     };
 
     navigator.borrow_mut().push(page);
-    let mut editor = ijk::editor::Editor::new(navigator);
+    let (term_w, term_h) = termion::terminal_size().unwrap();
+    let mut editor = ijk::editor::Editor::new(navigator, ijk::editor::TerminalScreen::new(term_w as usize, term_h as usize));
 
     let stdin = std::io::stdin();
     // let stdin = termion::async_stdin();
