@@ -51,10 +51,14 @@ struct EditState {
 
 fn trim_right(xs: Vec<BufElem>) -> Vec<BufElem> {
     let mut v = xs;
-    if v[v.len()-1] == BufElem::Eol {
+    if v.is_empty() {
+        v
+    } else if v[v.len()-1] == BufElem::Eol {
         v.pop();
+        v
+    } else {
+        v
     }
-    v
 }
 
 fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
