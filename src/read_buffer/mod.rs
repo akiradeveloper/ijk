@@ -135,7 +135,7 @@ impl ReadBuffer {
     }
     pub fn search_jump_backward(&mut self) {
         self.search.show_search();
-        let prev = self.search.prev(self.cursor);
+        let prev = self.search.prev(self.cursor, &self.buf);
         for x in prev {
             self.cursor = x;
         }

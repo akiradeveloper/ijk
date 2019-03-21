@@ -209,11 +209,19 @@ impl Search {
             }
         }
     }
-    pub fn prev(&self, cur: Cursor) -> Option<Cursor> {
+    pub fn prev(&mut self, cur: Cursor, buf: &[Vec<BufElem>]) -> Option<Cursor> {
         match self.hits[cur.row].prev(Some(cur.col)) {
             Some(prev_col) => Some(Cursor { row: cur.row, col: prev_col }),
             None => {
-                (0..cur.row).rev().map(|row| {
+                let mut search_rows = vec![];
+                for i in (0..cur.row).rev() {
+                    search_rows.push(i);
+                }
+                for i in (cur.row..self.hits.len()).rev() {
+                    search_rows.push(i);
+                }
+                search_rows.into_iter().map(|row| {
+                    self.update_cache_line(row, buf);
                     let last0 = self.hits[row].prev(None);
                     match last0 {
                         Some(last) => Some(Cursor { row: row, col: last }),
