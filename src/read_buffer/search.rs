@@ -186,11 +186,20 @@ impl Search {
             self.update_cache_line(row, buf)
         }
     }
-    pub fn next(&self, cur: Cursor) -> Option<Cursor> {
+    pub fn next(&mut self, cur: Cursor, buf: &[Vec<BufElem>]) -> Option<Cursor> {
         match self.hits[cur.row].next(Some(cur.col)) {
             Some(next_col) => Some(Cursor { row: cur.row, col: next_col }),
             None => {
-                (cur.row+1..self.hits.len()).map(|row| {
+                let mut search_rows = vec![];
+                for i in cur.row+1 .. self.hits.len() {
+                    search_rows.push(i);
+                }
+                for i in 0 .. cur.row+1 {
+                    search_rows.push(i);
+                }
+
+                search_rows.into_iter().map(|row| {
+                    self.update_cache_line(row, buf);
                     let first0 = self.hits[row].next(None);
                     match first0 {
                         Some(first) => Some(Cursor { row: row, col: first }),
