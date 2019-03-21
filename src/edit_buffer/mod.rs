@@ -580,6 +580,9 @@ impl EditBuffer {
 
         INIT.to_owned()
     }
+    pub fn eff_cancel_lines_mode(&mut self, _: Key) -> String {
+        INIT.to_owned()
+    }
     pub fn eff_paste(&mut self, _: Key) -> String {
         let pasted = clipboard::SINGLETON.paste();
         if pasted.is_none() {
@@ -851,6 +854,7 @@ def_effect!(DeleteLineTail, EditBuffer, eff_delete_line_tail);
 def_effect!(DeleteLine, EditBuffer, eff_delete_line);
 def_effect!(DeleteRange, EditBuffer, eff_delete_range);
 def_effect!(DeleteChar, EditBuffer, eff_delete_char);
+def_effect!(CancelLinesMode, EditBuffer, eff_cancel_lines_mode);
 def_effect!(Paste, EditBuffer, eff_paste);
 def_effect!(PasteAbove, EditBuffer, eff_paste_above);
 def_effect!(YankRange, EditBuffer, eff_yank_range);
@@ -889,10 +893,8 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     // mutable
     g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
-    g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
     g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
     g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
-    g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
     g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
     g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
     g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
@@ -905,7 +907,11 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
     g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
     g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
+    g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
+    
     g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
+    g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
+    g.add_edge(LINES, Esc, Rc::new(CancelLinesMode(x.clone())));
     g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
     g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
 
@@ -921,19 +927,21 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('$'), Rc::new(JumpLineLast(x.clone())));
     g.add_edge(INIT, Ctrl('f'), Rc::new(JumpPageForward(x.clone())));
     g.add_edge(INIT, Ctrl('b'), Rc::new(JumpPageBackward(x.clone())));
+    g.add_edge(INIT, Char('G'), Rc::new(JumpLast(x.clone())));
+    g.add_edge(INIT, Char('n'), Rc::new(SearchJumpForward(x.clone())));
+    g.add_edge(INIT, Char('N'), Rc::new(SearchJumpBackward(x.clone())));
+
+    // num jump
     g.add_edge(INIT, CharRange('1', '9'), Rc::new(EnterJumpMode(x.clone())));
     g.add_edge(JUMP, CharRange('0', '9'), Rc::new(AccJumpNum(x.clone())));
     g.add_edge(JUMP, Char('G'), Rc::new(Jump(x.clone())));
     g.add_edge(JUMP, Esc, Rc::new(CancelJump(x.clone())));
-    g.add_edge(INIT, Char('G'), Rc::new(JumpLast(x.clone())));
 
     // search
     g.add_edge(INIT, Char('/'), Rc::new(EnterSearchMode(x.clone())));
     g.add_edge(SEARCH, Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
     g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
     g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())));
-    g.add_edge(INIT, Char('n'), Rc::new(SearchJumpForward(x.clone())));
-    g.add_edge(INIT, Char('N'), Rc::new(SearchJumpBackward(x.clone())));
 
     controller::ControllerFSM::new(INIT, Box::new(g))
 }
