@@ -637,14 +637,15 @@ impl EditBuffer {
         };
 
         let row = self.rb.cursor.row;
+        let line = self.rb.line(self.rb.cursor.row);
         let delete_range = CursorRange {
             start: Cursor {
                 row: row,
-                col: 0,
+                col: line.first_non_space_index(),
             },
             end: Cursor {
                 row: row,
-                col: 0,
+                col: line.first_non_space_index(),
             },
         };
         self.enter_edit_mode(

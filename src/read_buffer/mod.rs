@@ -6,6 +6,7 @@ use self::search::Search;
 
 mod visibility_window;
 pub mod search;
+pub mod line;
 
 pub struct ReadBuffer {
     pub buf: Vec<Vec<BufElem>>,
@@ -162,5 +163,8 @@ impl ReadBuffer {
     }
     pub fn lineno_range(&self) -> std::ops::Range<usize> {
         self.window.row_low .. std::cmp::min(self.window.row_high+1, self.buf.len())
+    }
+    pub fn line(&self, row: usize) -> line::Line {
+        line::Line::new(&self.buf[row])
     }
 }
