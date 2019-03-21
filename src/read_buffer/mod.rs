@@ -29,7 +29,7 @@ impl ReadBuffer {
         }
     }
     pub fn reset(&mut self) {
-        self.search.clear_search_word()
+        self.search.hide_search()
     }
     pub fn stabilize_cursor(&mut self) {
         self.cursor = crate::normalize::normalize_cursor(self.cursor, &self.buf);
@@ -113,7 +113,8 @@ impl ReadBuffer {
         self.cursor.col = 0;
     }
     pub fn enter_search_mode(&mut self) {
-        self.search.clear_search_word()
+        self.search.clear_search_word();
+        self.search.show_search();
     }
     pub fn search_mode_input(&mut self, k: Key) {
         match k {
@@ -125,14 +126,17 @@ impl ReadBuffer {
     pub fn leave_search_mode(&mut self) {}
     pub fn cancel_search_mode(&mut self) {
         self.search.clear_search_word();
+        self.search.hide_search();
     }
     pub fn search_jump_forward(&mut self) {
+        self.search.show_search();
         let next = self.search.next(self.cursor);
         for x in next {
             self.cursor = x;
         }
     }
     pub fn search_jump_backward(&mut self) {
+        self.search.show_search();
         let prev = self.search.prev(self.cursor);
         for x in prev {
             self.cursor = x;

@@ -113,14 +113,22 @@ pub struct Search {
     pub cur_word: Vec<char>,
     hits: Vec<Hit>,
     message_box: MessageBox,
+    show: bool,
 }
 impl Search {
     pub fn new(n_rows: usize, message_box: MessageBox) -> Self {
         Self {
             cur_word: vec![],
             hits: vec![Hit::new(); n_rows],
+            show: false,
             message_box,
         }
+    }
+    pub fn hide_search(&mut self) {
+        self.show = false;
+    }
+    pub fn show_search(&mut self) {
+        self.show = true;
     }
     pub fn clear_search_word(&mut self) {
         self.cur_word.clear();
@@ -224,7 +232,11 @@ impl view::DiffView for DiffView {
         if row >= self.model.hits.len() {
             (None, None, None)
         } else if self.model.hits[row].result().iter().any(|&s| s <= col && col < s+search_word_len) {
-            (None, None, Some(screen::Color::Green))
+            if self.model.show {
+                (None, None, Some(screen::Color::Green))
+            } else {
+                (None, None, None)
+            }
         } else {
             (None, None, None)
         }
