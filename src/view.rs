@@ -261,7 +261,13 @@ impl View for LineNumber {
         } else {
             ' '
         };
-        (c, Color::White, Color::Black)
+        let bg = if col < 6 {
+            default_bg()
+            // Color::Black
+        } else {
+            default_bg()
+        };
+        (c, Color::White, bg)
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         None
