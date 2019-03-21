@@ -5,6 +5,20 @@ use crate::screen::Color;
 use crate::BufElem;
 use crate::Cursor;
 
+impl From<syntect::highlighting::Color> for Color {
+    fn from(c: syntect::highlighting::Color) -> Color {
+        Color::Rgb(c.r, c.g, c.b)
+    }
+}
+
+pub fn default_fg() -> Color {
+    crate::theme::default().settings.foreground.unwrap().into()
+}
+
+pub fn default_bg() -> Color {
+    crate::theme::default().settings.background.unwrap().into()
+}
+
 #[derive(PartialEq, Clone, Copy)]
 pub struct Area {
     pub col: usize,
@@ -179,14 +193,14 @@ impl <'a> ToViewRef<'a> {
 impl <'a> View for ToViewRef<'a> {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         if row > self.back.len() - 1 || col > self.back[row].len() - 1 {
-            (' ', Color::Black, Color::Black)
+            (' ', default_fg(), default_bg())
         } else {
             let e = &self.back[row][col];
             let c = match *e {
                 BufElem::Char(c) => c,
                 BufElem::Eol => ' ',
             };
-            (c, Color::White, Color::Black)
+            (c, default_fg(), default_bg())
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> { None }
@@ -211,9 +225,9 @@ impl View for ToView {
                     BufElem::Char(c) => c,
                     BufElem::Eol => ' ',
                 };
-                (c, Color::White, Color::Black)
+                (c, default_fg(), default_bg())
             },
-            None => (' ', Color::Black, Color::Black)
+            None => (' ', default_fg(), default_bg())
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
@@ -226,7 +240,7 @@ pub struct BgColor {
 }
 impl View for BgColor {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        (' ', Color::Black, self.bg)
+        (' ', self.bg, self.bg)
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         None
