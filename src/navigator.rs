@@ -44,7 +44,7 @@ impl Page for HelpPage {
         "help".to_owned()
     }
     fn status(&self) -> String {
-        "[HELP]".to_owned()
+        "[Help]".to_owned()
     }
     fn message(&self) -> MessageBox {
         MessageBox::new()
@@ -268,7 +268,7 @@ impl Page for NavigatorPage {
         &self.view_gen
     }
     fn status(&self) -> String {
-        "[NAVIGATOR]".to_owned()
+        "[Navigator]".to_owned()
     }
     fn kind(&self) -> PageKind {
         PageKind::Other

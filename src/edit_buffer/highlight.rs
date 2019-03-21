@@ -17,8 +17,8 @@ pub struct Highlighter {
     highlighter: HighlightLines<'static>,
 }
 impl Highlighter {
-    pub fn new(n_rows: usize) -> Self {
-        let syntax = ps.find_syntax_by_extension("rs").unwrap();
+    pub fn new(n_rows: usize, ext: Option<&str>) -> Self {
+        let syntax = ps.find_syntax_by_extension(ext.unwrap_or("rs")).unwrap_or(ps.find_syntax_plain_text());
         Self {
             cache: vec![vec![]; n_rows],
             highlighter: HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]),

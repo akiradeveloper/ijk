@@ -87,6 +87,7 @@ pub fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
 
 impl EditBuffer {
     pub fn open(path: Option<&path::Path>) -> EditBuffer {
+        let ext: Option<&str> = path.and_then(|p| p.extension()).map(|ext| ext.to_str().unwrap());
         let init_buf = read_buffer(path);
         let n_rows = init_buf.len();
         let message_box = MessageBox::new();
@@ -98,7 +99,7 @@ impl EditBuffer {
             edit_state: None,
             path: path.map(|x| x.to_owned()),
             sync_clock: None,
-            highlighter: highlight::Highlighter::new(n_rows),
+            highlighter: highlight::Highlighter::new(n_rows, ext),
             message_box,
         }
     }

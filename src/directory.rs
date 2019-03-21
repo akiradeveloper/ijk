@@ -313,7 +313,7 @@ impl navigator::Page for Page {
         &self.view_gen
     }
     fn status(&self) -> String {
-        format!("[DIRECTORY] {}", self.path.to_str().unwrap().to_owned())
+        format!("[Directory] {}", self.path.to_str().unwrap().to_owned())
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Directory
