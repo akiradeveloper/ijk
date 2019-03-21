@@ -263,7 +263,7 @@ impl EditBuffer {
                 start: r.start,
                 end: Cursor {
                     row: r.end.row,
-                    col: r.end.col - 1,
+                    col: r.end.col - 1, // the end.col is exclusive so it is safe to -1
                 },
             }
         } else {
