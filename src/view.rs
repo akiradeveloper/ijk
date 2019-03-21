@@ -430,5 +430,5 @@ fn test_view_overlay() {
     let view: Box<dyn View> = Box::new(v1);
 
     let e = view.get(0, 0);
-    assert_eq!(e, ('a', Color::Red, Color::Black));
+    assert_eq!(e, ('a', Color::Red, default_bg()));
 }
