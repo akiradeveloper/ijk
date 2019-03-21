@@ -61,28 +61,9 @@ fn trim_right(xs: Vec<BufElem>) -> Vec<BufElem> {
     }
 }
 
-fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
-    let mut r = vec![];
-    for c in cs {
-        r.push(BufElem::Char(c));
-    }
-    r.push(BufElem::Eol);
-    r
-}
-
 pub fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
-    path.and_then(|path| {
-        fs::read_to_string(path).ok().map(|s| {
-            if s.is_empty() {
-                vec![vec![BufElem::Eol]]
-            } else {
-                s.lines()
-                    .map(|line| convert_to_bufelems(line.chars().collect()))
-                    .collect()
-            }
-        })
-    })
-    .unwrap_or(vec![vec![BufElem::Eol]])
+    let s = path.and_then(|path| fs::read_to_string(path).ok());
+    crate::normalize::read_from_string(s)
 }
 
 impl EditBuffer {
@@ -758,15 +739,7 @@ impl EditBuffer {
         let path = self.path.clone().unwrap();
         if let Ok(mut file) = fs::File::create(path) {
             let buf = &self.rb.buf;
-            for i in 0..buf.len() {
-                for j in 0..buf[i].len() {
-                    let e = &buf[i][j];
-                    match *e {
-                        BufElem::Char(c) => write!(file, "{}", c).unwrap(),
-                        BufElem::Eol => writeln!(file).unwrap(),
-                    }
-                }
-            }
+            crate::normalize::write_to_file(file, &buf);
             self.sync_clock = self.change_log_buffer.clock();
             self.message_box.send("Saved")
         }

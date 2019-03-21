@@ -32,18 +32,7 @@ impl ReadBuffer {
         self.search.clear_search_word()
     }
     pub fn stabilize_cursor(&mut self) {
-        if self.cursor.row > self.buf.len() - 1 {
-            self.cursor.row = self.buf.len() - 1;
-        }
-        let line = &self.buf[self.cursor.row];
-        assert!(!line.is_empty());
-        let first_unspace_index = line.iter().position(|c| c != &BufElem::Char(' ') && c != &BufElem::Char('\t')).unwrap();
-        if self.cursor.col < first_unspace_index {
-            self.cursor.col = first_unspace_index;
-        }
-        if self.cursor.col > self.buf[self.cursor.row].len() - 1 {
-            self.cursor.col = self.buf[self.cursor.row].len() - 1;
-        }
+        self.cursor = crate::normalize::normalize_cursor(self.cursor, &self.buf);
     }
     pub fn cursor_up(&mut self) {
         if self.cursor.row > 0 {

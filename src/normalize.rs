@@ -24,7 +24,7 @@ fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
     r.push(BufElem::Eol);
     r
 }
-pub fn read_from_string(s: Option<&str>) -> Buf {
+pub fn read_from_string(s: Option<String>) -> Buf {
     s.map(|s| {
         if s.is_empty() {
             vec![vec![BufElem::Eol]]
@@ -39,8 +39,7 @@ pub fn read_from_string(s: Option<&str>) -> Buf {
 pub fn normalize_cursor(cursor: Cursor, buf: &Buf) -> Cursor {
     let mut cursor = cursor;
 
-    let first_non_empty_row_rev = buf.iter().rev().position(|line| line.len() > 1).unwrap_or(buf.len() - 1);
-    let max_row = buf.len() - 1 - first_non_empty_row_rev;
+    let max_row = buf.len() - 1;
     if cursor.row > max_row {
         cursor.row = max_row;
     }
