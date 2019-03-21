@@ -463,9 +463,8 @@ impl EditBuffer {
         INSERT.to_owned()
     }
     pub fn eff_enter_append_mode(&mut self, k: Key) -> String {
-        self.eff_cursor_right(k.clone());
-        self.eff_enter_insert_mode(k);
-        INSERT.to_owned()
+        self.rb.cursor_right(); 
+        self.eff_enter_insert_mode(k)
     }
     pub fn eff_enter_change_mode(&mut self, _: Key) -> String {
         let delete_range = if self.visual_range().is_none() {
@@ -576,19 +575,22 @@ impl EditBuffer {
                 col: self.rb.cursor.col + 1,
             },
         });
-        self.delete_range(range);
+        let removed = self.delete_range(range);
+        clipboard::SINGLETON.copy(clipboard::Type::Range(removed));
 
         INIT.to_owned()
     }
     pub fn eff_paste(&mut self, _: Key) -> String {
         let pasted = clipboard::SINGLETON.paste();
         if pasted.is_none() {
+            self.message_box.send("yank not found");
             return INIT.to_owned();
         }
 
         let pasted = pasted.unwrap();
         match pasted {
             clipboard::Type::Range(v) => {
+                self.rb.cursor_right();
                 let mut log = ChangeLog::new(self.rb.cursor, vec![], v);
                 self.change_log_buffer.push(log.clone());
                 self.apply_log(&mut log);
@@ -732,12 +734,11 @@ impl EditBuffer {
         INIT.to_owned()
     }
     pub fn eff_save_to_file(&mut self, _: Key) -> String {
-        use std::io::Write;
         if self.path.is_none() {
             return INIT.to_owned();
         }
         let path = self.path.clone().unwrap();
-        if let Ok(mut file) = fs::File::create(path) {
+        if let Ok(file) = fs::File::create(path) {
             let buf = &self.rb.buf;
             crate::normalize::write_to_file(file, &buf);
             self.sync_clock = self.change_log_buffer.clock();

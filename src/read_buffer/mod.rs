@@ -38,13 +38,11 @@ impl ReadBuffer {
         if self.cursor.row > 0 {
             self.cursor.row -= 1;
         }
-        self.stabilize_cursor()
     }
     pub fn cursor_down(&mut self) {
         if self.cursor.row < self.buf.len() - 1 {
             self.cursor.row += 1;
         }
-        self.stabilize_cursor()
     }
     pub fn cursor_left(&mut self) {
         if self.cursor.col > 0 {
