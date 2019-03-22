@@ -29,3 +29,4 @@ Buffer page is where you edit your file. The commands are similar to vi but cust
 - [ ] Integration with language server
 - [ ] Integration with Git
 - [x] Automated benchmarking (using flamer is planned) and performance optimization
+- [ ] Code snippet
