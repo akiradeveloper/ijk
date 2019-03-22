@@ -14,7 +14,7 @@ use ijk::navigator;
 
 fn main() {
     let matches = App::new("ijk")
-        .about("A real editor for read programmers")
+        .about("A real editor for real programmers")
         .bin_name("ijk")
         .arg(Arg::with_name("path"))
         .get_matches();
