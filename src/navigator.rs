@@ -198,7 +198,7 @@ def_effect!(CloseSelected, Navigator, eff_close_selected);
 
 pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     use crate::Key::*;
-    let mut g = controller::GraphImpl::new();
+    let mut g = controller::Graph::new();
     g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
     g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
     g.add_edge(INIT, Char('\n'), Rc::new(Select(x.clone())));

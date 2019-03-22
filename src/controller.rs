@@ -38,14 +38,10 @@ impl Edge {
     }
 }
 
-pub trait Graph {
-    fn find_effect(&self, from: &str, k: &Key) -> Option<Rc<Effect>>;
-}
-
-pub struct GraphImpl {
+pub struct Graph {
     edges: HashMap<String, Vec<Edge>>,
 }
-impl GraphImpl {
+impl Graph {
     pub fn new() -> Self {
         Self {
             edges: HashMap::new(),
@@ -64,8 +60,6 @@ impl GraphImpl {
             eff: eff,
         });
     }
-}
-impl Graph for GraphImpl {
     fn find_effect(&self, from: &str, k: &Key) -> Option<Rc<Effect>> {
         if !self.edges.contains_key(from) {
             return None;
@@ -75,26 +69,6 @@ impl Graph for GraphImpl {
             .find(|e| e.matches(&k))
             .map(|x| x.eff.clone())
     }
-}
-
-struct ComposedGraph<G1, G2> {
-    g1: G1,
-    g2: G2,
-}
-impl<G1, G2> Graph for ComposedGraph<G1, G2>
-where
-    G1: Graph,
-    G2: Graph,
-{
-    fn find_effect(&self, from: &str, k: &Key) -> Option<Rc<Effect>> {
-        self.g1
-            .find_effect(from.clone(), k)
-            .or(self.g2.find_effect(from, k))
-    }
-}
-
-fn compose<G1: Graph, G2: Graph>(g1: G1, g2: G2) -> ComposedGraph<G1, G2> {
-    ComposedGraph { g1, g2 }
 }
 
 pub trait Controller {
@@ -134,7 +108,7 @@ impl Controller for ControllerFSM {
 
 #[cfg(test)]
 mod tests {
-    use super::{compose, Controller, ControllerFSM, Effect, GraphImpl};
+    use super::{Controller, ControllerFSM, Effect, Graph};
     use crate::Key;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -161,16 +135,13 @@ mod tests {
         let buf = Rc::new(RefCell::new(vec![]));
 
         let append_y = AppendY(buf.clone());
-        let mut g1 = GraphImpl::new();
-        g1.add_edge("yes", Char('y'), Rc::new(append_y));
+        let mut g = Graph::new();
+        g.add_edge("yes", Char('y'), Rc::new(append_y));
 
         let append_n = AppendN(buf.clone());
-        let mut g2 = GraphImpl::new();
-        g2.add_edge("no", Char('n'), Rc::new(append_n));
+        g.add_edge("no", Char('n'), Rc::new(append_n));
 
-        let g = compose(g1, g2);
-
-        let mut ctrl = ControllerFSM::new("yes", Box::new(g));
+        let ctrl = ControllerFSM::new("yes", Box::new(g));
         ctrl.receive(Char('y'));
         assert_eq!(*buf.borrow(), ['y']);
         ctrl.receive(Char('y'));

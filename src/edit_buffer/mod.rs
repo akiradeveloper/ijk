@@ -970,7 +970,7 @@ def_effect!(Warp, EditBuffer, eff_warp);
 use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
-    let mut g = controller::GraphImpl::new();
+    let mut g = controller::Graph::new();
 
     // mutable
     g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
