@@ -3,11 +3,57 @@ use crate::view;
 use crate::message_box::MessageBox;
 use self::visibility_window::VisibilityWindow;
 use self::search::Search;
+use std::io::Write;
 
 mod visibility_window;
 pub mod search;
-pub mod line;
-pub mod buffer;
+
+type Buf = Vec<Vec<BufElem>>;
+
+pub struct Line<'a> {
+    line: &'a [BufElem]
+}
+impl <'a> Line<'a> {
+    pub fn new(line: &'a [BufElem]) -> Self {
+        Self { line }
+    }
+    pub fn first_non_space_index(&self) -> usize {
+        self.line.iter().position(|c| c != &BufElem::Char(' ') && c != &BufElem::Char('\t')).unwrap()
+    }
+}
+
+pub fn write_to_file<W: Write>(mut out: W, buf: &Buf) {
+    // TODO trim the eols from the back
+    for i in 0..buf.len() {
+        for j in 0..buf[i].len() {
+            let e = &buf[i][j];
+            match *e {
+                BufElem::Char(c) => write!(out, "{}", c).unwrap(),
+                BufElem::Eol => writeln!(out).unwrap(),
+            }
+        }
+    }
+}
+
+fn convert_to_bufelems(cs: Vec<char>) -> Vec<BufElem> {
+    let mut r = vec![];
+    for c in cs {
+        r.push(BufElem::Char(c));
+    }
+    r.push(BufElem::Eol);
+    r
+}
+pub fn read_from_string(s: Option<String>) -> Buf {
+    s.map(|s| {
+        if s.is_empty() {
+            vec![vec![BufElem::Eol]]
+        } else {
+            s.lines()
+             .map(|line| convert_to_bufelems(line.chars().collect()))
+             .collect()
+        }
+    }).unwrap_or(vec![vec![BufElem::Eol]])
+}
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum BufElem {
@@ -193,7 +239,7 @@ impl ReadBuffer {
     pub fn lineno_range(&self) -> std::ops::Range<usize> {
         self.window.row_low .. std::cmp::min(self.window.row_high+1, self.buf.len())
     }
-    pub fn line(&self, row: usize) -> line::Line {
-        line::Line::new(&self.buf[row])
+    pub fn line(&self, row: usize) -> Line {
+        Line::new(&self.buf[row])
     }
 }
