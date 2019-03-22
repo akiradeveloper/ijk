@@ -12,7 +12,7 @@ use crate::message_box::MessageBox;
 use crate::navigator;
 use crate::read_buffer::*;
 use crate::screen;
-use crate::read_buffer::{BufElem, Cursor};
+use crate::read_buffer::{BufElem, Cursor, CursorRange};
 use std::fs;
 use std::path;
 use std::time::Instant;
@@ -25,18 +25,13 @@ const INSERT: &str = "Insert";
 const SEARCH: &str = "Search";
 const JUMP: &str = "Jump";
 
-#[derive(Copy, Clone, Debug)]
-pub struct CursorRange {
-    pub start: Cursor,
-    pub end: Cursor,
-}
-
 fn to_cursor_range_end(cursor: Cursor) -> Cursor {
     Cursor {
         row: cursor.row,
         col: cursor.col + 1,
     }
 }
+
 pub struct EditBuffer {
     pub rb: ReadBuffer,
     state: String,
