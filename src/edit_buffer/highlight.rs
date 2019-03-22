@@ -4,10 +4,10 @@ use syntect::highlighting::{ThemeSet, Style, Color};
 use crate::read_buffer::BufElem;
 use crate::view;
 use crate::screen;
+use crate::theme;
 
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref ts: ThemeSet = ThemeSet::load_defaults();
     static ref ps: SyntaxSet = SyntaxSet::load_defaults_newlines();
 }
 
@@ -20,22 +20,22 @@ impl Highlighter {
         let syntax = ps.find_syntax_by_extension(ext.unwrap_or("rs")).unwrap_or(ps.find_syntax_plain_text());
         Self {
             cache: vec![vec![]; n_rows],
-            highlighter: HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]),
+            highlighter: HighlightLines::new(syntax, theme::default()),
         }
     }
-    pub fn cache_insert_new_line(&mut self, row: usize) {
+
+    // diff update is not implemeneted at the moment.
+    // unlike search, highlighting needs a parse state rather than the indivisual line data.
+    fn cache_insert_new_line(&mut self, row: usize) {
         self.cache.insert(row, vec![]);
     }
-    pub fn cache_remove_line(&mut self, row: usize) {
+    fn cache_remove_line(&mut self, row: usize) {
         self.cache.remove(row);
     }
-    fn restruct_cache(&mut self, row: usize, n_deleted: usize, n_inserted: usize) {
-        panic!()
-    }
-    // tmp
     pub fn clear_cache(&mut self, n_rows: usize) {
         self.cache = vec![vec![]; n_rows];
     }
+
     fn update_highlight_line(&mut self, row: usize, buf: &[Vec<BufElem>]) {
         if !self.cache[row].is_empty() {
             return;
@@ -78,7 +78,7 @@ impl <'a> HighlightDiffViewRef<'a> {
     pub fn new(x: &'a Highlighter) -> Self {
         Self {
             back: x,
-            bg_default: ts.themes["base16-ocean.dark"].settings.background.unwrap(),
+            bg_default: theme::default().settings.background.unwrap(),
         }
     }
 }
