@@ -639,6 +639,8 @@ impl EditBuffer {
                 );
                 self.leave_edit_mode();
 
+                self.rb.jump_line_head();
+
                 INIT.to_owned()
             }
         }
@@ -676,6 +678,9 @@ impl EditBuffer {
             vec![],
         );
         self.leave_edit_mode();
+
+        self.rb.cursor_up();
+        self.rb.jump_line_head();
 
         INIT.to_owned()
     }
