@@ -119,7 +119,10 @@ impl Directory {
         self.rb = ReadBuffer::new(v, self.message_box.clone());
     }
     pub fn refresh(&mut self) {
+        let was_hide_mode = !self.evacuated_entries.is_empty();
+
         self.entries.clear();
+        self.evacuated_entries.clear();
         for p in self.path.parent() {
             self.entries.push(Entry::Parent(fs::canonicalize(p).unwrap()))
         }
@@ -132,6 +135,11 @@ impl Directory {
             };
             self.entries.push(e);
         }
+
+        if was_hide_mode {
+            self.toggle_hide();
+        }
+
         self.refresh_memory()
     }
     pub fn eff_cursor_up(&mut self, _: Key) -> String {
@@ -192,6 +200,10 @@ impl Directory {
         self.toggle_hide();
         INIT.to_owned()
     }
+    fn eff_refresh(&mut self, _: Key) -> String {
+        self.refresh();
+        INIT.to_owned()
+    }
 }
 
 use crate::controller::Effect;
@@ -204,6 +216,7 @@ def_effect!(Select, Directory, eff_select);
 def_effect!(GoDown, Directory, eff_go_down);
 def_effect!(GoUp, Directory, eff_go_up);
 def_effect!(ToggleHide, Directory, eff_toggle_hide);
+def_effect!(Refresh, Directory, eff_refresh);
 
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     use crate::Key::*;
@@ -214,6 +227,7 @@ pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('l'), Rc::new(GoDown(x.clone())));
     g.add_edge(INIT, Char('h'), Rc::new(GoUp(x.clone())));
     g.add_edge(INIT, Char('.'), Rc::new(ToggleHide(x.clone())));
+    g.add_edge(INIT, Ctrl('r'), Rc::new(Refresh(x.clone())));
     controller::ControllerFSM::new(INIT, Box::new(g))
 }
 
