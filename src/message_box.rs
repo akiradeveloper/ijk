@@ -1,4 +1,4 @@
-use crate::read_buffer::{BufElem, Cursor};
+use crate::read_buffer::Cursor;
 use crate::screen::Color;
 use std::sync::{Arc, Mutex};
 

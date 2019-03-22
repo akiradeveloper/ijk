@@ -5,7 +5,7 @@ use crate::message_box::MessageBox;
 
 #[derive(Clone, Debug)]
 /// invariant: L(search_word) == L(results)
-struct Hit {
+struct CacheLine {
     search_word: Vec<char>,
     results: Vec<Vec<usize>>
 }
@@ -15,9 +15,9 @@ fn eq(e: &BufElem, c: char) -> bool {
         &BufElem::Char(x) => x.to_string().to_lowercase() == c.to_string().to_lowercase()
     }
 }
-impl Hit {
+impl CacheLine {
     fn new() -> Self {
-        Self {
+        CacheLine {
             search_word: vec![],
             results: vec![],
         }
@@ -91,7 +91,7 @@ impl Hit {
 #[test]
 fn test_hit() {
     use super::BufElem::*;
-    let mut hit = Hit::new();
+    let mut hit = CacheLine::new();
     assert_eq!(hit.rollback_search(&[]), 0);
     assert!(hit.result().is_empty());
 
@@ -119,7 +119,7 @@ fn test_hit() {
 #[derive(Clone)]
 pub struct Search {
     pub cur_word: Vec<char>,
-    hits: Vec<Hit>,
+    cache: Vec<CacheLine>,
     message_box: MessageBox,
     show: bool,
 }
@@ -127,7 +127,7 @@ impl Search {
     pub fn new(n_rows: usize, message_box: MessageBox) -> Self {
         Self {
             cur_word: vec![],
-            hits: vec![Hit::new(); n_rows],
+            cache: vec![CacheLine::new(); n_rows],
             show: false,
             message_box,
         }
@@ -163,28 +163,28 @@ impl Search {
     }
     fn restruct_cache(&mut self, row: usize, deleted: usize, inserted: usize) {
         for _ in 0..deleted {
-            self.hits.remove(row);
+            self.cache.remove(row);
         }
         for _ in 0..inserted {
-            self.hits.insert(row, Hit::new());
+            self.cache.insert(row, CacheLine::new());
         }
     }
     pub fn cache_insert_new_line(&mut self, row: usize) {
-        self.hits.insert(row, Hit::new());
+        self.cache.insert(row, CacheLine::new());
     }
     pub fn cache_remove_line(&mut self, row: usize) {
-        self.hits.remove(row);
+        self.cache.remove(row);
     }
     // tmp: instead of diff update
     // slow version. clear the data on every change
     pub fn clear_cache(&mut self, n_rows: usize) {
-        self.hits = vec![Hit::new(); n_rows];
+        self.cache = vec![CacheLine::new(); n_rows];
     }
     fn update_cache_line(&mut self, row: usize, buf: &[Vec<BufElem>]) {
-        let n = self.hits[row].rollback_search(&self.cur_word);
+        let n = self.cache[row].rollback_search(&self.cur_word);
         // if L(cur_word) == n this slice is empty
         for c in &self.cur_word[n..] {
-            self.hits[row].inc_search(*c, &buf[row]);
+            self.cache[row].inc_search(*c, &buf[row]);
         }
     }
     /// ensure:
@@ -195,11 +195,11 @@ impl Search {
         }
     }
     pub fn next(&mut self, cur: Cursor, buf: &[Vec<BufElem>]) -> Option<Cursor> {
-        match self.hits[cur.row].next(Some(cur.col)) {
+        match self.cache[cur.row].next(Some(cur.col)) {
             Some(next_col) => Some(Cursor { row: cur.row, col: next_col }),
             None => {
                 let mut search_rows = vec![];
-                for i in cur.row+1 .. self.hits.len() {
+                for i in cur.row+1 .. self.cache.len() {
                     search_rows.push(i);
                 }
                 for i in 0 .. cur.row+1 {
@@ -208,7 +208,7 @@ impl Search {
 
                 search_rows.into_iter().map(|row| {
                     self.update_cache_line(row, buf);
-                    let first0 = self.hits[row].next(None);
+                    let first0 = self.cache[row].next(None);
                     match first0 {
                         Some(first) => Some(Cursor { row: row, col: first }),
                         None => None,
@@ -218,19 +218,19 @@ impl Search {
         }
     }
     pub fn prev(&mut self, cur: Cursor, buf: &[Vec<BufElem>]) -> Option<Cursor> {
-        match self.hits[cur.row].prev(Some(cur.col)) {
+        match self.cache[cur.row].prev(Some(cur.col)) {
             Some(prev_col) => Some(Cursor { row: cur.row, col: prev_col }),
             None => {
                 let mut search_rows = vec![];
                 for i in (0..cur.row).rev() {
                     search_rows.push(i);
                 }
-                for i in (cur.row..self.hits.len()).rev() {
+                for i in (cur.row..self.cache.len()).rev() {
                     search_rows.push(i);
                 }
                 search_rows.into_iter().map(|row| {
                     self.update_cache_line(row, buf);
-                    let last0 = self.hits[row].prev(None);
+                    let last0 = self.cache[row].prev(None);
                     match last0 {
                         Some(last) => Some(Cursor { row: row, col: last }),
                         None => None,
@@ -254,9 +254,9 @@ impl DiffView {
 impl view::DiffView for DiffView {
     fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
         let search_word_len = self.model.cur_word.len();
-        if row >= self.model.hits.len() {
+        if row >= self.model.cache.len() {
             (None, None, None)
-        } else if self.model.hits[row].result().iter().any(|&s| s <= col && col < s+search_word_len) {
+        } else if self.model.cache[row].result().iter().any(|&s| s <= col && col < s+search_word_len) {
             if self.model.show {
                 (None, None, Some(screen::Color::Green))
             } else {

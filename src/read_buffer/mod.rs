@@ -197,7 +197,8 @@ impl ReadBuffer {
             _ => {}
         }
     }
-    pub fn leave_search_mode(&mut self) {}
+    pub fn leave_search_mode(&mut self) {
+    }
     pub fn cancel_search_mode(&mut self) {
         self.search.clear_search_word();
         self.search.hide_search();
@@ -227,9 +228,6 @@ impl ReadBuffer {
     }
     pub fn cache_remove_line(&mut self, row: usize) {
         self.search.cache_remove_line(row);
-    }
-    pub fn clear_cache(&mut self) {
-        self.search.clear_cache(self.buf.len())
     }
     pub fn update_cache(&mut self) {
         flame::start("update search");

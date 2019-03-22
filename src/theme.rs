@@ -1,4 +1,4 @@
-use syntect::highlighting::{Color, Theme, ThemeSet};
+use syntect::highlighting::{Theme, ThemeSet};
 
 use lazy_static::lazy_static;
 lazy_static! {

@@ -195,7 +195,6 @@ impl <D: Drawable> Editor<D> {
     }
 }
 
-
 extern crate test_generator;
 #[cfg(test)]
 mod tests {
