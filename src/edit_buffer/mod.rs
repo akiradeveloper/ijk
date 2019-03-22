@@ -1176,7 +1176,7 @@ impl navigator::Page for Page {
     fn status(&self) -> String {
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
-            None => "-".to_owned(),
+            None => panic!(),
         };
         let dirty_mark = if self.x.borrow().is_dirty() {
             "[D] "
@@ -1193,7 +1193,7 @@ impl navigator::Page for Page {
         // "aaa".to_owned()
         match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
-            None => "noname".to_owned(),
+            None => panic!(),
         }
     }
     fn message(&self) -> MessageBox {
