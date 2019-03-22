@@ -586,6 +586,20 @@ impl EditBuffer {
     pub fn eff_cancel_lines_mode(&mut self, _: Key) -> String {
         INIT.to_owned()
     }
+    pub fn eff_paste_system(&mut self, _ :Key) -> String {
+        let pasted = clipboard::paste_system();
+        if pasted.is_none() {
+            self.message_box.send("nothing to paste");
+            return INIT.to_owned();
+        }
+        let pasted = pasted.unwrap();
+
+        let mut log = ChangeLog::new(self.rb.cursor, vec![], pasted);
+        self.change_log_buffer.push(log.clone());
+        self.apply_log(&mut log);
+
+        INIT.to_owned()
+    }
     pub fn eff_paste(&mut self, _: Key) -> String {
         let pasted = clipboard::SINGLETON.paste();
         if pasted.is_none() {
@@ -895,6 +909,7 @@ def_effect!(DeleteChar, EditBuffer, eff_delete_char);
 def_effect!(CancelLinesMode, EditBuffer, eff_cancel_lines_mode);
 def_effect!(Paste, EditBuffer, eff_paste);
 def_effect!(PasteAbove, EditBuffer, eff_paste_above);
+def_effect!(PasteSystem, EditBuffer, eff_paste_system);
 def_effect!(YankRange, EditBuffer, eff_yank_range);
 def_effect!(YankLine, EditBuffer, eff_yank_line);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
@@ -952,6 +967,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
     g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
     g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
+    g.add_edge(INIT, Ctrl('p'), Rc::new(PasteSystem(x.clone())));
     g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
     g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
 

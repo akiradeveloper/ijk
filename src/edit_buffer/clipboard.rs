@@ -29,6 +29,7 @@ fn to_str(x: &[BufElem]) -> String {
     }
     s
 }
+
 fn from_str(x: &str) -> Vec<BufElem> {
     let mut v = vec![];
     for c in x.chars() {
@@ -152,4 +153,8 @@ fn clipboard_paste() -> Option<String> {
         }
     }
     None
+}
+
+pub fn paste_system() -> Option<Vec<BufElem>> {
+    clipboard_paste().map(|x| from_str(&x))
 }
