@@ -58,10 +58,16 @@ impl Controller for HelpController {
 pub struct HelpView {}
 impl View for HelpView {
     fn get(&self, col: usize, row: usize) -> view::ViewElem {
-        (' ', Color::Black, Color::Black)
+        let s = vec!['T','O','D','O'];
+        let c = if row == 0 && col < 4 {
+            s[col]
+        } else {
+            ' '
+        };
+        (c, Color::White, Color::Black)
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
+        Some(Cursor { row: 0, col: 0 })
     }
 }
 pub struct HelpViewGen {}

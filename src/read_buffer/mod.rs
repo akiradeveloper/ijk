@@ -27,13 +27,6 @@ pub struct CursorRange {
     pub end: Cursor,
 }
 
-pub fn to_cursor_range_end(cursor: Cursor) -> Cursor {
-    Cursor {
-        row: cursor.row,
-        col: cursor.col + 1,
-    }
-}
-
 pub struct ReadBuffer {
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
