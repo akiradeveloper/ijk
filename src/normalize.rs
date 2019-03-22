@@ -44,13 +44,6 @@ pub fn normalize_cursor(cursor: Cursor, buf: &Buf) -> Cursor {
         cursor.row = max_row;
     }
 
-    let line = &buf[cursor.row];
-    assert!(!line.is_empty());
-    let first_unspace_index = line.iter().position(|c| c != &BufElem::Char(' ') && c != &BufElem::Char('\t')).unwrap();
-    if cursor.col < first_unspace_index {
-        cursor.col = first_unspace_index;
-    }
-
     if cursor.col > buf[cursor.row].len() - 1 {
         cursor.col = buf[cursor.row].len() - 1;
     }
