@@ -557,7 +557,7 @@ impl EditBuffer {
             },
         };
         let removed = self.delete_range(range);
-        clipboard::SINGLETON.copy(clipboard::Type::Line(trim_right(removed)));
+        clipboard::SINGLETON.copy(clipboard::Type::Line(removed));
         INIT.to_owned()
     }
     pub fn eff_delete_range(&mut self, _: Key) -> String {
@@ -617,7 +617,7 @@ impl EditBuffer {
 
                 INIT.to_owned()
             },
-            clipboard::Type::Line(mut v) => {
+            clipboard::Type::Line(v) => {
                 let row = self.rb.cursor.row;
                 let delete_range = CursorRange {
                     start: Cursor {
@@ -629,6 +629,7 @@ impl EditBuffer {
                         col: self.rb.buf[row].len() - 1,
                     },
                 };
+                let mut v = trim_right(v);
                 let mut vv = vec![BufElem::Eol];
                 vv.append(&mut v);
                 self.enter_edit_mode(
@@ -649,7 +650,8 @@ impl EditBuffer {
         }
 
         let v = match pasted.unwrap() {
-            clipboard::Type::Line(mut v) => {
+            clipboard::Type::Line(v) => {
+                let mut v = trim_right(v);
                 v.push(BufElem::Eol);
                 v
             },
@@ -711,7 +713,7 @@ impl EditBuffer {
             },
         };
         let to_copy = self.get_buffer(range);
-        clipboard::SINGLETON.copy(clipboard::Type::Line(trim_right(to_copy)));
+        clipboard::SINGLETON.copy(clipboard::Type::Line(to_copy));
 
         INIT.to_owned()
     }
