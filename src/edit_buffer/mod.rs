@@ -651,36 +651,55 @@ impl EditBuffer {
             return INIT.to_owned();
         }
 
-        let v = match pasted.unwrap() {
+        match pasted.unwrap() {
             clipboard::Type::Line(v) => {
                 let mut v = trim_right(v);
                 v.push(BufElem::Eol);
-                v
+
+                let row = self.rb.cursor.row;
+                let delete_range = CursorRange {
+                    start: Cursor {
+                        row: row,
+                        col: 0,
+                    },
+                    end: Cursor {
+                        row: row,
+                        col: 0,
+                    },
+                };
+                self.enter_edit_mode(
+                    &delete_range,
+                    v,
+                    vec![],
+                );
+                self.leave_edit_mode();
+
+                self.rb.cursor_up();
+                self.rb.jump_line_head()
             },
-            clipboard::Type::Range(v) => v
+            clipboard::Type::Range(v) => {
+                let row = self.rb.cursor.row;
+                let line = self.rb.line(self.rb.cursor.row);
+                let delete_range = CursorRange {
+                    start: Cursor {
+                        row: row,
+                        col: line.first_non_space_index(),
+                    },
+                    end: Cursor {
+                        row: row,
+                        col: line.first_non_space_index(),
+                    },
+                };
+                self.enter_edit_mode(
+                    &delete_range,
+                    v,
+                    vec![],
+                );
+                self.leave_edit_mode();
+            }
         };
 
-        let row = self.rb.cursor.row;
-        let line = self.rb.line(self.rb.cursor.row);
-        let delete_range = CursorRange {
-            start: Cursor {
-                row: row,
-                col: line.first_non_space_index(),
-            },
-            end: Cursor {
-                row: row,
-                col: line.first_non_space_index(),
-            },
-        };
-        self.enter_edit_mode(
-            &delete_range,
-            v,
-            vec![],
-        );
-        self.leave_edit_mode();
-
-        self.rb.cursor_up();
-        self.rb.jump_line_head();
+;
 
         INIT.to_owned()
     }
