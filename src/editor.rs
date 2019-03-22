@@ -39,7 +39,7 @@ impl view::View for StatusView {
 }
 
 pub trait Drawable {
-    fn dimension(&self) -> (usize, usize);
+    fn dimension(&mut self) -> (usize, usize);
     fn draw<V: View>(&mut self, view: V);
 }
 
@@ -47,14 +47,17 @@ pub struct TerminalScreen {
     screen: Screen,
 }
 impl TerminalScreen {
-    pub fn new(w: usize, h: usize) -> Self {
+    pub fn new() -> Self {
+        let (term_w, term_h) = termion::terminal_size().unwrap();
         Self {
-            screen: Screen::new(w, h)
+            screen: Screen::new(term_w as usize, term_h as usize)
         }
     }
 }
 impl Drawable for TerminalScreen {
-    fn dimension(&self) -> (usize, usize) {
+    fn dimension(&mut self) -> (usize, usize) {
+        let (term_w, term_h) = termion::terminal_size().unwrap();
+        self.screen.resize(term_w as usize, term_h as usize);
         (self.screen.w, self.screen.h)
     }
     fn draw<V: View>(&mut self, view: V) {
@@ -92,7 +95,7 @@ impl NullScreen {
     }
 }
 impl Drawable for NullScreen {
-    fn dimension(&self) -> (usize, usize) {
+    fn dimension(&mut self) -> (usize, usize) {
         (self.w, self.h)
     }
     fn draw<V: View>(&mut self, view: V) {}
