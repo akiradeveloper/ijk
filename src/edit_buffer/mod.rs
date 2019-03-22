@@ -18,6 +18,7 @@ use std::path;
 use std::time::Instant;
 
 const INIT: &str = "Normal";
+const REPLACE_ONCE: &str = "ReplaceOnce";
 const LINES: &str = "Lines";
 const INSERT: &str = "Insert";
 const SEARCH: &str = "Search";
@@ -29,6 +30,12 @@ pub struct CursorRange {
     pub end: Cursor,
 }
 
+fn to_cursor_range_end(cursor: Cursor) -> Cursor {
+    Cursor {
+        row: cursor.row,
+        col: cursor.col + 1,
+    }
+}
 pub struct EditBuffer {
     pub rb: ReadBuffer,
     state: String,
@@ -166,23 +173,18 @@ impl EditBuffer {
         self.rb.cursor = self.find_cursor_pair(log.at, n_inserted);
         true
     }
-    fn to_cursor_range_end(cursor: Cursor) -> Cursor {
-        Cursor {
-            row: cursor.row,
-            col: cursor.col + 1,
-        }
-    }
+    
     pub fn visual_range(&self) -> Option<CursorRange> {
         self.visual_cursor.clone().map(|vc| {
             if self.rb.cursor > vc {
                 CursorRange {
                     start: vc,
-                    end: EditBuffer::to_cursor_range_end(self.rb.cursor),
+                    end: to_cursor_range_end(self.rb.cursor),
                 }
             } else {
                 CursorRange {
                     start: self.rb.cursor.clone(),
-                    end: EditBuffer::to_cursor_range_end(vc),
+                    end: to_cursor_range_end(vc),
                 }
             }
         })
@@ -826,6 +828,33 @@ impl EditBuffer {
         self.rb.search_jump_backward();
         INIT.to_owned()
     }
+
+    pub fn eff_enter_replace_once_mode(&mut self, _: Key) -> String {
+        REPLACE_ONCE.to_owned()
+    }
+    pub fn eff_cancel_replace_once_mode(&mut self, _: Key) -> String {
+        INIT.to_owned()
+    }
+    pub fn eff_commit_replace_once(&mut self, k: Key) -> String {
+        match k {
+            Key::Char(c) => {
+                let before = self.rb.buf[self.rb.cursor.row][self.rb.cursor.col].clone();
+                if before == BufElem::Eol {
+                    // do nothing
+                    INIT.to_owned()
+                } else {
+                    let delete_range = CursorRange {
+                        start: self.rb.cursor,
+                        end: to_cursor_range_end(self.rb.cursor),
+                    };
+                    self.enter_edit_mode(&delete_range, vec![BufElem::Char(c)], vec![]);
+                    self.leave_edit_mode();
+                    INIT.to_owned()
+                }
+            },
+            _ => REPLACE_ONCE.to_owned()
+        }
+    }
 }
 
 use crate::Key;
@@ -878,6 +907,10 @@ def_effect!(Jump, EditBuffer, eff_jump);
 def_effect!(CancelJump, EditBuffer, eff_cancel_jump);
 def_effect!(JumpLast, EditBuffer, eff_jump_last);
 
+def_effect!(EnterReplaceOnceMode, EditBuffer, eff_enter_replace_once_mode);
+def_effect!(CancelReplaceOnceMode, EditBuffer, eff_cancel_replace_once_mode);
+def_effect!(CommitReplaceOnce, EditBuffer, eff_commit_replace_once);
+
 def_effect!(EnterSearchMode, EditBuffer, eff_enter_search_mode);
 def_effect!(SearchModeInput, EditBuffer, eff_search_mode_input);
 def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode);
@@ -908,6 +941,10 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
     g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
     g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
+
+    g.add_edge(INIT, Char('r'), Rc::new(EnterReplaceOnceMode(x.clone())));
+    g.add_edge(REPLACE_ONCE, Esc, Rc::new(CancelReplaceOnceMode(x.clone())));
+    g.add_edge(REPLACE_ONCE, Otherwise, Rc::new(CommitReplaceOnce(x.clone())));
     
     g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
     g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
