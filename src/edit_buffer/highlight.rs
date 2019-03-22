@@ -66,10 +66,6 @@ impl Highlighter {
     }
 }
 
-fn conv(c: Color) -> screen::Color {
-    screen::Color::Rgb(c.r, c.g, c.b)
-}
-
 pub struct HighlightDiffViewRef<'a> {
     back: &'a Highlighter,
     bg_default: Color,
@@ -86,12 +82,12 @@ impl <'a> view::DiffView for HighlightDiffViewRef<'a> {
     fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
         match self.back.cache.get(row).and_then(|x| x.get(col)) {
             Some(style) => {
-                let fg = conv(style.foreground);
-                let bg = conv(style.background);
+                let fg = style.foreground.into();
+                let bg = style.background.into();
                 (None, Some(fg), Some(bg))
             },
             None => {
-                let bg = conv(self.bg_default);
+                let bg = self.bg_default.into();
                 (None, None, Some(bg))
             },
         }
@@ -105,7 +101,7 @@ pub struct HighlightDiffView {
 impl HighlightDiffView {
     pub fn new(x: &Highlighter, area: view::Area) -> Self {
         let buf_area = view::BufArea::new(&x.cache, area);
-        let bg_default = buf_area.last_some().background;
+        let bg_default = theme::default().settings.background.unwrap();
         Self { buf_area, bg_default }
     }
 }
@@ -113,12 +109,12 @@ impl view::DiffView for HighlightDiffView {
     fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
         match self.buf_area.get(col, row) {
             Some(style) => {
-                let fg = conv(style.foreground);
-                let bg = conv(style.background);
+                let fg = style.foreground.into();
+                let bg = style.background.into();
                 (None, Some(fg), Some(bg))
             },
             None => {
-                let bg = conv(self.bg_default);
+                let bg = self.bg_default.into();
                 (None, None, Some(bg))
             },
         }
