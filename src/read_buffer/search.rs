@@ -9,7 +9,12 @@ struct Hit {
     search_word: Vec<char>,
     results: Vec<Vec<usize>>
 }
-
+fn eq(e: &BufElem, c: char) -> bool {
+    match e {
+        &BufElem::Eol => false,
+        &BufElem::Char(x) => x.to_string().to_lowercase() == c.to_string().to_lowercase()
+    }
+}
 impl Hit {
     fn new() -> Self {
         Self {
@@ -33,12 +38,13 @@ impl Hit {
         }
         i
     }
+
     fn inc_search(&mut self, new_c: char, line: &[BufElem]) {
         let mut v = vec![];
         let n_sw = self.search_word.len();
         if n_sw == 0 {
             for (i, e) in line.iter().enumerate() {
-                if *e == BufElem::Char(new_c) {
+                if eq(e, new_c) {
                     v.push(i)
                 }
             }
@@ -46,7 +52,9 @@ impl Hit {
             let last = &self.results[n_sw-1];
             let n = self.search_word.len();
             for i in last {
-                if line[i+n] == BufElem::Char(new_c) {
+                // as hit eol once the hit is removed
+                // this code is safe without the care for out of boundary case.
+                if eq(&line[i+n], new_c) {
                     v.push(*i);
                 }
             }
