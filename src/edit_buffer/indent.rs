@@ -1,4 +1,4 @@
-use crate::BufElem;
+use super::BufElem;
 
 pub struct AutoIndent<'a> {
     pub line_predecessors: &'a [BufElem]
@@ -37,7 +37,7 @@ impl <'a> AutoIndent<'a> {
 }
 #[test]
 fn test_auto_indent() {
-    use crate::BufElem::*;
+    use super::BufElem::*;
     let line = [Char(' '), Char(' '), Char('a'), Char('{')];
     let ai = AutoIndent { line_predecessors: &line };
     assert_eq!(ai.next_indent(), vec![Char(' '); 6]);

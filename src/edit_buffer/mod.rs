@@ -12,7 +12,7 @@ use crate::message_box::MessageBox;
 use crate::navigator;
 use crate::read_buffer::*;
 use crate::screen;
-use crate::{BufElem, Cursor};
+use crate::read_buffer::{BufElem, Cursor};
 use std::fs;
 use std::path;
 use std::time::Instant;
@@ -71,7 +71,7 @@ fn trim_right(xs: Vec<BufElem>) -> Vec<BufElem> {
 
 pub fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
     let s = path.and_then(|path| fs::read_to_string(path).ok());
-    crate::normalize::read_from_string(s)
+    crate::read_buffer::buffer::read_from_string(s)
 }
 
 impl EditBuffer {
@@ -787,7 +787,7 @@ impl EditBuffer {
         let path = self.path.clone().unwrap();
         if let Ok(file) = fs::File::create(path) {
             let buf = &self.rb.buf;
-            crate::normalize::write_to_file(file, &buf);
+            crate::read_buffer::buffer::write_to_file(file, &buf);
             self.sync_clock = self.change_log_buffer.clock();
             self.message_box.send("Saved")
         }

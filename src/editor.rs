@@ -5,12 +5,12 @@ use crate::navigator::{self, Page};
 use crate::screen::*;
 use crate::view;
 use crate::view::View;
-use crate::{BufElem, Cursor, Key};
+use crate::Key;
+use crate::read_buffer::Cursor;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::{thread, time};
 use termion::event::Key as TermKey;
-use termion::input::TermRead;
 
 struct StatusView {
     x: Vec<char>,
@@ -204,6 +204,7 @@ mod tests {
     use std::rc::Rc;
     use crate::edit_buffer;
     use crate::navigator;
+    use crate::read_buffer::BufElem;
     use super::*;
 
     fn normalize(x: Vec<Vec<BufElem>>) -> Vec<Vec<BufElem>> {

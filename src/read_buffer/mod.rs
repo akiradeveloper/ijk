@@ -1,4 +1,4 @@
-use crate::{BufElem, Cursor, Key};
+use crate::Key;
 use crate::view;
 use crate::message_box::MessageBox;
 use self::visibility_window::VisibilityWindow;
@@ -7,6 +7,19 @@ use self::search::Search;
 mod visibility_window;
 pub mod search;
 pub mod line;
+pub mod buffer;
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum BufElem {
+    Char(char),
+    Eol,
+}
+
+#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
+pub struct Cursor {
+    pub row: usize,
+    pub col: usize,
+}
 
 pub struct ReadBuffer {
     pub buf: Vec<Vec<BufElem>>,
@@ -33,7 +46,17 @@ impl ReadBuffer {
         self.search.hide_search()
     }
     pub fn stabilize_cursor(&mut self) {
-        self.cursor = crate::normalize::normalize_cursor(self.cursor, &self.buf);
+        let mut cursor = self.cursor;
+
+        let max_row = self.buf.len() - 1;
+        if cursor.row > max_row {
+            cursor.row = max_row;
+        }
+
+        if cursor.col > self.buf[cursor.row].len() - 1 {
+            cursor.col = self.buf[cursor.row].len() - 1;
+        }
+        self.cursor = cursor;
     }
     pub fn cursor_up(&mut self) {
         if self.cursor.row > 0 {

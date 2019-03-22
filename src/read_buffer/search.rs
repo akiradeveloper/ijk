@@ -1,6 +1,6 @@
 use crate::view;
 use crate::screen;
-use crate::{Cursor, BufElem};
+use super::{Cursor, BufElem};
 use crate::message_box::MessageBox;
 
 #[derive(Clone, Debug)]
@@ -90,7 +90,7 @@ impl Hit {
 
 #[test]
 fn test_hit() {
-    use crate::BufElem::*;
+    use super::BufElem::*;
     let mut hit = Hit::new();
     assert_eq!(hit.rollback_search(&[]), 0);
     assert!(hit.result().is_empty());

@@ -1,8 +1,7 @@
 use syntect::easy::HighlightLines;
 use syntect::parsing::SyntaxSet;
 use syntect::highlighting::{ThemeSet, Style, Color};
-use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
-use crate::BufElem;
+use crate::read_buffer::BufElem;
 use crate::view;
 use crate::screen;
 

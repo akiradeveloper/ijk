@@ -21,18 +21,6 @@ pub enum Key {
     Otherwise,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum BufElem {
-    Char(char),
-    Eol,
-}
-
-#[derive(Copy, Clone, PartialOrd, PartialEq, Debug)]
-pub struct Cursor {
-    pub row: usize,
-    pub col: usize,
-}
-
 pub mod editor;
 pub mod read_buffer;
 pub mod edit_buffer;
@@ -44,4 +32,3 @@ pub mod directory;
 pub mod message_box;
 pub mod util;
 pub mod theme;
-pub mod normalize;

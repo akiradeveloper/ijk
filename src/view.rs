@@ -1,9 +1,7 @@
 extern crate flame;
 
-use crate::edit_buffer::CursorRange;
 use crate::screen::Color;
-use crate::BufElem;
-use crate::Cursor;
+use crate::read_buffer::{BufElem, Cursor};
 
 impl From<syntect::highlighting::Color> for Color {
     fn from(c: syntect::highlighting::Color) -> Color {

@@ -1,5 +1,5 @@
 use crate::view;
-use crate::Cursor;
+use super::Cursor;
 
 pub struct VisibilityWindow {
     cur_cursor: Cursor,

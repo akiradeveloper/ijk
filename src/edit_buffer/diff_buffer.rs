@@ -1,4 +1,4 @@
-use crate::{BufElem, Key};
+use super::{BufElem, Key};
 use super::indent;
 
 #[derive(Clone)]

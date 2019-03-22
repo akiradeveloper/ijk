@@ -6,7 +6,7 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
 
-use crate::BufElem;
+use super::BufElem;
 
 lazy_static! {
     pub static ref SINGLETON: Clipboard = Clipboard::new();

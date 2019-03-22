@@ -1,4 +1,4 @@
-use crate::BufElem;
+use super::BufElem;
 
 pub struct Line<'a> {
     line: &'a [BufElem]

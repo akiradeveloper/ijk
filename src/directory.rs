@@ -4,10 +4,9 @@ use super::edit_buffer::{self, EditBuffer};
 use super::controller;
 use super::view;
 use super::navigator::{self, Navigator};
-use super::read_buffer::ReadBuffer;
+use super::read_buffer::{BufElem, ReadBuffer};
 use std::path::{self, Path, PathBuf};
 use std::fs;
-use crate::BufElem;
 use crate::screen::Color;
 use crate::message_box::MessageBox;
 

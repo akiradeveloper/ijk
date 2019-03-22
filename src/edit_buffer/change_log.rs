@@ -1,4 +1,4 @@
-use crate::{BufElem, Cursor};
+use super::{BufElem, Cursor};
 use super::undo_buffer::UndoBuffer;
 use std::time::Instant;
 

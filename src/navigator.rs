@@ -1,10 +1,9 @@
 use super::controller::{self, Controller};
 use super::view::{self, View, Area};
 use super::read_buffer::{self, ReadBuffer};
-use crate::{BufElem, Cursor};
+use crate::read_buffer::{BufElem, Cursor};
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::path::PathBuf;
 use crate::screen::Color;
 use crate::message_box::MessageBox;
 
