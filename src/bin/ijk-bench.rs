@@ -34,8 +34,7 @@ fn main() {
     let page = Rc::new(edit_buffer::Page::new(eb));
 
     navigator.borrow_mut().push(page);
-    let (term_w, term_h) = termion::terminal_size().unwrap();
-    let mut editor = ijk::editor::Editor::new(navigator, ijk::editor::TerminalScreen::new(term_w as usize, term_h as usize));
+    let mut editor = ijk::editor::Editor::new(navigator, ijk::editor::TerminalScreen::new());
 
     flame::start("run");
     editor.run(keys);
