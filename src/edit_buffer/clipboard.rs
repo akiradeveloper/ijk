@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use super::BufElem;
 
 lazy_static! {
-    pub static ref SINGLETON: Clipboard = Clipboard::new();
+    static ref SINGLETON: Clipboard = Clipboard::new();
 }
 
 #[derive(Clone)]
@@ -66,16 +66,10 @@ pub struct Clipboard {
     imp: Arc<Mutex<ClipboardImpl>>,
 }
 impl Clipboard {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             imp: Arc::new(Mutex::new(ClipboardImpl::new()))
         }
-    }
-    pub fn copy(&self, x: Type) {
-        self.imp.lock().unwrap().copy(x);
-    }
-    pub fn paste(&self) -> Option<Type> {
-        self.imp.lock().unwrap().paste()
     }
 }
 
@@ -153,6 +147,14 @@ fn clipboard_paste() -> Option<String> {
         }
     }
     None
+}
+
+pub fn copy(x: Type) {
+    SINGLETON.imp.lock().unwrap().copy(x);
+}
+
+pub fn paste() -> Option<Type> {
+    SINGLETON.imp.lock().unwrap().paste()
 }
 
 pub fn paste_system() -> Option<Vec<BufElem>> {

@@ -552,7 +552,7 @@ impl EditBuffer {
             },
         };
         let removed = self.delete_range(range);
-        clipboard::SINGLETON.copy(clipboard::Type::Line(removed));
+        clipboard::copy(clipboard::Type::Line(removed));
         INIT.to_owned()
     }
     pub fn eff_delete_range(&mut self, _: Key) -> String {
@@ -561,7 +561,7 @@ impl EditBuffer {
         } else {
             let vr = self.visual_range().unwrap();
             let removed = self.delete_range(vr);
-            clipboard::SINGLETON.copy(clipboard::Type::Range(removed));
+            clipboard::copy(clipboard::Type::Range(removed));
             INIT.to_owned()
         }
     }
@@ -574,7 +574,7 @@ impl EditBuffer {
             },
         });
         let removed = self.delete_range(range);
-        clipboard::SINGLETON.copy(clipboard::Type::Range(removed));
+        clipboard::copy(clipboard::Type::Range(removed));
 
         INIT.to_owned()
     }
@@ -596,7 +596,7 @@ impl EditBuffer {
         INIT.to_owned()
     }
     pub fn eff_paste(&mut self, _: Key) -> String {
-        let pasted = clipboard::SINGLETON.paste();
+        let pasted = clipboard::paste();
         if pasted.is_none() {
             self.message_box.send("yank not found");
             return INIT.to_owned();
@@ -641,7 +641,7 @@ impl EditBuffer {
         }
     }
     pub fn eff_paste_above(&mut self, _: Key) -> String {
-        let pasted = clipboard::SINGLETON.paste();
+        let pasted = clipboard::paste();
         if pasted.is_none() {
             return INIT.to_owned();
         }
@@ -715,7 +715,7 @@ impl EditBuffer {
         }
 
         let to_copy = self.get_buffer(vr.unwrap());
-        clipboard::SINGLETON.copy(clipboard::Type::Range(to_copy));
+        clipboard::copy(clipboard::Type::Range(to_copy));
         self.rb.cursor = orig_cursor;
 
         INIT.to_owned()
@@ -732,7 +732,7 @@ impl EditBuffer {
             },
         };
         let to_copy = self.get_buffer(range);
-        clipboard::SINGLETON.copy(clipboard::Type::Line(to_copy));
+        clipboard::copy(clipboard::Type::Line(to_copy));
 
         INIT.to_owned()
     }
