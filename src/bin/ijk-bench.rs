@@ -30,7 +30,7 @@ fn main() {
     
     let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
 
-    let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(file))));
+    let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(file)));
     let page = Rc::new(edit_buffer::Page::new(eb));
 
     navigator.borrow_mut().push(page);

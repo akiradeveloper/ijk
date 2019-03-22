@@ -64,28 +64,54 @@ fn trim_right(xs: Vec<BufElem>) -> Vec<BufElem> {
     }
 }
 
-pub fn read_buffer(path: Option<&path::Path>) -> Vec<Vec<BufElem>> {
-    let s = path.and_then(|path| fs::read_to_string(path).ok());
+pub fn read_buffer(path: &path::Path) -> Vec<Vec<BufElem>> {
+    let s = fs::read_to_string(path).ok();
     crate::read_buffer::read_from_string(s)
 }
 
 impl EditBuffer {
-    pub fn open(path: Option<&path::Path>) -> EditBuffer {
-        let ext: Option<&str> = path.and_then(|p| p.extension()).map(|ext| ext.to_str().unwrap());
+    pub fn open(path: &path::Path) -> EditBuffer {
+        let ext: Option<&str> = path.extension().map(|ext| ext.to_str().unwrap());
         let init_buf = read_buffer(path);
         let n_rows = init_buf.len();
         let message_box = MessageBox::new();
+
         EditBuffer {
             rb: ReadBuffer::new(init_buf, message_box.clone()),
             state: INIT.to_owned(),
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
-            path: path.map(|x| x.to_owned()),
+            path: Some(path.to_owned()),
             sync_clock: None,
             highlighter: highlight::Highlighter::new(n_rows, ext),
             message_box,
         }
+    }
+    pub fn open_buffer(s: &str) -> EditBuffer {
+        let ext = None;
+        let s = match s {
+            "" => None,
+            s => Some(s.to_owned())
+        };
+        let init_buf = crate::read_buffer::read_from_string(s);
+        let n_rows = init_buf.len();
+        let message_box = MessageBox::new();
+
+        EditBuffer {
+            rb: ReadBuffer::new(init_buf, message_box.clone()),
+            state: INIT.to_owned(),
+            visual_cursor: None,
+            change_log_buffer: ChangeLogBuffer::new(),
+            edit_state: None,
+            path: None,
+            sync_clock: None,
+            highlighter: highlight::Highlighter::new(n_rows, ext),
+            message_box,
+        }
+    }
+    fn is_writable(&self) -> bool {
+        self.path.is_some()
     }
     fn insert_new_line(&mut self, row: usize) {
         self.rb.buf.insert(row, vec![]);
@@ -972,41 +998,41 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
 
-    // mutable
-    g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
-    g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
-    g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
-    g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
-    g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
-    g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
-    g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
-    g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
-    g.add_edge(INIT, Char('O'), Rc::new(EnterInsertNewlineAbove(x.clone())));
-    g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
-    g.add_edge(INIT, Char('A'), Rc::new(EnterInsertModeLineLast(x.clone())));
-    g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
-    g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
-    g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
-    g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
-    g.add_edge(INIT, Ctrl('p'), Rc::new(PasteSystem(x.clone())));
-    g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
-    g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
+    if x.borrow().is_writable() {
+        g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
+        g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
+        g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
+        g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
+        g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
+        g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
+        g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
+        g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
+        g.add_edge(INIT, Char('O'), Rc::new(EnterInsertNewlineAbove(x.clone())));
+        g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
+        g.add_edge(INIT, Char('A'), Rc::new(EnterInsertModeLineLast(x.clone())));
+        g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
+        g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
+        g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
+        g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
+        g.add_edge(INIT, Ctrl('p'), Rc::new(PasteSystem(x.clone())));
+        g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
+        g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
 
-    g.add_edge(INIT, Char('r'), Rc::new(EnterReplaceOnceMode(x.clone())));
-    g.add_edge(REPLACE_ONCE, Esc, Rc::new(CancelReplaceOnceMode(x.clone())));
-    g.add_edge(REPLACE_ONCE, Otherwise, Rc::new(CommitReplaceOnce(x.clone())));
-    
-    g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
-    g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
-    g.add_edge(LINES, Esc, Rc::new(CancelLinesMode(x.clone())));
+        g.add_edge(INIT, Char('r'), Rc::new(EnterReplaceOnceMode(x.clone())));
+        g.add_edge(REPLACE_ONCE, Esc, Rc::new(CancelReplaceOnceMode(x.clone())));
+        g.add_edge(REPLACE_ONCE, Otherwise, Rc::new(CommitReplaceOnce(x.clone())));
+        
+        g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
+        g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
+        g.add_edge(LINES, Esc, Rc::new(CancelLinesMode(x.clone())));
 
-    g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
-    g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
+        g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
+        g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
 
-    g.add_edge(INIT, Ctrl('r'), Rc::new(Redo(x.clone())));
-    g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
+        g.add_edge(INIT, Ctrl('r'), Rc::new(Redo(x.clone())));
+        g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
+    }
 
-    // immutable
     g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
     g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
     g.add_edge(INIT, Char('h'), Rc::new(CursorLeft(x.clone())));
@@ -1150,7 +1176,7 @@ impl navigator::Page for Page {
     fn status(&self) -> String {
         let s = match self.x.borrow().path.clone() {
             Some(p) => p.to_str().unwrap().to_owned(),
-            None => "noname".to_owned(),
+            None => "-".to_owned(),
         };
         let dirty_mark = if self.x.borrow().is_dirty() {
             "[D] "

@@ -226,10 +226,10 @@ mod tests {
         let keys = keys.into_iter();
 
         let output = path.join("output");
-        let expected: Vec<Vec<BufElem>> = normalize(edit_buffer::read_buffer(Some(&output)));
+        let expected: Vec<Vec<BufElem>> = normalize(edit_buffer::read_buffer(&output));
 
         let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
-        let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(Some(&input))));
+        let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(&input)));
         let page = Rc::new(edit_buffer::Page::new(eb.clone()));
         navigator.borrow_mut().push(page);
         let mut editor = Editor::new(navigator, NullScreen::new(10,10));
