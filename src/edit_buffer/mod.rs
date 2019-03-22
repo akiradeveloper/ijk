@@ -868,11 +868,7 @@ def_effect!(Undo, EditBuffer, eff_undo);
 def_effect!(Redo, EditBuffer, eff_redo);
 def_effect!(JoinNextLine, EditBuffer, eff_join_next_line);
 def_effect!(EnterInsertNewline, EditBuffer, eff_enter_insert_newline);
-def_effect!(
-    EnterInsertNewlineAbove,
-    EditBuffer,
-    eff_enter_insert_newline_above
-);
+def_effect!(EnterInsertNewlineAbove, EditBuffer, eff_enter_insert_newline_above);
 def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
 def_effect!(EnterInsertModeLineLast, EditBuffer, eff_enter_insert_mode_line_last);
 def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
@@ -949,6 +945,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
     g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
     g.add_edge(LINES, Esc, Rc::new(CancelLinesMode(x.clone())));
+
     g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
     g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
 
