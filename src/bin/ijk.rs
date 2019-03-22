@@ -34,8 +34,9 @@ fn main() {
             Rc::new(edit_buffer::Page::new(eb))
         },
         None => {
-            let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(None)));
-            Rc::new(edit_buffer::Page::new(eb))
+            let cur_dir = std::env::current_dir().unwrap();
+            let dir = Rc::new(RefCell::new(directory::Directory::open(&cur_dir, navigator.clone())));
+            Rc::new(directory::Page::new(dir, fs::canonicalize(cur_dir).unwrap()))
         }
     };
 
