@@ -431,10 +431,22 @@ impl EditBuffer {
     fn eff_cancel_command_mode(&mut self, _: Key) -> String {
         INIT.to_owned()
     }
+    fn save_to_file(&mut self) {
+        let path = self.path.clone().unwrap();
+        if let Ok(file) = fs::File::create(path) {
+            let buf = &self.rb.buf;
+            crate::read_buffer::write_to_file(file, &buf);
+            self.sync_clock = self.change_log_buffer.clock();
+            self.message_box.send("Saved")
+        }
+    }
     fn eff_execute_command(&mut self, k: Key) -> String {
+        match k {
+            Key::Char('w') => self.save_to_file(),
+            _ => {},
+        }
         INIT.to_owned()
     }
-
     pub fn eff_undo(&mut self, _: Key) -> String {
         self.undo();
         INIT.to_owned()
@@ -838,19 +850,7 @@ impl EditBuffer {
         self.rb.reset();
         INIT.to_owned()
     }
-    pub fn eff_save_to_file(&mut self, _: Key) -> String {
-        if self.path.is_none() {
-            return INIT.to_owned();
-        }
-        let path = self.path.clone().unwrap();
-        if let Ok(file) = fs::File::create(path) {
-            let buf = &self.rb.buf;
-            crate::read_buffer::write_to_file(file, &buf);
-            self.sync_clock = self.change_log_buffer.clock();
-            self.message_box.send("Saved")
-        }
-        INIT.to_owned()
-    }
+
     pub fn eff_cursor_up(&mut self, _: Key) -> String {
         self.rb.cursor_up();
         INIT.to_owned()
@@ -1004,7 +1004,6 @@ def_effect!(YankRange, EditBuffer, eff_yank_range);
 def_effect!(YankLine, EditBuffer, eff_yank_line);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
 def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
-def_effect!(SaveToFile, EditBuffer, eff_save_to_file);
 def_effect!(Reset, EditBuffer, eff_reset);
 
 def_effect!(CursorUp, EditBuffer, eff_cursor_up);
@@ -1042,11 +1041,10 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     let mut g = controller::Graph::new();
 
     if x.borrow().is_writable() {
-        g.add_edge(INIT, Ctrl(' '), Rc::new(EnterCommandMode(x.clone())));
+        g.add_edge(INIT, Char(' '), Rc::new(EnterCommandMode(x.clone())));
         g.add_edge(COMMAND, Esc, Rc::new(CancelCommandMode(x.clone())));
         g.add_edge(COMMAND, Otherwise, Rc::new(ExecuteCommand(x.clone())));
 
-        g.add_edge(INIT, Ctrl('s'), Rc::new(SaveToFile(x.clone())));
         g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
         g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
         g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
