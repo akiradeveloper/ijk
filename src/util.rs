@@ -20,7 +20,7 @@ pub fn read_keys_file(path: &path::Path) -> Vec<Result<termion::event::Key, std:
     v
 }
 
-struct IntervalIterator<I>{
+pub struct IntervalIterator<I>{
     iter: I,
     interval_ms: u32,
 }
@@ -34,14 +34,5 @@ impl <I> Iterator for IntervalIterator<I> where I: Iterator {
     fn next(&mut self) -> std::option::Option<<Self as std::iter::Iterator>::Item> {
         std::thread::sleep_ms(self.interval_ms);
         self.iter.next()
-    }
-}
-
-#[test]
-fn test_interval_iterator() {
-    let v = vec![1,2,3];
-    let intv_iter = IntervalIterator::new(v.into_iter(), 1000);
-    for i in intv_iter {
-        println!("{}", i);
     }
 }
