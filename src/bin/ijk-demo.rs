@@ -38,6 +38,4 @@ fn main() {
     flame::start("run");
     editor.run(keys);
     flame::end("run");
-
-    flame::dump_html(&mut std::fs::File::create("output.html").unwrap()).unwrap();
 }
