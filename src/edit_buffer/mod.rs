@@ -1086,7 +1086,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
     g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())));
 
-    g.add_edge(INIT, Char('g'), Rc::new(EnterWarp(x.clone())));
+    g.add_edge(INIT, Char('w'), Rc::new(EnterWarp(x.clone())));
     g.add_edge(WARP, Esc, Rc::new(CancelWarp(x.clone())));
     g.add_edge(WARP, Otherwise, Rc::new(Warp(x.clone())));
 
