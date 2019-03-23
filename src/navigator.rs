@@ -12,8 +12,8 @@ use crate::edit_buffer;
 pub enum PageKind {
     Buffer,
     Directory,
-    Help,
-    Other,
+    License,
+    Navigator,
 }
 
 pub trait Page {
@@ -48,7 +48,7 @@ impl Page for LicensePage {
         &self.view_gen
     }
     fn kind(&self) -> PageKind {
-        PageKind::Help
+        PageKind::License
     }
     fn id(&self) -> String {
         "license".to_owned()
@@ -109,12 +109,20 @@ impl Navigator {
         self.set(self.list[0].clone());
     }
     fn delete(&mut self, i: usize) {
-        if self.list[i].kind() == PageKind::Help {
+        if self.list[i].kind() == PageKind::License {
             self.message_box.send("License can not be deleted");
             return;
         }
         self.list.remove(i);
         self.refresh_buffer()
+    }
+    pub fn pop(&mut self) {
+        if self.list[0].kind() == PageKind::License {
+            self.message_box.send("License can not be deleted");
+            return;
+        }
+        self.list.remove(0);
+        self.select(0);
     }
     pub fn push(&mut self, page: Rc<Page>) {
         let pos0 = self.list.iter().position(|e| e.id() == page.id());
@@ -131,10 +139,6 @@ impl Navigator {
     pub fn pop_and_push(&mut self, e: Rc<Page>) {
         self.list.remove(0);
         self.list.insert(0, e);
-        self.select(0);
-    }
-    pub fn pop(&mut self) {
-        self.list.remove(0);
         self.select(0);
     }
     pub fn eff_cursor_up(&mut self, _: Key) -> String {
@@ -258,7 +262,7 @@ impl Page for NavigatorPage {
         "[Navigator]".to_owned()
     }
     fn kind(&self) -> PageKind {
-        PageKind::Other
+        PageKind::Navigator
     }
     fn id(&self) -> String {
         "navigator".to_owned()
