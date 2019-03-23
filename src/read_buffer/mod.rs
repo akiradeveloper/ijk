@@ -36,10 +36,22 @@ impl <'a> Line<'a> {
             return None
         }
 
-        let lower = (0..col).rev().take_while(|&i| is_word_char(&self.line[i])).last().unwrap();
+        let lower = (0..col+1).rev().take_while(|&i| is_word_char(&self.line[i])).last().unwrap();
         let higher = (col..self.line.len()).take_while(|&i| is_word_char(&self.line[i])).last().unwrap();
         Some(lower .. higher+1)
     }
+}
+
+#[test]
+fn test_line_word_range() {
+    use crate::read_buffer::BufElem::*;
+    let v = vec![Char('a'), Char('b'), Char(' '), Char('c'), Eol];
+    let line = Line::new(&v);
+    assert_eq!(line.word_range(0), Some(0..2));
+    assert_eq!(line.word_range(1), Some(0..2));
+    assert_eq!(line.word_range(2), None);
+    assert_eq!(line.word_range(3), Some(3..4));
+    assert_eq!(line.word_range(4), None);
 }
 
 pub fn write_to_file<W: Write>(mut out: W, buf: &Buf) {
