@@ -6,6 +6,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::screen::Color;
 use crate::message_box::MessageBox;
+use crate::edit_buffer;
 
 #[derive(PartialEq)]
 pub enum PageKind {
@@ -24,12 +25,22 @@ pub trait Page {
     fn message(&self) -> MessageBox;
 }
 
-struct HelpPage {
+struct LicensePage {
     controller: Box<controller::Controller>,
     view_gen: Box<view::ViewGen>,
 }
+impl LicensePage {
+    fn new() -> Self {
+        let s = include_str!("../LICENSE");
+        let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open_buffer(s)));
+        Self {
+            controller: Box::new(edit_buffer::mk_controller(eb.clone())),
+            view_gen: Box::new(edit_buffer::ViewGen::new(eb)),
+        }
+    }
+}
 
-impl Page for HelpPage {
+impl Page for LicensePage {
     fn controller(&self) -> &Box<controller::Controller> {
         &self.controller
     }
@@ -40,40 +51,13 @@ impl Page for HelpPage {
         PageKind::Help
     }
     fn id(&self) -> String {
-        "help".to_owned()
+        "license".to_owned()
     }
     fn status(&self) -> String {
-        "[Help]".to_owned()
+        "[License]".to_owned()
     }
     fn message(&self) -> MessageBox {
         MessageBox::new()
-    }
-}
-
-pub struct HelpController {}
-impl Controller for HelpController {
-    fn receive(&self, k: Key) {}
-}
-
-pub struct HelpView {}
-impl View for HelpView {
-    fn get(&self, col: usize, row: usize) -> view::ViewElem {
-        let s = vec!['T','O','D','O'];
-        let c = if row == 0 && col < 4 {
-            s[col]
-        } else {
-            ' '
-        };
-        (c, Color::White, Color::Black)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        Some(Cursor { row: 0, col: 0 })
-    }
-}
-pub struct HelpViewGen {}
-impl view::ViewGen for HelpViewGen {
-    fn gen(&self, _: Area) -> Box<View> {
-        Box::new(HelpView {})
     }
 }
 
@@ -88,14 +72,11 @@ pub struct Navigator {
 }
 impl Navigator {
     pub fn new() -> Self {
-        let help_page = Rc::new(HelpPage {
-            controller: Box::new(HelpController {}),
-            view_gen: Box::new(HelpViewGen {}),
-        });
+        let license_page = Rc::new(LicensePage::new());
         let message_box = MessageBox::new();
         let mut r = Self {
-            current: help_page.clone(),
-            list: vec![help_page],
+            current: license_page.clone(),
+            list: vec![license_page],
             rb: read_buffer::ReadBuffer::new(vec![], message_box.clone()), // not valid
             state: INIT.to_owned(),
             message_box,
