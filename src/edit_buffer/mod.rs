@@ -1224,17 +1224,28 @@ impl navigator::Page for Page {
         &self.view_gen
     }
     fn status(&self) -> String {
-        let s = match self.x.borrow().path.clone() {
-            Some(p) => p.to_str().unwrap().to_owned(),
-            None => panic!(),
+        let state: &str = match self.x.borrow().state.as_str() {
+            INIT => "*",
+            COMMAND => ":",
+            REPLACE_ONCE => "r",
+            WARP => "w",
+            WILL_DELETE => "d",
+            WILL_CHANGE => "c",
+            WILL_YANK => "y",
+            INSERT => "i",
+            SEARCH => "/",
+            _ => "*",
         };
         let dirty_mark = if self.x.borrow().is_dirty() {
             "[D] "
         } else {
             ""
         };
-        let state = self.x.borrow().state.clone();
-        format!("[{}] {}{}", state, dirty_mark, s)
+        let path = match self.x.borrow().path.clone() {
+            Some(p) => p.to_str().unwrap().to_owned(),
+            None => panic!(),
+        };
+        format!("[Buffer -{}-] {}{}", state, dirty_mark, path)
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Buffer
