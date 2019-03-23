@@ -405,6 +405,20 @@ impl EditBuffer {
             end: Cursor { row: self.rb.cursor.row, col: r.end }
         })
     }
+    fn line_tail_range(&self) -> CursorRange {
+        let start = self.rb.cursor;
+        let line = &self.rb.buf[start.row];
+        assert!(!line.is_empty());
+        let end = if line.len() == 1 {
+            start
+        } else {
+            Cursor {
+                row: start.row,
+                col: line.len() - 1
+            }
+        };
+        CursorRange { start, end }
+    }
 
     //
     // effect functions
@@ -519,6 +533,11 @@ impl EditBuffer {
         }
         INSERT.to_owned()
     }
+    fn eff_change_line_tail(&mut self, _: Key) -> String {
+        let delete_range = self.line_tail_range();
+        self.create_edit_state(&delete_range, vec![], vec![]);
+        INSERT.to_owned()
+    }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
         let es = self.edit_state.as_mut().unwrap();
         es.diff_buffer.input(k.clone());
@@ -561,19 +580,9 @@ impl EditBuffer {
         self.commit_edit_state();
         INIT.to_owned()
     }
+    
     pub fn eff_delete_line_tail(&mut self, _: Key) -> String {
-        let start = self.rb.cursor;
-        let line = &self.rb.buf[start.row];
-        assert!(!line.is_empty());
-        let end = if line.len() == 1 {
-            start
-        } else {
-            Cursor {
-                row: start.row,
-                col: line.len() - 1
-            }
-        };
-        let delete_range = CursorRange { start, end };
+        let delete_range = self.line_tail_range();
         let removed = self.delete_range(delete_range);
         clipboard::copy(clipboard::Type::Range(removed));
         INIT.to_owned()
@@ -963,6 +972,7 @@ def_effect!(EnterInsertNewlineAbove, EditBuffer, eff_enter_insert_newline_above)
 def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
 def_effect!(EnterInsertModeLineLast, EditBuffer, eff_enter_insert_mode_line_last);
 def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
+def_effect!(ChangeLineTail, EditBuffer, eff_change_line_tail);
 def_effect!(ChangeRange, EditBuffer, eff_change_range);
 def_effect!(ChangeWord, EditBuffer, eff_change_word);
 def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
@@ -1030,6 +1040,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
         g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
         g.add_edge(INIT, Char('A'), Rc::new(EnterInsertModeLineLast(x.clone())));
         g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
+        g.add_edge(INIT, Char('C'), Rc::new(ChangeLineTail(x.clone())));
         g.add_edge(INIT, Char('c'), Rc::new(ChangeRange(x.clone())));
         g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
         g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
