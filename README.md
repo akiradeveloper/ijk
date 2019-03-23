@@ -9,24 +9,24 @@ A real editor for real programmers.
 
 [Design Doc](https://docs.google.com/presentation/d/1_oQ_Dryehfi-3vBBCQI_AFZDrvxvXp-LToMcWNIehPM/edit?usp=sharing)
 
-## Screenshots
+## Demo
 
-Navigator is the central part of ijk. You can go there anytime you press C-w.
+TBA
 
-![Navigator page](misc/navigator.jpg "Navigator")
+## Features
 
-In directory page, you can open files and directory. Quick access to the latest directory page from navigator page is just press j.
+ijk is similar to vi but with some differences:
 
-![Directory page](misc/directory.jpg "Directory")
-
-Buffer page is where you edit your file. The commands are similar to vi but customized as to be specialized for programming. Similar to directory page, quick access to the latest buffer page from navigator page is just press l.
-
-![Buffer page](misc/buffer.jpg "Buffer")
+* Warp command: w (word jump) is eliminated from vi and instead start a warp mode. It is a shortcut to string search. Warp mode waits for a char input like r, sets the char as the search string and immediately jumps to the next hit position. ijk encourages users to exploit search jump like Ninja.
+* Word range: In vi, dw and cw affects the range from the current cursor position to the end of the word as if user started a visual mode and word-jumped. This behavior is rarely meaningful in software programming. Instead, as word jump is eliminated, dw and cw affects the entire word the cursor is on. This behavior is consistent with the char version of delete and replace, x and r.
+* Native directory explorer: ijk has a native implementation of directory explorer similar to Defx. This is because real software programming rarely end up with coding a single file but many files and directories in tree. With the explorer you can access to files and directories using line jump and string search as in text editting.
+* Navigator: Navigator is the central part of ijk and you can switch to navigator anytime by pressing C-w. Navigator is like a stack of living pages. You can access to any open files, directories and other temporary pages like command selector and switch between them very quickly.
+* Space prefix: vi's command prefix is often mistyped because it needs two keys pressed, shift and ;, in US keyboard. ijk uses space to start command mode where you can w to save the file etc.
 
 ## Tasks
 
 - [x] Syntax highlighting (probably the syntect is a good choice)
-- [ ] Integration with language server
-- [ ] Integration with Git
 - [x] Automated benchmarking (using flamer is planned) and performance optimization
+- [ ] Integration with language server
 - [ ] Code snippet
+- [ ] Integration with Git
