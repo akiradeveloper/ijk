@@ -965,6 +965,7 @@ impl EditBuffer {
         self.rb.enter_search_mode();
         self.rb.search_mode_input(k);
         self.rb.leave_search_mode();
+        self.rb.search_jump_forward();
         INIT.to_owned()
     }
 }
