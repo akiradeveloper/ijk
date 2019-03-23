@@ -432,6 +432,7 @@ impl EditBuffer {
         INIT.to_owned()
     }
     fn save_to_file(&mut self) {
+        if self.path.is_none() { return }
         let path = self.path.clone().unwrap();
         if let Ok(file) = fs::File::create(path) {
             let buf = &self.rb.buf;
@@ -975,9 +976,6 @@ use std::rc::Rc;
 use crate::controller::Effect;
 use crate::def_effect;
 
-def_effect!(EnterCommandMode, EditBuffer, eff_enter_command_mode);
-def_effect!(CancelCommandMode, EditBuffer, eff_cancel_command_mode);
-def_effect!(ExecuteCommand, EditBuffer, eff_execute_command);
 def_effect!(Undo, EditBuffer, eff_undo);
 def_effect!(Redo, EditBuffer, eff_redo);
 def_effect!(JoinNextLine, EditBuffer, eff_join_next_line);
@@ -1035,16 +1033,16 @@ def_effect!(EnterWarp, EditBuffer, eff_enter_warp);
 def_effect!(CancelWarp, EditBuffer, eff_cancel_warp);
 def_effect!(Warp, EditBuffer, eff_warp);
 
+def_effect!(EnterCommandMode, EditBuffer, eff_enter_command_mode);
+def_effect!(CancelCommandMode, EditBuffer, eff_cancel_command_mode);
+def_effect!(ExecuteCommand, EditBuffer, eff_execute_command);
+
 use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
 
     if x.borrow().is_writable() {
-        g.add_edge(INIT, Char(' '), Rc::new(EnterCommandMode(x.clone())));
-        g.add_edge(COMMAND, Esc, Rc::new(CancelCommandMode(x.clone())));
-        g.add_edge(COMMAND, Otherwise, Rc::new(ExecuteCommand(x.clone())));
-
         g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
         g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
         g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
@@ -1082,6 +1080,10 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
         g.add_edge(INIT, Ctrl('r'), Rc::new(Redo(x.clone())));
         g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
     }
+
+    g.add_edge(INIT, Char(' '), Rc::new(EnterCommandMode(x.clone())));
+    g.add_edge(COMMAND, Esc, Rc::new(CancelCommandMode(x.clone())));
+    g.add_edge(COMMAND, Otherwise, Rc::new(ExecuteCommand(x.clone())));
 
     g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
     g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
