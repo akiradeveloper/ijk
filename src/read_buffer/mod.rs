@@ -20,6 +20,26 @@ impl <'a> Line<'a> {
     pub fn first_non_space_index(&self) -> usize {
         self.line.iter().position(|c| c != &BufElem::Char(' ') && c != &BufElem::Char('\t')).unwrap()
     }
+    pub fn word_range(&self, col: usize) -> Option<std::ops::Range<usize>> {
+        fn is_word_char(e: &BufElem) -> bool {
+            match e {
+                BufElem::Eol => false,
+                BufElem::Char(c) => match c {
+                    '_' => true,
+                    'a' ... 'z' => true,
+                    'A' ... 'Z' => true,
+                    _ => false
+                }
+            }
+        }
+        if !is_word_char(&self.line[col]) {
+            return None
+        }
+
+        let lower = (0..col).rev().take_while(|&i| is_word_char(&self.line[i])).last().unwrap();
+        let higher = (col..self.line.len()).take_while(|&i| is_word_char(&self.line[i])).last().unwrap();
+        Some(lower .. higher+1)
+    }
 }
 
 pub fn write_to_file<W: Write>(mut out: W, buf: &Buf) {

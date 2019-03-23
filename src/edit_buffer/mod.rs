@@ -20,7 +20,9 @@ use std::time::Instant;
 const INIT: &str = "Normal";
 const REPLACE_ONCE: &str = "ReplaceOnce";
 const WARP: &str = "Warp";
-const LINES: &str = "Lines";
+const WILL_DELETE: &str = "WillDelete";
+const WILL_YANK: &str = "WillYank";
+const WILL_CHANGE: &str = "WillChange";
 const INSERT: &str = "Insert";
 const SEARCH: &str = "Search";
 const JUMP: &str = "Jump";
@@ -502,6 +504,9 @@ impl EditBuffer {
         self.enter_edit_mode(&delete_range, vec![], vec![]);
         INSERT.to_owned()
     }
+    fn eff_change_word(&mut self, _: Key) -> String {
+        INSERT.to_owned()
+    }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
         let es = self.edit_state.as_mut().unwrap();
         es.diff_buffer.input(k.clone());
@@ -563,7 +568,8 @@ impl EditBuffer {
             }
         };
         let delete_range = CursorRange { start, end };
-        self.delete_range(delete_range);
+        let removed = self.delete_range(delete_range);
+        clipboard::copy(clipboard::Type::Range(removed));
         INIT.to_owned()
     }
     pub fn eff_delete_line(&mut self, _: Key) -> String {
@@ -583,7 +589,7 @@ impl EditBuffer {
     }
     pub fn eff_delete_range(&mut self, _: Key) -> String {
         if self.visual_range().is_none() {
-            LINES.to_owned()
+            WILL_DELETE.to_owned()
         } else {
             let vr = self.visual_range().unwrap();
             let removed = self.delete_range(vr);
@@ -604,7 +610,10 @@ impl EditBuffer {
 
         INIT.to_owned()
     }
-    pub fn eff_cancel_lines_mode(&mut self, _: Key) -> String {
+    fn eff_delete_word(&mut self, _: Key) -> String {
+        INIT.to_owned()
+    }
+    pub fn eff_cancel_will_mode(&mut self, _: Key) -> String {
         INIT.to_owned()
     }
     pub fn eff_paste_system(&mut self, _ :Key) -> String {
@@ -737,7 +746,7 @@ impl EditBuffer {
         let orig_cursor = self.rb.cursor;
         let vr = self.visual_range();
         if vr.is_none() {
-            return LINES.to_owned();
+            return WILL_YANK.to_owned();
         }
 
         let to_copy = self.get_buffer(vr.unwrap());
@@ -760,6 +769,9 @@ impl EditBuffer {
         let to_copy = self.get_buffer(range);
         clipboard::copy(clipboard::Type::Line(to_copy));
 
+        INIT.to_owned()
+    }
+    fn eff_yank_word(&mut self, _: Key) -> String {
         INIT.to_owned()
     }
     fn indent_back_line(&mut self, row: usize, indent: &[BufElem]) {
@@ -947,18 +959,21 @@ def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
 def_effect!(EnterInsertModeLineLast, EditBuffer, eff_enter_insert_mode_line_last);
 def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
 def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
+def_effect!(ChangeWord, EditBuffer, eff_change_word);
 def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode);
 def_effect!(DeleteLineTail, EditBuffer, eff_delete_line_tail);
 def_effect!(DeleteLine, EditBuffer, eff_delete_line);
 def_effect!(DeleteRange, EditBuffer, eff_delete_range);
+def_effect!(DeleteWord, EditBuffer, eff_delete_word);
 def_effect!(DeleteChar, EditBuffer, eff_delete_char);
-def_effect!(CancelLinesMode, EditBuffer, eff_cancel_lines_mode);
+def_effect!(CancelWillMode, EditBuffer, eff_cancel_will_mode);
 def_effect!(Paste, EditBuffer, eff_paste);
 def_effect!(PasteAbove, EditBuffer, eff_paste_above);
 def_effect!(PasteSystem, EditBuffer, eff_paste_system);
 def_effect!(YankRange, EditBuffer, eff_yank_range);
 def_effect!(YankLine, EditBuffer, eff_yank_line);
+def_effect!(YankWord, EditBuffer, eff_yank_word);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
 def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
 def_effect!(SaveToFile, EditBuffer, eff_save_to_file);
@@ -1022,9 +1037,14 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
         g.add_edge(REPLACE_ONCE, Esc, Rc::new(CancelReplaceOnceMode(x.clone())));
         g.add_edge(REPLACE_ONCE, Otherwise, Rc::new(CommitReplaceOnce(x.clone())));
         
-        g.add_edge(LINES, Char('y'), Rc::new(YankLine(x.clone())));
-        g.add_edge(LINES, Char('d'), Rc::new(DeleteLine(x.clone())));
-        g.add_edge(LINES, Esc, Rc::new(CancelLinesMode(x.clone())));
+        g.add_edge(WILL_YANK, Char('y'), Rc::new(YankLine(x.clone())));
+        g.add_edge(WILL_YANK, Char('w'), Rc::new(YankWord(x.clone())));
+        g.add_edge(WILL_YANK, Esc, Rc::new(CancelWillMode(x.clone())));
+        g.add_edge(WILL_DELETE, Char('d'), Rc::new(DeleteLine(x.clone())));
+        g.add_edge(WILL_DELETE, Char('w'), Rc::new(DeleteWord(x.clone())));
+        g.add_edge(WILL_DELETE, Esc, Rc::new(CancelWillMode(x.clone())));
+        g.add_edge(WILL_DELETE, Char('w'), Rc::new(ChangeWord(x.clone())));
+        g.add_edge(WILL_DELETE, Esc, Rc::new(CancelWillMode(x.clone())));
 
         g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
         g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
