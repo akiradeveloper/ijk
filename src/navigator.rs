@@ -110,6 +110,7 @@ impl Navigator {
     }
     fn delete(&mut self, i: usize) {
         if self.list[i].kind() == PageKind::Help {
+            self.message_box.send("License can not be deleted");
             return;
         }
         self.list.remove(i);
