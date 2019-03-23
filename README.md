@@ -5,6 +5,11 @@
 
 A real editor for real programmers.
 
+## Usage
+
+* `make install` to install.
+* `ijk` to start ijk with the current directory.
+
 ## Design Doc
 
 [Design Doc](https://docs.google.com/presentation/d/1_oQ_Dryehfi-3vBBCQI_AFZDrvxvXp-LToMcWNIehPM/edit?usp=sharing)
