@@ -492,19 +492,19 @@ impl EditBuffer {
         self.rb.cursor_right(); 
         self.eff_enter_insert_mode(k)
     }
-    pub fn eff_enter_change_mode(&mut self, _: Key) -> String {
-        let delete_range = if self.visual_range().is_none() {
-            CursorRange {
-                start: self.rb.cursor,
-                end: self.rb.cursor,
-            }
+    pub fn eff_change_range(&mut self, _: Key) -> String {
+        if self.visual_range().is_none() {
+            WILL_CHANGE.to_owned()
         } else {
-            self.visual_range().unwrap()
-        };
-        self.enter_edit_mode(&delete_range, vec![], vec![]);
-        INSERT.to_owned()
+            let delete_range = self.visual_range().unwrap();
+            self.enter_edit_mode(&delete_range, vec![], vec![]);
+            INSERT.to_owned()
+        }
     }
     fn eff_change_word(&mut self, _: Key) -> String {
+        for range in self.word_range() {
+            self.enter_edit_mode(&range, vec![], vec![]);
+        }
         INSERT.to_owned()
     }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
@@ -610,7 +610,18 @@ impl EditBuffer {
 
         INIT.to_owned()
     }
+    fn word_range(&self) -> Option<CursorRange> {
+        let col_range = self.rb.line(self.rb.cursor.row).word_range(self.rb.cursor.col);
+        col_range.map(|r| CursorRange {
+            start: Cursor { row: self.rb.cursor.row, col: r.start },
+            end: Cursor { row: self.rb.cursor.row, col: r.end }
+        })
+    }
     fn eff_delete_word(&mut self, _: Key) -> String {
+        for range in self.word_range() {
+            let removed = self.delete_range(range);
+            clipboard::copy(clipboard::Type::Range(removed));
+        }
         INIT.to_owned()
     }
     pub fn eff_cancel_will_mode(&mut self, _: Key) -> String {
@@ -958,7 +969,7 @@ def_effect!(EnterInsertNewlineAbove, EditBuffer, eff_enter_insert_newline_above)
 def_effect!(EnterInsertMode, EditBuffer, eff_enter_insert_mode);
 def_effect!(EnterInsertModeLineLast, EditBuffer, eff_enter_insert_mode_line_last);
 def_effect!(EnterAppendMode, EditBuffer, eff_enter_append_mode);
-def_effect!(EnterChangeMode, EditBuffer, eff_enter_change_mode);
+def_effect!(ChangeRange, EditBuffer, eff_change_range);
 def_effect!(ChangeWord, EditBuffer, eff_change_word);
 def_effect!(EditModeInput, EditBuffer, eff_edit_mode_input);
 def_effect!(LeaveEditMode, EditBuffer, eff_leave_edit_mode);
@@ -973,7 +984,6 @@ def_effect!(PasteAbove, EditBuffer, eff_paste_above);
 def_effect!(PasteSystem, EditBuffer, eff_paste_system);
 def_effect!(YankRange, EditBuffer, eff_yank_range);
 def_effect!(YankLine, EditBuffer, eff_yank_line);
-def_effect!(YankWord, EditBuffer, eff_yank_word);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
 def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
 def_effect!(SaveToFile, EditBuffer, eff_save_to_file);
@@ -1026,7 +1036,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
         g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
         g.add_edge(INIT, Char('A'), Rc::new(EnterInsertModeLineLast(x.clone())));
         g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
-        g.add_edge(INIT, Char('c'), Rc::new(EnterChangeMode(x.clone())));
+        g.add_edge(INIT, Char('c'), Rc::new(ChangeRange(x.clone())));
         g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
         g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
         g.add_edge(INIT, Ctrl('p'), Rc::new(PasteSystem(x.clone())));
@@ -1038,13 +1048,12 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
         g.add_edge(REPLACE_ONCE, Otherwise, Rc::new(CommitReplaceOnce(x.clone())));
         
         g.add_edge(WILL_YANK, Char('y'), Rc::new(YankLine(x.clone())));
-        g.add_edge(WILL_YANK, Char('w'), Rc::new(YankWord(x.clone())));
         g.add_edge(WILL_YANK, Esc, Rc::new(CancelWillMode(x.clone())));
         g.add_edge(WILL_DELETE, Char('d'), Rc::new(DeleteLine(x.clone())));
         g.add_edge(WILL_DELETE, Char('w'), Rc::new(DeleteWord(x.clone())));
         g.add_edge(WILL_DELETE, Esc, Rc::new(CancelWillMode(x.clone())));
-        g.add_edge(WILL_DELETE, Char('w'), Rc::new(ChangeWord(x.clone())));
-        g.add_edge(WILL_DELETE, Esc, Rc::new(CancelWillMode(x.clone())));
+        g.add_edge(WILL_CHANGE, Char('w'), Rc::new(ChangeWord(x.clone())));
+        g.add_edge(WILL_CHANGE, Esc, Rc::new(CancelWillMode(x.clone())));
 
         g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
         g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
