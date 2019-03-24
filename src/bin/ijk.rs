@@ -30,7 +30,7 @@ fn main() {
             Rc::new(directory::Page::new(dir, fs::canonicalize(path).unwrap()))
         },
         Some(path) => { // existing/unexisting file
-            let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(path)));
+            let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(path, navigator.clone())));
             Rc::new(edit_buffer::Page::new(eb))
         },
         None => {

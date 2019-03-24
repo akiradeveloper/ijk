@@ -162,7 +162,7 @@ impl Directory {
                 Rc::new(self::Page::new(dir, path.clone()))
             },
             Entry::File(path) => {
-                let x = Rc::new(RefCell::new(EditBuffer::open(&path)));
+                let x = Rc::new(RefCell::new(EditBuffer::open(&path, self.navigator.clone())));
                 Rc::new(edit_buffer::Page::new(x))
             },
         };

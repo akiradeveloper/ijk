@@ -8,6 +8,7 @@ pub mod undo_buffer;
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;
 
+use crate::navigator::Navigator;
 use crate::message_box::MessageBox;
 use crate::navigator;
 use crate::read_buffer::*;
@@ -44,6 +45,7 @@ pub struct EditBuffer {
     path: path::PathBuf,
     sync_clock: Option<Instant>,
     highlighter: highlight::Highlighter,
+    navigator: Rc<RefCell<Navigator>>,
     message_box: MessageBox,
 }
 
@@ -73,7 +75,7 @@ pub fn read_buffer(path: &path::Path) -> Vec<Vec<BufElem>> {
 }
 
 impl EditBuffer {
-    pub fn open(path: &path::Path) -> EditBuffer {
+    pub fn open(path: &path::Path, navigator: Rc<RefCell<Navigator>>) -> EditBuffer {
         let ext: Option<&str> = path.extension().map(|ext| ext.to_str().unwrap());
         let init_buf = read_buffer(path);
         let n_rows = init_buf.len();
@@ -88,6 +90,7 @@ impl EditBuffer {
             path: path.to_owned(),
             sync_clock: None,
             highlighter: highlight::Highlighter::new(n_rows, ext),
+            navigator,
             message_box,
         }
     }
@@ -406,6 +409,9 @@ impl EditBuffer {
     fn eff_cancel_command_mode(&mut self, _: Key) -> String {
         INIT.to_owned()
     }
+    fn close_buffer(&self) {
+        self.navigator.borrow_mut().pop()
+    }
     fn save_to_file(&mut self) {
         if let Ok(file) = fs::File::create(&self.path) {
             let buf = &self.rb.buf;
@@ -417,6 +423,7 @@ impl EditBuffer {
     fn eff_execute_command(&mut self, k: Key) -> String {
         match k {
             Key::Char('w') => self.save_to_file(),
+            Key::Char('q') => self.close_buffer(),
             _ => {},
         }
         INIT.to_owned()
