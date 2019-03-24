@@ -33,6 +33,10 @@ fn main() {
         Char('l'), Char('l'), Char('c'), Char('w'), Char('5'), Char('6'), Char('7'), Esc,
         // undo/redo
         Char('u'), Ctrl('r'), Char('u'), Ctrl('r'),
+        // save
+        Char(' '), Char('w'),
+        Char('u'),
+        Char(' '), Char('w'),
         // jump
         Char('1'), Char('G'), Char('G'), Char('2'), Char('G'),
         // move to the latest dir
