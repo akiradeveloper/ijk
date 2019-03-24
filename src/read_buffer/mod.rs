@@ -227,8 +227,7 @@ impl ReadBuffer {
     pub fn search_mode_input(&mut self, k: Key) {
         match k {
             Key::Backspace => self.search.pop_search_word(),
-            // FIXME
-            Key::Char(c) if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') => self.search.push_search_word(c),
+            Key::Char(c) => self.search.push_search_word(c),
             _ => {}
         }
     }
