@@ -307,7 +307,18 @@ impl ReadBuffer {
         }
     }
     pub fn jump_word_backward(&mut self) {
-
+        let next_cursor0 = self.line(self.cursor.row).find_prev_word(Some(self.cursor.col)).map(|col| self.word_start_cursor(self.cursor.row, col));
+        let nc0 = next_cursor0.or({
+            let mut range = vec![];
+            for i in (0..self.cursor.row).rev() { range.push(i) }
+            for i in (self.cursor.row..self.buf.len()).rev() { range.push(i) }
+            range.into_iter().map(|row|
+                self.line(row).find_prev_word(None).map(|col| self.word_start_cursor(row, col))
+            ).find(|x| x.is_some()).unwrap_or(None)
+        });
+        for nc in nc0 {
+            self.cursor = nc;
+        }
     }
     pub fn search_jump_forward(&mut self) {
         self.search.show_search();
