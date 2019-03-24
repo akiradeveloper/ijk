@@ -5,6 +5,8 @@
 
 A real editor for real programmers.
 
+![Demo](https://github.com/akiradeveloper/ijk/blob/media/demo.gif)
+
 ## Usage
 
 * `make install` to install.
@@ -13,10 +15,6 @@ A real editor for real programmers.
 ## Design Doc
 
 [Design Doc](https://docs.google.com/presentation/d/1_oQ_Dryehfi-3vBBCQI_AFZDrvxvXp-LToMcWNIehPM/edit?usp=sharing)
-
-## Demo
-
-TBA
 
 ## Features
 
