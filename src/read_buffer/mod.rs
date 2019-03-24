@@ -42,19 +42,25 @@ impl <'a> Line<'a> {
         let higher = (col..self.line.len()).take_while(|&i| is_word_char(&self.line[i])).last().unwrap();
         Some(lower .. higher+1)
     }
-    fn find_next_word(&self, col: usize) -> Option<usize> {
-        let start = if !is_word_char(&self.line[col]) {
-            col
-        } else {
-            self.word_range(col).unwrap().end
+    fn find_next_word(&self, col: Option<usize>) -> Option<usize> {
+        let start = match col {
+            Some(col) => if !is_word_char(&self.line[col]) {
+                    col
+                } else {
+                    self.word_range(col).unwrap().end
+                },
+            None => 0,
         };
         self.line[start..].iter().position(|e| is_word_char(e)).map(|i| i+start)
     }
-    fn find_prev_word(&self, col: usize) -> Option<usize> {
-        let end = if !is_word_char(&self.line[col]) {
-            col
-        } else {
-            self.word_range(col).unwrap().start
+    fn find_prev_word(&self, col: Option<usize>) -> Option<usize> {
+        let end = match col {
+            Some(col) => if !is_word_char(&self.line[col]) {
+                    col
+                } else {
+                    self.word_range(col).unwrap().start
+                },
+            None => self.line.len()
         };
         let slice = &self.line[0..end];
         slice.iter().rev().position(|e| is_word_char(e)).map(|i| slice.len() - 1 - i)
@@ -64,22 +70,26 @@ impl <'a> Line<'a> {
 #[test]
 fn test_find_word() {
     use self::BufElem::*;
-    let v = vec![Char(' '),Char('a'),Char('b'),Char(' '),Char('c'),Eol];
+    let v = vec![Char('a'),Char(' '),Char('a'),Char('a'),Char(' '),Char('a'),Eol];
     let line = Line::new(&v);
 
-    assert_eq!(line.find_next_word(0), Some(1));
-    assert_eq!(line.find_next_word(1), Some(4));
-    assert_eq!(line.find_next_word(2), Some(4));
-    assert_eq!(line.find_next_word(3), Some(4));
-    assert_eq!(line.find_next_word(4), None);
-    assert_eq!(line.find_next_word(5), None);
+    assert_eq!(line.find_next_word(None), Some(0));
+    assert_eq!(line.find_next_word(Some(0)), Some(2));
+    assert_eq!(line.find_next_word(Some(1)), Some(2));
+    assert_eq!(line.find_next_word(Some(2)), Some(5));
+    assert_eq!(line.find_next_word(Some(3)), Some(5));
+    assert_eq!(line.find_next_word(Some(4)), Some(5));
+    assert_eq!(line.find_next_word(Some(5)), None);
+    assert_eq!(line.find_next_word(Some(6)), None);
 
-    assert_eq!(line.find_prev_word(0), None);
-    assert_eq!(line.find_prev_word(1), None);
-    assert_eq!(line.find_prev_word(2), None);
-    assert_eq!(line.find_prev_word(3), Some(2));
-    assert_eq!(line.find_prev_word(4), Some(2));
-    assert_eq!(line.find_prev_word(5), Some(4));
+    assert_eq!(line.find_prev_word(Some(0)), None);
+    assert_eq!(line.find_prev_word(Some(1)), Some(0));
+    assert_eq!(line.find_prev_word(Some(2)), Some(0));
+    assert_eq!(line.find_prev_word(Some(3)), Some(0));
+    assert_eq!(line.find_prev_word(Some(4)), Some(3));
+    assert_eq!(line.find_prev_word(Some(5)), Some(3));
+    assert_eq!(line.find_prev_word(Some(6)), Some(5));
+    assert_eq!(line.find_prev_word(None), Some(5));
 }
 
 #[test]
@@ -276,8 +286,25 @@ impl ReadBuffer {
         self.search.clear_search_word();
         self.search.hide_search();
     }
+    fn word_start_cursor(&self, row: usize, col: usize) -> Cursor {
+        Cursor {
+            row: row,
+            col: self.line(row).word_range(col).unwrap().start,
+        }
+    }
     pub fn jump_word_forward(&mut self) {
-
+        let next_cursor0 = self.line(self.cursor.row).find_next_word(Some(self.cursor.col)).map(|col| self.word_start_cursor(self.cursor.row, col));
+        let nc0 = next_cursor0.or({
+            let mut range = vec![];
+            for i in self.cursor.row+1 .. self.buf.len() { range.push(i) }
+            for i in 0..self.cursor.row+1 { range.push(i) }
+            range.into_iter().map(|row|
+                self.line(row).find_next_word(None).map(|col| self.word_start_cursor(row, col))
+            ).find(|x| x.is_some()).unwrap_or(None)
+        });
+        for nc in nc0 {
+            self.cursor = nc;
+        }
     }
     pub fn jump_word_backward(&mut self) {
 
