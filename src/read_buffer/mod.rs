@@ -42,11 +42,49 @@ impl <'a> Line<'a> {
         let higher = (col..self.line.len()).take_while(|&i| is_word_char(&self.line[i])).last().unwrap();
         Some(lower .. higher+1)
     }
+    fn find_next_word(&self, col: usize) -> Option<usize> {
+        let start = if !is_word_char(&self.line[col]) {
+            col
+        } else {
+            self.word_range(col).unwrap().end
+        };
+        self.line[start..].iter().position(|e| is_word_char(e)).map(|i| i+start)
+    }
+    fn find_prev_word(&self, col: usize) -> Option<usize> {
+        let end = if !is_word_char(&self.line[col]) {
+            col
+        } else {
+            self.word_range(col).unwrap().start
+        };
+        let slice = &self.line[0..end];
+        slice.iter().rev().position(|e| is_word_char(e)).map(|i| slice.len() - 1 - i)
+    }
+}
+
+#[test]
+fn test_find_word() {
+    use self::BufElem::*;
+    let v = vec![Char(' '),Char('a'),Char('b'),Char(' '),Char('c'),Eol];
+    let line = Line::new(&v);
+
+    assert_eq!(line.find_next_word(0), Some(1));
+    assert_eq!(line.find_next_word(1), Some(4));
+    assert_eq!(line.find_next_word(2), Some(4));
+    assert_eq!(line.find_next_word(3), Some(4));
+    assert_eq!(line.find_next_word(4), None);
+    assert_eq!(line.find_next_word(5), None);
+
+    assert_eq!(line.find_prev_word(0), None);
+    assert_eq!(line.find_prev_word(1), None);
+    assert_eq!(line.find_prev_word(2), None);
+    assert_eq!(line.find_prev_word(3), Some(2));
+    assert_eq!(line.find_prev_word(4), Some(2));
+    assert_eq!(line.find_prev_word(5), Some(4));
 }
 
 #[test]
 fn test_line_word_range() {
-    use crate::read_buffer::BufElem::*;
+    use self::BufElem::*;
     let v = vec![Char('a'), Char('b'), Char(' '), Char('c'), Eol];
     let line = Line::new(&v);
     assert_eq!(line.word_range(0), Some(0..2));
@@ -242,7 +280,7 @@ impl ReadBuffer {
 
     }
     pub fn jump_word_backward(&mut self) {
-        
+
     }
     pub fn search_jump_forward(&mut self) {
         self.search.show_search();
