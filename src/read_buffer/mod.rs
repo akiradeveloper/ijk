@@ -238,6 +238,12 @@ impl ReadBuffer {
         self.search.clear_search_word();
         self.search.hide_search();
     }
+    pub fn jump_word_forward(&mut self) {
+
+    }
+    pub fn jump_word_backward(&mut self) {
+        
+    }
     pub fn search_jump_forward(&mut self) {
         self.search.show_search();
         let next = self.search.next(self.cursor, &self.buf);

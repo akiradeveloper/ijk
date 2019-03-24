@@ -864,6 +864,14 @@ impl EditBuffer {
         self.rb.jump_page_backward();
         INIT.to_owned()
     }
+    fn eff_jump_word_forward(&mut self, _: Key) -> String {
+        self.rb.jump_word_forward();
+        INIT.to_owned()
+    }
+    fn eff_jump_word_backward(&mut self, _: Key) -> String {
+        self.rb.jump_word_backward();
+        INIT.to_owned()
+    }
     pub fn eff_enter_jump_mode(&mut self, k: Key) -> String {
         self.rb.enter_jump_mode(k);
         JUMP.to_owned()
@@ -985,6 +993,8 @@ def_effect!(AccJumpNum, EditBuffer, eff_acc_jump_num);
 def_effect!(Jump, EditBuffer, eff_jump);
 def_effect!(CancelJump, EditBuffer, eff_cancel_jump);
 def_effect!(JumpLast, EditBuffer, eff_jump_last);
+def_effect!(JumpWordForward, EditBuffer, eff_jump_word_forward);
+def_effect!(JumpWordBackward, EditBuffer, eff_jump_word_backward);
 
 def_effect!(EnterReplaceOnceMode, EditBuffer, eff_enter_replace_once_mode);
 def_effect!(CancelReplaceOnceMode, EditBuffer, eff_cancel_replace_once_mode);
@@ -1047,6 +1057,8 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(COMMAND, Esc, Rc::new(CancelCommandMode(x.clone())));
     g.add_edge(COMMAND, Otherwise, Rc::new(ExecuteCommand(x.clone())));
 
+    // immutable
+
     g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
     g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
     g.add_edge(INIT, Char('h'), Rc::new(CursorLeft(x.clone())));
@@ -1058,6 +1070,8 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('G'), Rc::new(JumpLast(x.clone())));
     g.add_edge(INIT, Char('n'), Rc::new(SearchJumpForward(x.clone())));
     g.add_edge(INIT, Char('N'), Rc::new(SearchJumpBackward(x.clone())));
+    g.add_edge(INIT, Char('w'), Rc::new(JumpWordForward(x.clone())));
+    g.add_edge(INIT, Char('b'), Rc::new(JumpWordBackward(x.clone())));
 
     // num jump
     g.add_edge(INIT, CharRange('1', '9'), Rc::new(EnterJumpMode(x.clone())));
