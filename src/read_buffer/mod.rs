@@ -10,6 +10,19 @@ pub mod search;
 
 type Buf = Vec<Vec<BufElem>>;
 
+fn is_word_char(e: &BufElem) -> bool {
+    match e {
+        BufElem::Eol => false,
+        BufElem::Char(c) => match c {
+            '_' => true,
+            'a' ... 'z' => true,
+            'A' ... 'Z' => true,
+            '0' ... '9' => true,
+            _ => false
+        }
+    }
+}
+
 pub struct Line<'a> {
     line: &'a [BufElem]
 }
@@ -21,17 +34,6 @@ impl <'a> Line<'a> {
         self.line.iter().position(|c| c != &BufElem::Char(' ') && c != &BufElem::Char('\t')).unwrap()
     }
     pub fn word_range(&self, col: usize) -> Option<std::ops::Range<usize>> {
-        fn is_word_char(e: &BufElem) -> bool {
-            match e {
-                BufElem::Eol => false,
-                BufElem::Char(c) => match c {
-                    '_' => true,
-                    'a' ... 'z' => true,
-                    'A' ... 'Z' => true,
-                    _ => false
-                }
-            }
-        }
         if !is_word_char(&self.line[col]) {
             return None
         }
@@ -225,11 +227,13 @@ impl ReadBuffer {
     pub fn search_mode_input(&mut self, k: Key) {
         match k {
             Key::Backspace => self.search.pop_search_word(),
+            // FIXME
             Key::Char(c) if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') => self.search.push_search_word(c),
             _ => {}
         }
     }
     pub fn leave_search_mode(&mut self) {
+        self.search_jump_forward()
     }
     pub fn cancel_search_mode(&mut self) {
         self.search.clear_search_word();

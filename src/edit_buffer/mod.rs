@@ -935,19 +935,6 @@ impl EditBuffer {
             _ => REPLACE_ONCE.to_owned()
         }
     }
-    fn eff_enter_warp(&mut self, _: Key) -> String {
-        WARP.to_owned()
-    }
-    fn eff_cancel_warp(&mut self, _: Key) -> String {
-        INIT.to_owned()
-    }
-    fn eff_warp(&mut self, k: Key) -> String {
-        self.rb.enter_search_mode();
-        self.rb.search_mode_input(k);
-        self.rb.leave_search_mode();
-        self.rb.search_jump_forward();
-        INIT.to_owned()
-    }
 }
 
 use crate::Key;
@@ -1009,10 +996,6 @@ def_effect!(LeaveSearchMode, EditBuffer, eff_leave_search_mode);
 def_effect!(CancelSearchMode, EditBuffer, eff_cancel_search_mode);
 def_effect!(SearchJumpForward, EditBuffer, eff_search_jump_forward);
 def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward);
-
-def_effect!(EnterWarp, EditBuffer, eff_enter_warp);
-def_effect!(CancelWarp, EditBuffer, eff_cancel_warp);
-def_effect!(Warp, EditBuffer, eff_warp);
 
 def_effect!(EnterCommandMode, EditBuffer, eff_enter_command_mode);
 def_effect!(CancelCommandMode, EditBuffer, eff_cancel_command_mode);
@@ -1087,10 +1070,6 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(SEARCH, Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
     g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
     g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())));
-
-    g.add_edge(INIT, Char('w'), Rc::new(EnterWarp(x.clone())));
-    g.add_edge(WARP, Esc, Rc::new(CancelWarp(x.clone())));
-    g.add_edge(WARP, Otherwise, Rc::new(Warp(x.clone())));
 
     controller::ControllerFSM::new(INIT, Box::new(g))
 }
