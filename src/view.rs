@@ -81,10 +81,10 @@ impl <V: View + ?Sized> View for Box<V> {
 pub struct NullView {}
 impl View for NullView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        (' ', Color::Black, Color::Black)
+        (' ', default_fg(), default_bg())
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
+        Some(Cursor { row:0, col:0 })
     }
 }
 pub struct NullViewGen {}

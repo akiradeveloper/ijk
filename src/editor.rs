@@ -120,7 +120,7 @@ impl <D: Drawable> Editor<D> {
 
         let (page_area, common_area) = area.split_vertical(area.height - 2);
         let (status_area, message_area) = common_area.split_vertical(1);
-        let page = self.navigator.borrow().current.clone();
+        let page = self.navigator.borrow().current_page();
         let page_view = page.view_gen().gen(page_area);
         let view = page_view;
 
@@ -184,7 +184,7 @@ impl <D: Drawable> Editor<D> {
                             continue;
                         }
                     };
-                    let page = self.navigator.borrow().current.clone();
+                    let page = self.navigator.borrow().current_page();
 
                     flame::start("editor.receive");
                     page.controller().receive(kk);

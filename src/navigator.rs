@@ -1,18 +1,14 @@
-use super::controller::{self, Controller};
-use super::view::{self, View, Area};
-use super::read_buffer::{self, ReadBuffer};
-use crate::read_buffer::{BufElem, Cursor};
+use super::controller;
+use super::view;
+use super::read_buffer::{self, BufElem, ReadBuffer};
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::screen::Color;
 use crate::message_box::MessageBox;
-use crate::edit_buffer;
 
 #[derive(PartialEq)]
 pub enum PageKind {
     Buffer,
     Directory,
-    License,
     Navigator,
 }
 
@@ -25,46 +21,10 @@ pub trait Page {
     fn message(&self) -> MessageBox;
 }
 
-struct LicensePage {
-    controller: Box<controller::Controller>,
-    view_gen: Box<view::ViewGen>,
-}
-impl LicensePage {
-    fn new() -> Self {
-        let s = include_str!("../LICENSE");
-        let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open_buffer(s)));
-        Self {
-            controller: Box::new(edit_buffer::mk_controller(eb.clone())),
-            view_gen: Box::new(edit_buffer::ViewGen::new(eb)),
-        }
-    }
-}
-
-impl Page for LicensePage {
-    fn controller(&self) -> &Box<controller::Controller> {
-        &self.controller
-    }
-    fn view_gen(&self) -> &Box<view::ViewGen> {
-        &self.view_gen
-    }
-    fn kind(&self) -> PageKind {
-        PageKind::License
-    }
-    fn id(&self) -> String {
-        "license".to_owned()
-    }
-    fn status(&self) -> String {
-        "[License]".to_owned()
-    }
-    fn message(&self) -> MessageBox {
-        MessageBox::new()
-    }
-}
-
 const INIT: &str = "Normal";
 
 pub struct Navigator {
-    pub current: Rc<Page>,
+    current: Option<Rc<Page>>,
     list: Vec<Rc<Page>>,
     rb: ReadBuffer,
     state: String,
@@ -72,17 +32,17 @@ pub struct Navigator {
 }
 impl Navigator {
     pub fn new() -> Self {
-        let license_page = Rc::new(LicensePage::new());
         let message_box = MessageBox::new();
-        let mut r = Self {
-            current: license_page.clone(),
-            list: vec![license_page],
-            rb: read_buffer::ReadBuffer::new(vec![], message_box.clone()), // not valid
+        Self {
+            current: None,
+            list: vec![],
+            rb: read_buffer::ReadBuffer::new(vec![], message_box.clone()),
             state: INIT.to_owned(),
             message_box,
-        };
-        r.refresh_buffer();
-        r
+        }
+    }
+    pub fn current_page(&self) -> Rc<Page> {
+        self.current.clone().unwrap().clone()
     }
     fn update_cache(&mut self) {
 
@@ -101,7 +61,7 @@ impl Navigator {
     }
     pub fn set(&mut self, page: Rc<Page>) {
         self.refresh_buffer();
-        self.current = page;
+        self.current = Some(page);
     }
     fn select(&mut self, i: usize) {
         let e = self.list.remove(i);
@@ -109,18 +69,10 @@ impl Navigator {
         self.set(self.list[0].clone());
     }
     fn delete(&mut self, i: usize) {
-        if self.list[i].kind() == PageKind::License {
-            self.message_box.send("License can not be deleted");
-            return;
-        }
         self.list.remove(i);
         self.refresh_buffer()
     }
     pub fn pop(&mut self) {
-        if self.list[0].kind() == PageKind::License {
-            self.message_box.send("License can not be deleted");
-            return;
-        }
         self.list.remove(0);
         self.select(0);
     }

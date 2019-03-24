@@ -41,7 +41,7 @@ pub struct EditBuffer {
     visual_cursor: Option<Cursor>,
     change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
-    path: Option<path::PathBuf>,
+    path: path::PathBuf,
     sync_clock: Option<Instant>,
     highlighter: highlight::Highlighter,
     message_box: MessageBox,
@@ -85,36 +85,11 @@ impl EditBuffer {
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
-            path: Some(path.to_owned()),
+            path: path.to_owned(),
             sync_clock: None,
             highlighter: highlight::Highlighter::new(n_rows, ext),
             message_box,
         }
-    }
-    pub fn open_buffer(s: &str) -> EditBuffer {
-        let ext = None;
-        let s = match s {
-            "" => None,
-            s => Some(s.to_owned())
-        };
-        let init_buf = crate::read_buffer::read_from_string(s);
-        let n_rows = init_buf.len();
-        let message_box = MessageBox::new();
-
-        EditBuffer {
-            rb: ReadBuffer::new(init_buf, message_box.clone()),
-            state: INIT.to_owned(),
-            visual_cursor: None,
-            change_log_buffer: ChangeLogBuffer::new(),
-            edit_state: None,
-            path: None,
-            sync_clock: None,
-            highlighter: highlight::Highlighter::new(n_rows, ext),
-            message_box,
-        }
-    }
-    fn is_writable(&self) -> bool {
-        self.path.is_some()
     }
     fn insert_new_line(&mut self, row: usize) {
         self.rb.buf.insert(row, vec![]);
@@ -432,9 +407,7 @@ impl EditBuffer {
         INIT.to_owned()
     }
     fn save_to_file(&mut self) {
-        if self.path.is_none() { return }
-        let path = self.path.clone().unwrap();
-        if let Ok(file) = fs::File::create(path) {
+        if let Ok(file) = fs::File::create(&self.path) {
             let buf = &self.rb.buf;
             crate::read_buffer::write_to_file(file, &buf);
             self.sync_clock = self.change_log_buffer.clock();
@@ -1043,44 +1016,42 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
 
-    if x.borrow().is_writable() {
-        g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
-        g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
-        g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
-        g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
-        g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
-        g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
-        g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
-        g.add_edge(INIT, Char('O'), Rc::new(EnterInsertNewlineAbove(x.clone())));
-        g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
-        g.add_edge(INIT, Char('A'), Rc::new(EnterInsertModeLineLast(x.clone())));
-        g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
-        g.add_edge(INIT, Char('C'), Rc::new(ChangeLineTail(x.clone())));
-        g.add_edge(INIT, Char('c'), Rc::new(ChangeRange(x.clone())));
-        g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
-        g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
-        g.add_edge(INIT, Ctrl('p'), Rc::new(PasteSystem(x.clone())));
-        g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
-        g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
+    g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
+    g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
+    g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
+    g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
+    g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
+    g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
+    g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
+    g.add_edge(INIT, Char('O'), Rc::new(EnterInsertNewlineAbove(x.clone())));
+    g.add_edge(INIT, Char('i'), Rc::new(EnterInsertMode(x.clone())));
+    g.add_edge(INIT, Char('A'), Rc::new(EnterInsertModeLineLast(x.clone())));
+    g.add_edge(INIT, Char('a'), Rc::new(EnterAppendMode(x.clone())));
+    g.add_edge(INIT, Char('C'), Rc::new(ChangeLineTail(x.clone())));
+    g.add_edge(INIT, Char('c'), Rc::new(ChangeRange(x.clone())));
+    g.add_edge(INIT, Char('p'), Rc::new(Paste(x.clone())));
+    g.add_edge(INIT, Char('P'), Rc::new(PasteAbove(x.clone())));
+    g.add_edge(INIT, Ctrl('p'), Rc::new(PasteSystem(x.clone())));
+    g.add_edge(INIT, Char('y'), Rc::new(YankRange(x.clone())));
+    g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
 
-        g.add_edge(INIT, Char('r'), Rc::new(EnterReplaceOnceMode(x.clone())));
-        g.add_edge(REPLACE_ONCE, Esc, Rc::new(CancelReplaceOnceMode(x.clone())));
-        g.add_edge(REPLACE_ONCE, Otherwise, Rc::new(CommitReplaceOnce(x.clone())));
-        
-        g.add_edge(WILL_YANK, Char('y'), Rc::new(YankLine(x.clone())));
-        g.add_edge(WILL_YANK, Esc, Rc::new(CancelWillMode(x.clone())));
-        g.add_edge(WILL_DELETE, Char('d'), Rc::new(DeleteLine(x.clone())));
-        g.add_edge(WILL_DELETE, Char('w'), Rc::new(DeleteWord(x.clone())));
-        g.add_edge(WILL_DELETE, Esc, Rc::new(CancelWillMode(x.clone())));
-        g.add_edge(WILL_CHANGE, Char('w'), Rc::new(ChangeWord(x.clone())));
-        g.add_edge(WILL_CHANGE, Esc, Rc::new(CancelWillMode(x.clone())));
+    g.add_edge(INIT, Char('r'), Rc::new(EnterReplaceOnceMode(x.clone())));
+    g.add_edge(REPLACE_ONCE, Esc, Rc::new(CancelReplaceOnceMode(x.clone())));
+    g.add_edge(REPLACE_ONCE, Otherwise, Rc::new(CommitReplaceOnce(x.clone())));
+    
+    g.add_edge(WILL_YANK, Char('y'), Rc::new(YankLine(x.clone())));
+    g.add_edge(WILL_YANK, Esc, Rc::new(CancelWillMode(x.clone())));
+    g.add_edge(WILL_DELETE, Char('d'), Rc::new(DeleteLine(x.clone())));
+    g.add_edge(WILL_DELETE, Char('w'), Rc::new(DeleteWord(x.clone())));
+    g.add_edge(WILL_DELETE, Esc, Rc::new(CancelWillMode(x.clone())));
+    g.add_edge(WILL_CHANGE, Char('w'), Rc::new(ChangeWord(x.clone())));
+    g.add_edge(WILL_CHANGE, Esc, Rc::new(CancelWillMode(x.clone())));
 
-        g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
-        g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
+    g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
+    g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
 
-        g.add_edge(INIT, Ctrl('r'), Rc::new(Redo(x.clone())));
-        g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
-    }
+    g.add_edge(INIT, Ctrl('r'), Rc::new(Redo(x.clone())));
+    g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
 
     g.add_edge(INIT, Char(' '), Rc::new(EnterCommandMode(x.clone())));
     g.add_edge(COMMAND, Esc, Rc::new(CancelCommandMode(x.clone())));
@@ -1244,21 +1215,14 @@ impl navigator::Page for Page {
         } else {
             ""
         };
-        let path = match self.x.borrow().path.clone() {
-            Some(p) => p.to_str().unwrap().to_owned(),
-            None => panic!(),
-        };
+        let path = self.x.borrow().path.to_str().unwrap().to_owned();
         format!("[Buffer -{}-] {}{}", state, dirty_mark, path)
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Buffer
     }
     fn id(&self) -> String {
-        // "aaa".to_owned()
-        match self.x.borrow().path.clone() {
-            Some(p) => p.to_str().unwrap().to_owned(),
-            None => panic!(),
-        }
+        self.x.borrow().path.to_str().unwrap().to_owned()
     }
     fn message(&self) -> MessageBox {
         self.x.borrow().message_box.clone()
