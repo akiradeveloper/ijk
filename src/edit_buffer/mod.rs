@@ -4,6 +4,7 @@ pub mod diff_buffer;
 pub mod highlight;
 pub mod indent;
 pub mod undo_buffer;
+mod diff_tree;
 
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;
