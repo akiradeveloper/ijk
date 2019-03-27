@@ -31,7 +31,7 @@ impl Node {
 
 type NodeId = usize;
 
-struct DiffTree {
+pub struct DiffTree {
     pre_buffer: Vec<BufElem>,
     stack: Vec<NodeId>,
     nodes: HashMap<NodeId, Node>,
@@ -151,12 +151,15 @@ impl DiffTree {
             Key::Char('\n') => {
                 self.before_change_buffer();
 
-                let mut v1 = vec![];
-                let mut res = self.flatten();
-                v1.append(&mut res.0);
-                let v1 = &v1[0..res.1];
-                
                 // find the first eol from the current position backward
+                let mut v1 = self.pre_buffer.clone();
+                let mut v2 = {
+                    let res = self.flatten();
+                    let mut v = res.0;
+                    v.split_off(res.1);
+                    v
+                };
+                v1.append(&mut v2);
                 let start_of_cur_line = if v1.is_empty() {
                     0
                 } else {

@@ -50,7 +50,6 @@ pub struct EditBuffer {
     message_box: MessageBox,
 }
 
-#[derive(Clone)]
 struct EditState {
     diff_buffer: DiffBuffer,
     at: Cursor,
@@ -336,24 +335,17 @@ impl EditBuffer {
             orig_buf: orig_buf,
         });
 
-        let es = self.edit_state.clone().unwrap();
-        self.insert_new_line(es.at.row);
+        self.insert_new_line(self.es_ref().at.row);
+
         let mut b = false;
-        let after_pre_inserted = self.insert(
-            Cursor {
-                row: es.at.row,
-                col: 0,
-            },
-            &es.diff_buffer.pre_buf(),
-            &mut b,
-        );
-        let after_diff_inserted = self.insert(
-            after_pre_inserted,
-            &es.diff_buffer.diff_buf_raw.clone(),
-            &mut b,
-        ); // will delete
-        self.insert(after_diff_inserted, &es.diff_buffer.post_buf(), &mut b);
-        self.rb.cursor = after_diff_inserted;
+        let after_pre_inserted = self.insert(Cursor { row: self.es_ref().at.row, col: 0, }, &self.es_ref().diff_buffer.pre_buf(), &mut b);
+        let (mut diff_buf_raw0, cursor_offset) = self.es_ref().diff_buffer.diff_buf_raw.flatten();
+        let diff_buf_raw1 = diff_buf_raw0.split_off(cursor_offset);
+        let after_diff0_inserted = self.insert(after_pre_inserted, &diff_buf_raw0, &mut b);
+        let after_diff1_inserted = self.insert(after_diff0_inserted, &diff_buf_raw1, &mut b);
+        self.insert(after_diff1_inserted, &self.es_ref().diff_buffer.post_buf(), &mut b);
+
+        self.rb.cursor = after_diff0_inserted;
         self.visual_cursor = None;
     }
     fn commit_edit_state(&mut self) -> Vec<BufElem> {
@@ -542,45 +534,33 @@ impl EditBuffer {
         self.create_edit_state(&delete_range, vec![], vec![]);
         INSERT.to_owned()
     }
+    fn es_ref(&self) -> &EditState {
+        self.edit_state.as_ref().unwrap()
+    }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
-        let es = self.edit_state.as_mut().unwrap();
-        es.diff_buffer.input(k.clone());
-
-        let es = self.edit_state.clone().unwrap();
+        self.edit_state.as_mut().unwrap().diff_buffer.input(k.clone());
 
         {
             let n = self.rb.buf.len();
-            let m = es.orig_buf.len();
+            let m = self.es_ref().orig_buf.len();
             let rows_to_remove = n - m;
             for i in (0..rows_to_remove).rev() {
-                let row = es.at.row + i;
+                let row = self.es_ref().at.row + i;
                 self.remove_line(row);
             }
         }
 
-        self.rb.buf = es.orig_buf;
-        self.insert_new_line(es.at.row);
+        self.rb.buf = self.es_ref().orig_buf.clone();
+        self.insert_new_line(self.es_ref().at.row);
 
         let mut b = false;
-        let after_pre_inserted = self.insert(
-            Cursor {
-                row: es.at.row,
-                col: 0,
-            },
-            &es.diff_buffer.pre_buf(),
-            &mut b,
-        );
-        let after_diff_inserted = self.insert(
-            after_pre_inserted,
-            &es.diff_buffer.diff_buf_raw.clone(),
-            &mut b,
-        );
-        self.insert(
-            after_diff_inserted,
-            &es.diff_buffer.post_buf(),
-            &mut b
-        );
-        self.rb.cursor = after_diff_inserted;
+        let after_pre_inserted = self.insert(Cursor { row: self.es_ref().at.row, col: 0, }, &self.es_ref().diff_buffer.pre_buf(), &mut b);
+        let (mut diff_buf_raw0, cursor_offset) = self.es_ref().diff_buffer.diff_buf_raw.flatten();
+        let diff_buf_raw1 = diff_buf_raw0.split_off(cursor_offset);
+        let after_diff0_inserted = self.insert(after_pre_inserted, &diff_buf_raw0, &mut b);
+        let after_diff1_inserted = self.insert(after_diff0_inserted, &diff_buf_raw1, &mut b);
+        self.insert(after_diff1_inserted, &self.es_ref().diff_buffer.post_buf(), &mut b);
+        self.rb.cursor = after_diff0_inserted;
 
         INSERT.to_owned()
     }
