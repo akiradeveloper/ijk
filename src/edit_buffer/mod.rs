@@ -138,7 +138,7 @@ impl EditBuffer {
                 row: log.at.row,
                 col: 0,
             },
-            pre_survivors,
+            &pre_survivors,
             &mut b,
         );
     }
@@ -209,7 +209,7 @@ impl EditBuffer {
     fn insert(
         &mut self,
         at: Cursor,
-        buf: Vec<BufElem>,
+        buf: &[BufElem],
         should_insert_newline: &mut bool,
     ) -> Cursor {
         let mut row = at.row;
@@ -219,7 +219,7 @@ impl EditBuffer {
                 self.insert_new_line(row);
                 *should_insert_newline = false;
             }
-            match e {
+            match e.clone() {
                 x @ BufElem::Eol => {
                     self.rb.buf[row].insert(col, x);
                     *should_insert_newline = true;
@@ -344,15 +344,15 @@ impl EditBuffer {
                 row: es.at.row,
                 col: 0,
             },
-            es.diff_buffer.pre_buf(),
+            &es.diff_buffer.pre_buf(),
             &mut b,
         );
         let after_diff_inserted = self.insert(
             after_pre_inserted,
-            es.diff_buffer.diff_buf_raw.clone(),
+            &es.diff_buffer.diff_buf_raw.clone(),
             &mut b,
         ); // will delete
-        self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
+        self.insert(after_diff_inserted, &es.diff_buffer.post_buf(), &mut b);
         self.rb.cursor = after_diff_inserted;
         self.visual_cursor = None;
     }
@@ -567,15 +567,19 @@ impl EditBuffer {
                 row: es.at.row,
                 col: 0,
             },
-            es.diff_buffer.pre_buf(),
+            &es.diff_buffer.pre_buf(),
             &mut b,
         );
         let after_diff_inserted = self.insert(
             after_pre_inserted,
-            es.diff_buffer.diff_buf_raw.clone(),
+            &es.diff_buffer.diff_buf_raw.clone(),
             &mut b,
         );
-        self.insert(after_diff_inserted, es.diff_buffer.post_buf(), &mut b);
+        self.insert(
+            after_diff_inserted,
+            &es.diff_buffer.post_buf(),
+            &mut b
+        );
         self.rb.cursor = after_diff_inserted;
 
         INSERT.to_owned()
