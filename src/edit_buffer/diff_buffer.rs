@@ -19,6 +19,15 @@ fn concat<T>(x: Vec<T>, y: Vec<T>) -> Vec<T> {
 
 // pre_buf_raw + inserted() + post_buf_raw = pre_buf() + diff_buf_raw + post_buf()
 impl DiffBuffer {
+    pub fn new(pre_buf: Vec<BufElem>, diff_buf_pre: Vec<BufElem>, diff_buf_post: Vec<BufElem>, post_buf: Vec<BufElem>) -> Self {
+        Self {
+            pre_buf_raw: pre_buf,
+            diff_buf_pre: diff_buf_pre,
+            diff_buf_raw: vec![],
+            diff_buf_post: diff_buf_post,
+            post_buf_raw: post_buf,
+        }
+    }
     pub fn pre_buf(&self) -> Vec<BufElem> {
         concat(self.pre_buf_raw.clone(), self.diff_buf_pre.clone())
     }

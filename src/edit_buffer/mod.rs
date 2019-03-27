@@ -325,13 +325,12 @@ impl EditBuffer {
         let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
         let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
-            diff_buffer: DiffBuffer {
-                pre_buf_raw: pre_survivors,
-                diff_buf_pre: init_pre,
-                diff_buf_raw: vec![],
-                diff_buf_post: init_post,
-                post_buf_raw: post_survivors,
-            },
+            diff_buffer: DiffBuffer::new(
+                pre_survivors,
+                init_pre,
+                init_post,
+                post_survivors,
+            ),
             at: r.start,
             removed: removed,
             orig_buf: orig_buf,
