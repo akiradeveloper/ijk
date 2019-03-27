@@ -108,12 +108,6 @@ impl DiffTree {
         self._flatten(self.cur_node_id())
     }
     fn _flatten(&self, cursor_pin: NodeId) -> (Vec<BufElem>, usize) {
-        let mut tree_result = self.__flatten(cursor_pin);
-        let mut v = self.pre_buffer.clone();
-        v.append(&mut tree_result.0);
-        (v, self.pre_buffer.len() + tree_result.1)
-    }
-    fn __flatten(&self, cursor_pin: NodeId) -> (Vec<BufElem>, usize) {
         let mut buf = vec![];
         let mut cursor = 0;
         let mut stack = vec![0];
@@ -196,16 +190,16 @@ impl DiffTree {
 fn test_only_root() {
     use crate::read_buffer::BufElem::*;
     let mut dt = DiffTree::new(vec![Char('a'),Eol,Char('a')]);
-    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a')], 3));
+    assert_eq!(dt.flatten(), (vec![], 0));
     dt.input(Key::Backspace);
-    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a')], 3));
+    assert_eq!(dt.flatten(), (vec![], 0));
     dt.input(Key::Char('a'));
-    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a'),Char('a')], 4));
+    assert_eq!(dt.flatten(), (vec![Char('a')], 1));
     dt.input(Key::Backspace);
-    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a')], 3));
+    assert_eq!(dt.flatten(), (vec![], 0));
     
     // FIXME this test is strongly bound to rust indent
     dt.input(Key::Char('{'));
     dt.input(Key::Char('\n'));
-    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a'),Char('{'),Eol,Char(' '),Char(' '),Char(' '),Char(' ')], 9));
+    assert_eq!(dt.flatten(), (vec![Char('{'),Eol,Char(' '),Char(' '),Char(' '),Char(' ')], 6));
 }
