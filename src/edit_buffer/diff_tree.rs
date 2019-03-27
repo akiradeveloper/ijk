@@ -126,7 +126,7 @@ impl DiffTree {
                 cursor = buf.len()
             }
             
-            for &child in &cur_node.children {
+            for &child in cur_node.children.iter().rev() {
                 stack.push(child);
             }
         }
