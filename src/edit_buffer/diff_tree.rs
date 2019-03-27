@@ -9,7 +9,7 @@ enum ChildComponent {
 }
 
 struct Node {
-    placeholder: Vec<BufElem>,
+    is_placeholder: bool,
     buffer: Vec<BufElem>,
     children: Vec<NodeId>,
 }
@@ -17,7 +17,7 @@ impl Node {
     fn new(placeholder: Vec<BufElem>) -> Self {
         Self {
             buffer: placeholder.clone(),
-            placeholder,
+            is_placeholder: true,
             children: vec![],
         }
     }
@@ -64,6 +64,10 @@ impl DiffTree {
         let x = self.next_node_id; self.next_node_id += 1;
         x
     }
+
+    // TODO rollback the buffer when starting a snippet
+    // [a,b,c, ,f,o] -> [a,b,c, ,] + snippet
+
     fn add_children(&mut self, children: Vec<ChildComponent>) {
         let mut mutables = vec![];
         let mut children_ids = vec![];
@@ -128,20 +132,31 @@ impl DiffTree {
         }
         (buf, cursor)
     }
+    fn before_change_buffer(&mut self) {
+        if self.cur_node().is_placeholder {
+            self.cur_node().buffer.clear();
+            self.cur_node().is_placeholder = false;
+        }
+    }
     pub fn input(&mut self, k: Key) {
         assert!(self.stack.len() > 0);
         match k {
             Key::Char('\t') => {
                 if self.stack.len() == 1 {
+                    self.before_change_buffer();
                     self.cur_node().buffer.push(BufElem::Char('\t'))
                 } else {
+                    // go to the next tab stop
                     self.stack.pop();
                 }
             },
             Key::Backspace => {
+                self.before_change_buffer();
                 self.cur_node().buffer.pop();
             },
             Key::Char('\n') => {
+                self.before_change_buffer();
+
                 let mut v1 = vec![];
                 let mut res = self.flatten();
                 v1.append(&mut res.0);
@@ -169,6 +184,7 @@ impl DiffTree {
                 self.cur_node().buffer.append(&mut v);
             },
             Key::Char(c) => {
+                self.before_change_buffer();
                 self.cur_node().buffer.push(BufElem::Char(c))
             },
             _ => {}
