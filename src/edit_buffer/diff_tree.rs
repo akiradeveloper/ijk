@@ -53,6 +53,9 @@ impl DiffTree {
     fn node(&self, i: NodeId) -> &Node {
         self.nodes.get(&i).unwrap()
     }
+    fn cur_node_id(&self) -> NodeId {
+        self.stack.last().cloned().unwrap()
+    }
     fn cur_node(&mut self) -> &mut Node {
         let cur_id = self.stack.last().unwrap();
         self.nodes.get_mut(cur_id).unwrap()
@@ -89,18 +92,41 @@ impl DiffTree {
         }
         self.cur_node().add_children(children_ids);
     }
-    fn right_most_node_id(&self) -> NodeId {
-        let mut cur = 0;
-        while !self.node(cur).is_leaf() {
-            let cur_node = self.node(cur);
-            cur = *cur_node.children.last().unwrap();
-        }
-        cur
+    // fn right_most_node_id(&self) -> NodeId {
+    //     let mut cur = 0;
+    //     while !self.node(cur).is_leaf() {
+    //         let cur_node = self.node(cur);
+    //         cur = *cur_node.children.last().unwrap();
+    //     }
+    //     cur
+    // }
+    pub fn flatten(&self) -> (Vec<BufElem>, usize) {
+        self._flatten(self.cur_node_id())
     }
-    fn flatten(&self, to: NodeId) -> (Vec<BufElem>, usize) {
-        // tmp
-        let node = self.nodes.get(&to).unwrap();
-        (node.buffer.clone(), node.buffer.len())
+    fn _flatten(&self, cursor_pin: NodeId) -> (Vec<BufElem>, usize) {
+        let mut tree_result = self.__flatten(cursor_pin);
+        let mut v = self.pre_buffer.clone();
+        v.append(&mut tree_result.0);
+        (v, self.pre_buffer.len() + tree_result.1)
+    }
+    fn __flatten(&self, cursor_pin: NodeId) -> (Vec<BufElem>, usize) {
+        let mut buf = vec![];
+        let mut cursor = 0;
+        let mut stack = vec![0];
+        while !stack.is_empty() {
+            let cur_id = stack.pop().unwrap();
+            let cur_node = self.node(cur_id);
+
+            buf.append(&mut cur_node.buffer.clone());
+            if cur_id == cursor_pin {
+                cursor = buf.len()
+            }
+            
+            for &child in &cur_node.children {
+                stack.push(child);
+            }
+        }
+        (buf, cursor)
     }
     pub fn input(&mut self, k: Key) {
         assert!(self.stack.len() > 0);
@@ -117,8 +143,11 @@ impl DiffTree {
             },
             Key::Char('\n') => {
                 let mut v1 = vec![];
-                v1.append(&mut self.pre_buffer.clone());
-                v1.append(&mut self.flatten(self.stack.last().cloned().unwrap()).0);
+                let mut res = self.flatten();
+                v1.append(&mut res.0);
+                let v1 = &v1[0..res.1];
+                
+                // find the first eol from the current position backward
                 let start_of_cur_line = if v1.is_empty() {
                     0
                 } else {
@@ -145,4 +174,17 @@ impl DiffTree {
             _ => {}
         }
     }
+}
+
+#[test]
+fn test_only_root() {
+    use crate::read_buffer::BufElem::*;
+    let mut dt = DiffTree::new(vec![Char('a'),Eol,Char('a')]);
+    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a')], 3));
+    dt.input(Key::Backspace);
+    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a')], 3));
+    dt.input(Key::Char('a'));
+    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a'),Char('a')], 4));
+    dt.input(Key::Backspace);
+    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a')], 3));
 }
