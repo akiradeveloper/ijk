@@ -187,4 +187,9 @@ fn test_only_root() {
     assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a'),Char('a')], 4));
     dt.input(Key::Backspace);
     assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a')], 3));
+    
+    // FIXME this test is strongly bound to rust indent
+    dt.input(Key::Char('{'));
+    dt.input(Key::Char('\n'));
+    assert_eq!(dt.flatten(), (vec![Char('a'),Eol,Char('a'),Char('{'),Eol,Char(' '),Char(' '),Char(' '),Char(' ')], 9));
 }
