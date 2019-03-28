@@ -526,10 +526,15 @@ impl EditBuffer {
         }
     }
     fn eff_change_word(&mut self, _: Key) -> String {
-        for range in self.word_range() {
-            self.create_edit_state(&range, vec![], vec![]);
+        match self.word_range() {
+            Some(range) => {
+                self.create_edit_state(&range, vec![], vec![]);
+                INSERT.to_owned()
+            },
+            None => {
+                INIT.to_owned()
+            }
         }
-        INSERT.to_owned()
     }
     fn eff_change_line_tail(&mut self, _: Key) -> String {
         let delete_range = self.line_tail_range();
