@@ -30,6 +30,18 @@ const INSERT: &str = "Insert";
 const SEARCH: &str = "Search";
 const JUMP: &str = "Jump";
 
+fn to_elems(x: &str) -> Vec<BufElem> {
+    let mut v = vec![];
+    for c in x.chars() {
+        let e = match c {
+            '\n' => BufElem::Eol,
+            c => BufElem::Char(c),
+        };
+        v.push(e)
+    }
+    v
+}
+
 fn to_cursor_range_end(cursor: Cursor) -> Cursor {
     Cursor {
         row: cursor.row,
@@ -335,7 +347,7 @@ impl EditBuffer {
         });
 
         self.writeback_edit_state();
-        
+
         self.visual_cursor = None;
     }
     fn commit_edit_state(&mut self) -> Vec<BufElem> {
@@ -920,6 +932,22 @@ impl EditBuffer {
             _ => REPLACE_ONCE.to_owned()
         }
     }
+    fn eff_start_temporary_snippet(&mut self, _: Key) -> String {
+        use self::diff_tree::ChildComponent::*;
+        let temporary_snippet = vec![Fixed(to_elems("for"))];
+        // let temporary_snippet = vec![
+        //     Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {\n")),
+        //     Fixed(to_elems("\t")),Dynamic(to_elems("unimplimented()!"),2),
+        //     Fixed(to_elems("}"))
+        // ];
+        self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.add_children(
+            temporary_snippet,
+        );
+
+        self.restore_buf_before_writeback();
+        self.writeback_edit_state();
+        INSERT.to_owned()
+    }
 }
 
 use crate::Key;
@@ -928,6 +956,8 @@ use std::rc::Rc;
 
 use crate::controller::Effect;
 use crate::def_effect;
+
+def_effect!(StartTemporarySnippet, EditBuffer, eff_start_temporary_snippet);
 
 def_effect!(Undo, EditBuffer, eff_undo);
 def_effect!(Redo, EditBuffer, eff_redo);
@@ -992,6 +1022,8 @@ use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
+
+    g.add_edge(INSERT, Ctrl('s'), Rc::new(StartTemporarySnippet(x.clone())));
 
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
     g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));

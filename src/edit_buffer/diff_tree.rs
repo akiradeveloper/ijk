@@ -3,7 +3,7 @@ use crate::read_buffer::BufElem;
 use super::indent;
 use std::collections::HashMap;
 
-enum ChildComponent {
+pub enum ChildComponent {
     Fixed(Vec<BufElem>),
     Dynamic(Vec<BufElem>, usize), // placeholder, order
 }
@@ -68,7 +68,7 @@ impl DiffTree {
     // TODO rollback the buffer when starting a snippet
     // [a,b,c, ,f,o] -> [a,b,c, ,] + snippet
 
-    fn add_children(&mut self, children: Vec<ChildComponent>) {
+    pub fn add_children(&mut self, children: Vec<ChildComponent>) {
         let mut mutables = vec![];
         let mut children_ids = vec![];
         for (i, cc) in children.into_iter().enumerate() {
