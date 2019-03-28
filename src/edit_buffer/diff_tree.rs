@@ -3,7 +3,9 @@ use crate::read_buffer::BufElem;
 use super::indent;
 use std::collections::HashMap;
 
+#[derive(PartialEq, Clone)]
 pub enum ChildComponent {
+    Eol,
     Fixed(Vec<BufElem>),
     Dynamic(Vec<BufElem>, usize), // placeholder, order
 }
@@ -53,6 +55,9 @@ impl DiffTree {
     fn node(&self, i: NodeId) -> &Node {
         self.nodes.get(&i).unwrap()
     }
+    fn node_mut(&mut self, i: NodeId) -> &mut Node {
+        self.nodes.get_mut(&i).unwrap()
+    }
     fn cur_node_id(&self) -> NodeId {
         self.stack.last().cloned().unwrap()
     }
@@ -72,20 +77,30 @@ impl DiffTree {
     pub fn add_children(&mut self, children: Vec<ChildComponent>) {
         let mut dynamics = vec![];
         let mut children_ids = vec![];
-        for cc in children.into_iter() {
+        for cc in children.iter() {
             let node_id = self.next_node_id();
-            let placeholder = match cc {
+            let placeholder: Vec<BufElem> = match cc.clone() {
+                ChildComponent::Eol => {
+                    vec![]
+                },
                 ChildComponent::Fixed(placeholder) => {
-                    placeholder
+                    placeholder.clone()
                 },
                 ChildComponent::Dynamic(placeholder, order) => {
                     dynamics.push((order, node_id));
-                    placeholder
+                    placeholder.clone()
                 }
             };
             let n = Node::new(placeholder);
             self.nodes.insert(node_id, n);
             children_ids.push(node_id);
+
+            if cc == &ChildComponent::Eol {
+                let auto_indent = self.current_auto_indent(node_id);
+                let mut v = vec![BufElem::Eol];
+                v.append(&mut auto_indent.current_indent());
+                self.node_mut(node_id).buffer = v;
+            }
         }
 
         self.cur_node().add_children(children_ids);
@@ -139,6 +154,33 @@ impl DiffTree {
             self.cur_node().is_placeholder = false;
         }
     }
+    fn current_auto_indent(&self, node_id: NodeId) -> indent::AutoIndent {
+        // find the first eol from the current position backward
+        let mut v1 = self.pre_buffer.clone();
+        let mut v2 = {
+            let res = self._flatten(node_id);
+            let mut v = res.0;
+            v.split_off(res.1);
+            v
+        };
+        v1.append(&mut v2);
+        let start_of_cur_line = if v1.is_empty() {
+            0
+        } else {
+            let mut i = v1.len();
+            while v1[i-1] != BufElem::Eol {
+                i -= 1;
+                if i == 0 {
+                    break;
+                }
+            }
+            i
+        };
+        let auto_indent = indent::AutoIndent::new(
+            &v1[start_of_cur_line..v1.len()]
+        );
+        auto_indent
+    }
     pub fn input(&mut self, k: Key) {
         assert!(self.stack.len() > 0);
         match k {
@@ -157,31 +199,7 @@ impl DiffTree {
             },
             Key::Char('\n') => {
                 self.before_change_buffer();
-
-                // find the first eol from the current position backward
-                let mut v1 = self.pre_buffer.clone();
-                let mut v2 = {
-                    let res = self.flatten();
-                    let mut v = res.0;
-                    v.split_off(res.1);
-                    v
-                };
-                v1.append(&mut v2);
-                let start_of_cur_line = if v1.is_empty() {
-                    0
-                } else {
-                    let mut i = v1.len();
-                    while v1[i-1] != BufElem::Eol {
-                        i -= 1;
-                        if i == 0 {
-                            break;
-                        }
-                    }
-                    i
-                };
-                let auto_indent = indent::AutoIndent {
-                    line_predecessors: &v1[start_of_cur_line..v1.len()],
-                };
+                let auto_indent = self.current_auto_indent(self.cur_node_id());
 
                 let mut v = vec![BufElem::Eol];
                 v.append(&mut auto_indent.next_indent());

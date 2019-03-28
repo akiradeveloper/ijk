@@ -1,12 +1,17 @@
 use super::BufElem;
 
-pub struct AutoIndent<'a> {
-    pub line_predecessors: &'a [BufElem]
+pub struct AutoIndent {
+    line_predecessors: Vec<BufElem>
 }
-impl <'a> AutoIndent<'a> {
+impl AutoIndent {
+    pub fn new(line_predecessors: &[BufElem]) -> Self {
+        Self {
+            line_predecessors: line_predecessors.to_vec()
+        }
+    }
     pub fn current_indent(&self) -> Vec<BufElem> {
         let mut v = vec![];
-        for e in self.line_predecessors {
+        for e in &self.line_predecessors {
             if *e == BufElem::Char(' ') || *e == BufElem::Char('\t') {
                 v.push(e.clone());
             } else {
@@ -39,6 +44,6 @@ impl <'a> AutoIndent<'a> {
 fn test_auto_indent() {
     use super::BufElem::*;
     let line = [Char(' '), Char(' '), Char('a'), Char('{')];
-    let ai = AutoIndent { line_predecessors: &line };
+    let ai = AutoIndent::new(&line);
     assert_eq!(ai.next_indent(), vec![Char(' '); 6]);
 }

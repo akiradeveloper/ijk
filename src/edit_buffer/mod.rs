@@ -443,9 +443,9 @@ impl EditBuffer {
             },
         };
         let mut v = vec![BufElem::Eol];
-        let auto_indent = indent::AutoIndent {
-            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
-        };
+        let auto_indent = indent::AutoIndent::new(
+            &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
+        );
         v.append(&mut auto_indent.next_indent());
         self.create_edit_state(&delete_range, v, vec![]);
         INSERT.to_owned()
@@ -456,9 +456,9 @@ impl EditBuffer {
             start: Cursor { row: row, col: 0 },
             end: Cursor { row: row, col: 0 },
         };
-        let auto_indent = indent::AutoIndent {
-            line_predecessors: &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
-        };
+        let auto_indent = indent::AutoIndent::new(
+            &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
+        );
         self.create_edit_state(
             &delete_range,
             auto_indent.current_indent(),
@@ -948,8 +948,8 @@ impl EditBuffer {
 
         // the end should be the single char
         let test_snippet = vec![
-            Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {")),Fixed(to_elems("\n")),
-            Fixed(to_elems("    ")),Dynamic(to_elems("unimplemented()!"),2),Fixed(to_elems("\n")),
+            Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {")),Eol,
+            Fixed(to_elems("    ")),Dynamic(to_elems("unimplemented()!"),2),Eol,
             Fixed(to_elems("}"))
         ];
         self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.add_children(
