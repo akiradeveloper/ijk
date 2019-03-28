@@ -937,7 +937,9 @@ impl EditBuffer {
         let test_snippet = vec![
             Fixed(to_elems("assert(")),
             // Dynamic(to_elems("x"),0),
-            Fixed(to_elems(")"))];
+            Fixed(to_elems(")")),
+            Dynamic(to_elems(""),0),
+        ];
         // let temporary_snippet = vec![
         //     Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {\n")),
         //     Fixed(to_elems("\t")),Dynamic(to_elems("unimplimented()!"),2),

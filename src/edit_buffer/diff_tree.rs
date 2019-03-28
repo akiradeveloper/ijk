@@ -61,7 +61,8 @@ impl DiffTree {
         self.nodes.get_mut(cur_id).unwrap()
     }
     fn next_node_id(&mut self) -> NodeId {
-        let x = self.next_node_id; self.next_node_id += 1;
+        let x = self.next_node_id;
+        self.next_node_id += 1;
         x
     }
 
@@ -69,32 +70,34 @@ impl DiffTree {
     // [a,b,c, ,f,o] -> [a,b,c, ,] + snippet
 
     pub fn add_children(&mut self, children: Vec<ChildComponent>) {
-        let mut mutables = vec![];
+        let mut dynamics = vec![];
         let mut children_ids = vec![];
-        for (i, cc) in children.into_iter().enumerate() {
+        for cc in children.into_iter() {
+            let node_id = self.next_node_id();
             let placeholder = match cc {
                 ChildComponent::Fixed(placeholder) => {
                     placeholder
                 },
                 ChildComponent::Dynamic(placeholder, order) => {
-                    mutables.push((order, i));
+                    dynamics.push((order, node_id));
                     placeholder
                 }
             };
             let n = Node::new(placeholder);
-            let next_id = self.next_node_id();
-            self.nodes.insert(next_id, n);
-            children_ids.push(next_id);
+            self.nodes.insert(node_id, n);
+            children_ids.push(node_id);
         }
+
+        self.cur_node().add_children(children_ids);
         
-        if !mutables.is_empty() {
+        // assert!(!dynamics.is_empty());
+        if !dynamics.is_empty() {
             self.stack.pop();
         }
-        mutables.sort_by_key(|pair| pair.0);
-        for pair in mutables.iter().rev() {
+        dynamics.sort_by_key(|pair| pair.0);
+        for pair in dynamics.iter().rev() {
             self.stack.push(pair.1)
         }
-        self.cur_node().add_children(children_ids);
     }
     // fn right_most_node_id(&self) -> NodeId {
     //     let mut cur = 0;
@@ -205,4 +208,15 @@ fn test_only_root() {
     dt.input(Key::Char('{'));
     dt.input(Key::Char('\n'));
     assert_eq!(dt.flatten(), (vec![Char('{'),Eol,Char(' '),Char(' '),Char(' '),Char(' ')], 6));
+}
+
+#[test]
+fn test_simple() {
+    use crate::read_buffer::BufElem::*;
+    let mut dt = DiffTree::new(vec![]);
+    dt.add_children(vec![
+        ChildComponent::Fixed(vec![BufElem::Char('a')]),
+        ChildComponent::Dynamic(vec![BufElem::Char('b')],0)
+    ]);
+    assert_eq!(dt.flatten().0, vec![BufElem::Char('a'),BufElem::Char('b')]);
 }
