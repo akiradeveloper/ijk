@@ -322,7 +322,6 @@ impl EditBuffer {
         init_post: Vec<BufElem>,
     ) {
         let (pre_survivors, removed, post_survivors) = self.prepare_delete(&r);
-        let orig_buf = self.rb.buf.clone();
         self.edit_state = Some(EditState {
             diff_buffer: DiffBuffer::new(
                 pre_survivors,
@@ -332,20 +331,11 @@ impl EditBuffer {
             ),
             at: r.start,
             removed: removed,
-            orig_buf: orig_buf,
+            orig_buf: self.rb.buf.clone(),
         });
 
-        self.insert_new_line(self.es_ref().at.row);
-
-        let mut b = false;
-        let after_pre_inserted = self.insert(Cursor { row: self.es_ref().at.row, col: 0, }, &self.es_ref().diff_buffer.pre_buf(), &mut b);
-        let (mut diff_buf_raw0, cursor_offset) = self.es_ref().diff_buffer.diff_buf_raw.flatten();
-        let diff_buf_raw1 = diff_buf_raw0.split_off(cursor_offset);
-        let after_diff0_inserted = self.insert(after_pre_inserted, &diff_buf_raw0, &mut b);
-        let after_diff1_inserted = self.insert(after_diff0_inserted, &diff_buf_raw1, &mut b);
-        self.insert(after_diff1_inserted, &self.es_ref().diff_buffer.post_buf(), &mut b);
-
-        self.rb.cursor = after_diff0_inserted;
+        self.writeback_edit_state();
+        
         self.visual_cursor = None;
     }
     fn commit_edit_state(&mut self) -> Vec<BufElem> {
@@ -537,6 +527,20 @@ impl EditBuffer {
     fn es_ref(&self) -> &EditState {
         self.edit_state.as_ref().unwrap()
     }
+    fn writeback_edit_state(&mut self) {
+        self.rb.buf = self.es_ref().orig_buf.clone();
+        self.insert_new_line(self.es_ref().at.row);
+
+        let mut b = false;
+        let after_pre_inserted = self.insert(Cursor { row: self.es_ref().at.row, col: 0, }, &self.es_ref().diff_buffer.pre_buf(), &mut b);
+        let (mut diff_buf_raw0, cursor_offset) = self.es_ref().diff_buffer.diff_buf_raw.flatten();
+        let diff_buf_raw1 = diff_buf_raw0.split_off(cursor_offset);
+        let after_diff0_inserted = self.insert(after_pre_inserted, &diff_buf_raw0, &mut b);
+        let after_diff1_inserted = self.insert(after_diff0_inserted, &diff_buf_raw1, &mut b);
+        self.insert(after_diff1_inserted, &self.es_ref().diff_buffer.post_buf(), &mut b);
+        
+        self.rb.cursor = after_diff0_inserted;
+    }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
         self.edit_state.as_mut().unwrap().diff_buffer.input(k.clone());
 
@@ -550,18 +554,7 @@ impl EditBuffer {
             }
         }
 
-        self.rb.buf = self.es_ref().orig_buf.clone();
-        self.insert_new_line(self.es_ref().at.row);
-
-        let mut b = false;
-        let after_pre_inserted = self.insert(Cursor { row: self.es_ref().at.row, col: 0, }, &self.es_ref().diff_buffer.pre_buf(), &mut b);
-        let (mut diff_buf_raw0, cursor_offset) = self.es_ref().diff_buffer.diff_buf_raw.flatten();
-        let diff_buf_raw1 = diff_buf_raw0.split_off(cursor_offset);
-        let after_diff0_inserted = self.insert(after_pre_inserted, &diff_buf_raw0, &mut b);
-        let after_diff1_inserted = self.insert(after_diff0_inserted, &diff_buf_raw1, &mut b);
-        self.insert(after_diff1_inserted, &self.es_ref().diff_buffer.post_buf(), &mut b);
-        self.rb.cursor = after_diff0_inserted;
-
+        self.writeback_edit_state();
         INSERT.to_owned()
     }
     pub fn eff_leave_edit_mode(&mut self, _: Key) -> String {
