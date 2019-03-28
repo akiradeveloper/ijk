@@ -75,6 +75,8 @@ impl DiffTree {
     // [a,b,c, ,f,o] -> [a,b,c, ,] + snippet
 
     pub fn add_children(&mut self, children: Vec<ChildComponent>) {
+        let auto_indent = self.current_auto_indent(self.cur_node_id());
+
         let mut dynamics = vec![];
         let mut children_ids = vec![];
         for cc in children.iter() {
@@ -96,7 +98,6 @@ impl DiffTree {
             children_ids.push(node_id);
 
             if cc == &ChildComponent::Eol {
-                let auto_indent = self.current_auto_indent(node_id);
                 let mut v = vec![BufElem::Eol];
                 v.append(&mut auto_indent.current_indent());
                 self.node_mut(node_id).buffer = v;
