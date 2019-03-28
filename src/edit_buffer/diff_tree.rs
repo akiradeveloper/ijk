@@ -117,9 +117,13 @@ impl DiffTree {
         while !stack.is_empty() {
             let cur_id = stack.pop().unwrap();
             let cur_node = self.node(cur_id);
+            let is_placeholder = cur_node.is_placeholder;
 
+            if cur_id == cursor_pin && is_placeholder {
+                cursor = buf.len()
+            }
             buf.append(&mut cur_node.buffer.clone());
-            if cur_id == cursor_pin {
+            if cur_id == cursor_pin && !is_placeholder {
                 cursor = buf.len()
             }
             
