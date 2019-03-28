@@ -189,6 +189,12 @@ impl DiffTree {
                     self.before_change_buffer();
                     self.cur_node().buffer.push(BufElem::Char('\t'))
                 } else {
+                    // MEMO: Idea toward the nested placeholder
+                    // to implement the VSCode's the nested placeholder
+                    // the Dynamic is nested and children are added in prior but they are not pushed into the stack
+                    // here, if the current node is as is the placeholder the children are added to the stack
+                    // and then pop the current node as in like addChildren()
+                    
                     // go to the next tab stop
                     self.stack.pop();
                 }
