@@ -934,17 +934,17 @@ impl EditBuffer {
     }
     fn eff_start_test_snippet(&mut self, _: Key) -> String {
         use self::diff_tree::ChildComponent::*;
-        let test_snippet = vec![
-            Fixed(to_elems("assert(")),
-            // Dynamic(to_elems("x"),0),
-            Fixed(to_elems(")")),
-            Dynamic(to_elems(""),0),
-        ];
-        // let temporary_snippet = vec![
-        //     Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {\n")),
-        //     Fixed(to_elems("\t")),Dynamic(to_elems("unimplimented()!"),2),
-        //     Fixed(to_elems("}"))
+        // let test_snippet = vec![
+        //     Fixed(to_elems("assert(")),
+        //     // Dynamic(to_elems("x"),0),
+        //     Fixed(to_elems(")")),
+        //     Dynamic(to_elems(""),0),
         // ];
+        let test_snippet = vec![
+            Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {\n")),
+            Fixed(to_elems("\t")),Dynamic(to_elems("unimplemented()!"),2),
+            Fixed(to_elems("}"))
+        ];
         self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.add_children(
             test_snippet,
         );
