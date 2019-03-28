@@ -527,8 +527,17 @@ impl EditBuffer {
     fn es_ref(&self) -> &EditState {
         self.edit_state.as_ref().unwrap()
     }
+    fn restore_buf_before_writeback(&mut self) {
+        let n = self.rb.buf.len();
+        let m = self.es_ref().orig_buf.len();
+        let rows_to_remove = n - m;
+        for i in (0..rows_to_remove).rev() {
+            let row = self.es_ref().at.row + i;
+            self.remove_line(row);
+        }
+    }
     fn writeback_edit_state(&mut self) {
-        self.rb.buf = self.es_ref().orig_buf.clone();
+        self.rb.buf = self.es_ref().orig_buf.clone(); // needless?
         self.insert_new_line(self.es_ref().at.row);
 
         let mut b = false;
@@ -544,16 +553,7 @@ impl EditBuffer {
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
         self.edit_state.as_mut().unwrap().diff_buffer.input(k.clone());
 
-        {
-            let n = self.rb.buf.len();
-            let m = self.es_ref().orig_buf.len();
-            let rows_to_remove = n - m;
-            for i in (0..rows_to_remove).rev() {
-                let row = self.es_ref().at.row + i;
-                self.remove_line(row);
-            }
-        }
-
+        self.restore_buf_before_writeback();
         self.writeback_edit_state();
         INSERT.to_owned()
     }
