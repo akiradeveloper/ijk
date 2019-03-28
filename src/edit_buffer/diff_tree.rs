@@ -106,10 +106,9 @@ impl DiffTree {
 
         self.cur_node().add_children(children_ids);
         
-        // assert!(!dynamics.is_empty());
-        if !dynamics.is_empty() {
-            self.stack.pop();
-        }
+        assert!(!dynamics.is_empty());
+        self.stack.pop();
+        
         dynamics.sort_by_key(|pair| pair.0);
         for pair in dynamics.iter().rev() {
             self.stack.push(pair.1)
