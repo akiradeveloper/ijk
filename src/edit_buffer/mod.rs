@@ -940,8 +940,10 @@ impl EditBuffer {
         //     Fixed(to_elems(")")),
         //     Dynamic(to_elems(""),0),
         // ];
+
+        // the end should be the single char
         let test_snippet = vec![
-            Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {\n")),
+            Fixed(to_elems("for ")),Dynamic(to_elems("x"),0),Fixed(to_elems(" in ")),Dynamic(to_elems("xs"),1),Fixed(to_elems(" {")),Fixed(to_elems("\n")),
             Fixed(to_elems("    ")),Dynamic(to_elems("unimplemented()!"),2),Fixed(to_elems("\n")),
             Fixed(to_elems("}"))
         ];
