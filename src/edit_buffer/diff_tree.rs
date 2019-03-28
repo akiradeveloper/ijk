@@ -75,7 +75,7 @@ impl DiffTree {
     // [a,b,c, ,f,o] -> [a,b,c, ,] + snippet
 
     pub fn add_children(&mut self, children: Vec<ChildComponent>) {
-        let auto_indent = self.current_auto_indent(self.cur_node_id());
+        let auto_indent = self.current_auto_indent();
 
         let mut dynamics = vec![];
         let mut children_ids = vec![];
@@ -155,11 +155,11 @@ impl DiffTree {
             self.cur_node().is_placeholder = false;
         }
     }
-    fn current_auto_indent(&self, node_id: NodeId) -> indent::AutoIndent {
+    fn current_auto_indent(&self) -> indent::AutoIndent {
         // find the first eol from the current position backward
         let mut v1 = self.pre_buffer.clone();
         let mut v2 = {
-            let res = self._flatten(node_id);
+            let res = self.flatten();
             let mut v = res.0;
             v.split_off(res.1);
             v
@@ -200,7 +200,7 @@ impl DiffTree {
             },
             Key::Char('\n') => {
                 self.before_change_buffer();
-                let auto_indent = self.current_auto_indent(self.cur_node_id());
+                let auto_indent = self.current_auto_indent();
 
                 let mut v = vec![BufElem::Eol];
                 v.append(&mut auto_indent.next_indent());
