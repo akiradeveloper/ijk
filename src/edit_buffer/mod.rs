@@ -5,8 +5,7 @@ pub mod highlight;
 pub mod indent;
 pub mod undo_buffer;
 mod diff_tree;
-mod trie;
-mod snippet_parser;
+mod snippet;
 
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;

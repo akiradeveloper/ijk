@@ -8,16 +8,12 @@ use combine::parser::char::{string, digit, alpha_num, newline, crlf, tab, space}
 use combine::parser::item::{any, token, satisfy, none_of};
 use combine::parser::combinator::not_followed_by;
 
+use super::SnippetElem;
+
 // Simplified vscode snippet:
 // tabstop = $num | ${num} | ${num:placeholder}
 // elem = tabstop | str
 // line = elem+
-
-#[derive(Debug, PartialEq)]
-pub enum SnippetElem {
-    TabStop(String, usize),
-    Str(String)
-}
 
 pub struct LineParser {}
 impl LineParser {
