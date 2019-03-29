@@ -5,6 +5,7 @@ use combine::parser::repeat::{many, many1};
 use combine::parser::sequence::{between, with};
 use combine::parser::char::{string, digit, alpha_num, newline, crlf, tab, space};
 use combine::parser::item::{any, token, satisfy, none_of};
+use combine::parser::combinator::not_followed_by;
 
 #[derive(Debug)]
 enum SnippetElem {
@@ -35,10 +36,11 @@ fn text_parser_experiment() {
     dbg!(elem_p.parse("${10:unimplemented();}"));
     dbg!(elem_p.parse("for {"));
 
-    let mut line_p = many1::<Vec<SnippetElem>, _>(elem_p);
+    let mut line_p = many1::<Vec<SnippetElem>, _>(elem_p).skip(not_followed_by(any()));
     dbg!(line_p.parse("$0abc"));
     dbg!(line_p.parse("${0}abc"));
     dbg!(line_p.parse("abc$0"));
     dbg!(line_p.parse("abc${0}"));
     dbg!(line_p.parse("abc{${0:hoge}}"));
+    dbg!(line_p.parse("abc{${0:$1}}")); // nested placeholder should be error
 }
