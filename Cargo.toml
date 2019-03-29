@@ -13,6 +13,7 @@ syntect = "3.2"
 flame = "0.2.2"
 combine = "*"
 test-generator = "0.2.2"
+sequence_trie = "*"
 
 [build-dependencies]
 build-deps = "^0.1"
