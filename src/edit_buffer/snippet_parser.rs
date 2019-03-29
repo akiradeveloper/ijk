@@ -19,9 +19,7 @@ pub enum SnippetElem {
     Str(String)
 }
 
-pub struct LineParser {
-
-}
+pub struct LineParser {}
 impl LineParser {
     pub fn new() -> Self {
         Self {}
@@ -57,6 +55,7 @@ fn test_line_parser() {
     use self::SnippetElem::*;
 
     let mut parser = self::LineParser::new();
+    assert_eq!(parser.parse("for (const ${2:element} of ${1:array}) {").unwrap(), vec![Str("for (const ".to_owned()),TabStop("element".to_owned(),2),Str(" of ".to_owned()),TabStop("array".to_owned(),1),Str(") {".to_owned())]);
     assert_eq!(parser.parse("fn a(&self) -> Vec<String>").unwrap(), vec![Str("fn a(&self) -> Vec<String>".to_owned())]);
     assert_eq!(parser.parse("a =+> b * <<-^ c").unwrap(), vec![Str("a =+> b * <<-^ c".to_owned())]);
     assert_eq!(parser.parse("$0ab c").unwrap(), vec![TabStop("".to_owned(),0),Str("ab c".to_owned())]);
