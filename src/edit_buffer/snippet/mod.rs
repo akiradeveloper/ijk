@@ -1,3 +1,4 @@
+mod file_parser;
 mod line_parser;
 mod trie;
 

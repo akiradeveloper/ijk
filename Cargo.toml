@@ -15,5 +15,9 @@ combine = "*"
 test-generator = "0.2.2"
 sequence_trie = "*"
 
+serde = "1"
+serde_json = "1"
+serde_derive = "1"
+
 [build-dependencies]
 build-deps = "^0.1"
