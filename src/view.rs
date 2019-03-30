@@ -64,7 +64,9 @@ pub trait ViewGen {
 }
 
 pub trait View {
-    fn get(&self, col: usize, row: usize) -> ViewElem;
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        (None, None, None)
+    }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         None
     }
@@ -132,6 +134,7 @@ impl View for CloneView {
     }
 }
 
+#[deprecated]
 pub struct BufArea<T> {
     copy: Vec<Vec<T>>,
     area: Area,
@@ -201,6 +204,7 @@ impl <'a> View for ToViewRef<'a> {
     fn get_cursor_pos(&self) -> Option<Cursor> { None }
 }
 
+#[deprecated]
 pub struct ToView {
     buf_area: BufArea<BufElem>,
 }
@@ -270,6 +274,7 @@ fn test_lineno() {
     }
 }
 
+#[deprecated]
 pub struct AddCursor<V> {
     x: V,
     cursor: Option<Cursor>,
