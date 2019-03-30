@@ -57,84 +57,6 @@ impl Area {
     }
 }
 
-pub type ViewElem = (Option<char>, Option<Color>, Option<Color>);
-
-pub trait ViewGen {
-    fn gen(&self, region: Area) -> Box<View>;
-}
-
-pub trait View {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        (None, None, None)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
-    }
-}
-
-impl <V: View + ?Sized> View for Box<V> {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        (**self).get(col, row)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        (**self).get_cursor_pos()
-    }
-}
-
-pub struct NullView {}
-impl View for NullView {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        (Some(' '), Some(default_fg()), Some(default_bg()))
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        Some(Cursor { row:0, col:0 })
-    }
-}
-pub struct NullViewGen {}
-impl ViewGen for NullViewGen {
-    fn gen(&self, _: Area) -> Box<View> {
-        Box::new(NullView {})
-    }
-}
-
-pub struct CloneView {
-    owned: Vec<Vec<ViewElem>>,
-    cursor: Option<Cursor>,
-    area: Area,
-}
-impl CloneView {
-    pub fn new<V: View>(orig: V, area: Area) -> Self {
-        let mut v = vec![];
-        for i in 0..area.height {
-            let mut vv = vec![];
-            let row = area.row + i;
-            for j in 0..area.width {
-                let col = area.col + j;
-                vv.push(orig.get(col, row))
-            }
-            v.push(vv);
-        }
-        // orig and area should have some overwrap
-        assert!(!v.is_empty());
-        Self {
-            owned: v,
-            cursor: orig.get_cursor_pos(),
-            area: area,
-        }
-    }
-}
-impl View for CloneView {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        let i = row - self.area.row;
-        let j = col - self.area.col;
-        self.owned[i][j]
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        self.cursor
-    }
-}
-
-#[deprecated]
 pub struct BufArea<T> {
     copy: Vec<Vec<T>>,
     area: Area,
@@ -177,6 +99,104 @@ impl <T: Clone> BufArea<T> {
         let row = self.copy.len() - 1;
         let col = self.copy[row].len() - 1;
         &self.copy[row][col]
+    }
+}
+
+pub type ViewElem = (Option<char>, Option<Color>, Option<Color>);
+
+pub trait ViewGen {
+    fn gen(&self, region: Area) -> Box<View>;
+}
+
+pub trait View {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        (None, None, None)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
+}
+
+impl <V: View + ?Sized> View for Box<V> {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        (**self).get(col, row)
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        (**self).get_cursor_pos()
+    }
+}
+
+pub struct NullView {}
+impl View for NullView {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        (Some(' '), Some(default_fg()), Some(default_bg()))
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        Some(Cursor { row:0, col:0 })
+    }
+}
+pub struct NullViewGen {}
+impl ViewGen for NullViewGen {
+    fn gen(&self, _: Area) -> Box<View> {
+        Box::new(NullView {})
+    }
+}
+
+pub struct EnableView<V> {
+    enabled: bool,
+    backing: V,
+}
+impl <V: View> EnableView<V> {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        if self.enabled {
+            self.backing.get(col, row)
+        } else {
+            (None, None, None)
+        }
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        if self.enabled {
+            self.backing.get_cursor_pos()
+        } else {
+            None
+        }
+    }
+}
+
+pub struct CloneView {
+    owned: Vec<Vec<ViewElem>>,
+    cursor: Option<Cursor>,
+    area: Area,
+}
+impl CloneView {
+    pub fn new<V: View>(orig: V, area: Area) -> Self {
+        let mut v = vec![];
+        for i in 0..area.height {
+            let mut vv = vec![];
+            let row = area.row + i;
+            for j in 0..area.width {
+                let col = area.col + j;
+                vv.push(orig.get(col, row))
+            }
+            v.push(vv);
+        }
+        // orig and area should have some overwrap
+        assert!(!v.is_empty());
+        Self {
+            owned: v,
+            cursor: orig.get_cursor_pos(),
+            area: area,
+        }
+    }
+}
+impl View for CloneView {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        let i = row - self.area.row;
+        let j = col - self.area.col;
+        self.owned[i][j]
+    }
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        self.cursor
     }
 }
 
@@ -271,6 +291,15 @@ fn test_lineno() {
     let view = LineNumber { from: 15, to: 15 };
     for (i, &c) in [' ', ' ', ' ', '1', '5', ' '].iter().enumerate() {
         assert_eq!(view.get(i, 0).0, Some(c));
+    }
+}
+
+pub struct AddCursorNew {
+    cursor: Cursor,
+}
+impl View for AddCursorNew {
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        Some(self.cursor)
     }
 }
 
