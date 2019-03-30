@@ -162,11 +162,12 @@ impl view::ViewGen for ViewGen {
         self.x.borrow_mut().update_cache();
 
         let (lineno_area, navi_area) = region.split_horizontal(view::LINE_NUMBER_W);
-        let navi_view = view::ToView::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
-        let navi_view = view::AddCursor::new(
-            navi_view,
-            Some(self.x.borrow().rb.cursor), // tmp: the cursor is always visible
-        );
+        let x_ref = self.x.borrow();
+        let navi_view = view::ToViewRef::new(&x_ref.rb.buf);
+
+        let add_cursor = view::AddCursorNew::new(self.x.borrow().rb.cursor);
+        let navi_view = view::OverlayView::new(navi_view, add_cursor);
+        
         let navi_view = view::TranslateView::new(
             navi_view,
             navi_area.col as i32 - self.x.borrow().rb.window.col() as i32,
@@ -185,6 +186,7 @@ impl view::ViewGen for ViewGen {
             col_offset: navi_area.col,
         };
 
+        let view = view::CloneView::new(view, region);
         Box::new(view)
     }
 }

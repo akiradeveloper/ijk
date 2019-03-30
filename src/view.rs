@@ -297,6 +297,11 @@ fn test_lineno() {
 pub struct AddCursorNew {
     cursor: Cursor,
 }
+impl AddCursorNew {
+    pub fn new(cursor: Cursor) -> Self {
+        Self { cursor }
+    }
+}
 impl View for AddCursorNew {
     fn get_cursor_pos(&self) -> Option<Cursor> {
         Some(self.cursor)
