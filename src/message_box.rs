@@ -48,9 +48,9 @@ impl view::View for self::View {
     fn get(&self, col: usize, row: usize) -> view::ViewElem {
         if row == 0 && col < self.x.lock().unwrap().buf.len() {
             let c = self.x.lock().unwrap().buf[col];
-            (c, Color::White, view::default_bg())
+            (Some(c), Some(Color::White), Some(view::default_bg()))
         } else {
-            (' ', Color::White, view::default_bg())
+            (Some(' '), Some(Color::White), Some(view::default_bg()))
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {

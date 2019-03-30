@@ -28,9 +28,9 @@ impl view::View for StatusView {
     fn get(&self, col: usize, row: usize) -> view::ViewElem {
         if row == 0 && col < self.x.len() {
             let c = self.x[col];
-            (c, Color::Black, Color::White)
+            (Some(c), Some(Color::Black), Some(Color::White))
         } else {
-            (' ', Color::Black, Color::White)
+            (Some(' '), Some(Color::Black), Some(Color::White))
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
@@ -71,7 +71,7 @@ impl Drawable for TerminalScreen {
         for row in 0..self.screen.h {
             for col in 0..self.screen.w {
                 let (c, fg, bg) = view.get(col, row);
-                self.screen.draw(col, row, c, Style(fg, bg))
+                self.screen.draw(col, row, c.unwrap(), Style(fg.unwrap(), bg.unwrap()))
             }
         }
         flame::end("screen.draw");

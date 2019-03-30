@@ -251,8 +251,8 @@ impl DiffView {
         }
     }
 }
-impl view::DiffView for DiffView {
-    fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
+impl view::View for DiffView {
+    fn get(&self, col: usize, row: usize) -> view::ViewElem {
         let search_word_len = self.model.cur_word.len();
         if row >= self.model.cache.len() {
             (None, None, None)

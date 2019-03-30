@@ -57,8 +57,7 @@ impl Area {
     }
 }
 
-pub type ViewElem = (char, Color, Color);
-pub type ViewElemDiff = (Option<char>, Option<Color>, Option<Color>);
+pub type ViewElem = (Option<char>, Option<Color>, Option<Color>);
 
 pub trait ViewGen {
     fn gen(&self, region: Area) -> Box<View>;
@@ -66,7 +65,9 @@ pub trait ViewGen {
 
 pub trait View {
     fn get(&self, col: usize, row: usize) -> ViewElem;
-    fn get_cursor_pos(&self) -> Option<Cursor>;
+    fn get_cursor_pos(&self) -> Option<Cursor> {
+        None
+    }
 }
 
 impl <V: View + ?Sized> View for Box<V> {
@@ -81,7 +82,7 @@ impl <V: View + ?Sized> View for Box<V> {
 pub struct NullView {}
 impl View for NullView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        (' ', default_fg(), default_bg())
+        (Some(' '), Some(default_fg()), Some(default_bg()))
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         Some(Cursor { row:0, col:0 })
@@ -92,10 +93,6 @@ impl ViewGen for NullViewGen {
     fn gen(&self, _: Area) -> Box<View> {
         Box::new(NullView {})
     }
-}
-
-pub trait DiffView {
-    fn get(&self, col: usize, row: usize) -> ViewElemDiff;
 }
 
 pub struct CloneView {
@@ -191,14 +188,14 @@ impl <'a> ToViewRef<'a> {
 impl <'a> View for ToViewRef<'a> {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         if row > self.back.len() - 1 || col > self.back[row].len() - 1 {
-            (' ', default_fg(), default_bg())
+            (Some(' '), Some(default_fg()), Some(default_bg()))
         } else {
             let e = &self.back[row][col];
             let c = match *e {
                 BufElem::Char(c) => c,
                 BufElem::Eol => ' ',
             };
-            (c, default_fg(), default_bg())
+            (Some(c), Some(default_fg()), Some(default_bg()))
         }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> { None }
@@ -223,13 +220,10 @@ impl View for ToView {
                     BufElem::Char(c) => c,
                     BufElem::Eol => ' ',
                 };
-                (c, default_fg(), default_bg())
+                (Some(c), Some(default_fg()), Some(default_bg()))
             },
-            None => (' ', default_fg(), default_bg())
+            None => (Some(' '), Some(default_fg()), Some(default_bg()))
         }
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
     }
 }
 
@@ -238,10 +232,7 @@ pub struct BgColor {
 }
 impl View for BgColor {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        (' ', self.bg, self.bg)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        None
+        (Some(' '), Some(self.bg), Some(self.bg))
     }
 }
 
@@ -265,7 +256,7 @@ impl View for LineNumber {
         } else {
             default_bg()
         };
-        (c, Color::White, bg)
+        (Some(c), Some(Color::White), Some(bg))
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         None
@@ -275,7 +266,7 @@ impl View for LineNumber {
 fn test_lineno() {
     let view = LineNumber { from: 15, to: 15 };
     for (i, &c) in [' ', ' ', ' ', '1', '5', ' '].iter().enumerate() {
-        assert_eq!(view.get(i, 0).0, c);
+        assert_eq!(view.get(i, 0).0, Some(c));
     }
 }
 
@@ -382,7 +373,7 @@ pub struct OverlayView<V, D> {
 impl<V, D> OverlayView<V, D>
 where
     V: View,
-    D: DiffView,
+    D: View,
 {
     pub fn new(v: V, d: D) -> Self {
         Self { v, d }
@@ -391,23 +382,23 @@ where
 impl<V, D> View for OverlayView<V, D>
 where
     V: View,
-    D: DiffView,
+    D: View,
 {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         let (v0, v1, v2) = self.v.get(col, row);
         let (d0, d1, d2) = self.d.get(col, row);
-        (d0.unwrap_or(v0), d1.unwrap_or(v1), d2.unwrap_or(v2))
+        (d0.or(v0), d1.or(v1), d2.or(v2))
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
-        self.v.get_cursor_pos()
+        self.d.get_cursor_pos().or(self.v.get_cursor_pos())
     }
 }
 
 #[cfg(test)]
 struct TestDiffView {}
 #[cfg(test)]
-impl DiffView for TestDiffView {
-    fn get(&self, col: usize, row: usize) -> ViewElemDiff {
+impl View for TestDiffView {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
         (Some('a'), Some(Color::Red), None)
     }
 }
@@ -428,5 +419,5 @@ fn test_view_overlay() {
     let view: Box<dyn View> = Box::new(v1);
 
     let e = view.get(0, 0);
-    assert_eq!(e, ('a', Color::Red, default_bg()));
+    assert_eq!(e, (Some('a'), Some(Color::Red), Some(default_bg())));
 }

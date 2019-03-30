@@ -1113,8 +1113,8 @@ use crate::view;
 pub struct VisualRangeDiffView {
     range: Option<CursorRange>, // doubtful design to have option here
 }
-impl view::DiffView for VisualRangeDiffView {
-    fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
+impl view::View for VisualRangeDiffView {
+    fn get(&self, col: usize, row: usize) -> view::ViewElem {
         let as_cursor = Cursor { row, col };
         let in_visual_range = self
             .range

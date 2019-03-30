@@ -78,8 +78,8 @@ impl <'a> HighlightDiffViewRef<'a> {
         }
     }
 }
-impl <'a> view::DiffView for HighlightDiffViewRef<'a> {
-    fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
+impl <'a> view::View for HighlightDiffViewRef<'a> {
+    fn get(&self, col: usize, row: usize) -> view::ViewElem {
         match self.back.cache.get(row).and_then(|x| x.get(col)) {
             Some(style) => {
                 let fg = style.foreground.into();
@@ -105,8 +105,8 @@ impl HighlightDiffView {
         Self { buf_area, bg_default }
     }
 }
-impl view::DiffView for HighlightDiffView {
-    fn get(&self, col: usize, row: usize) -> view::ViewElemDiff {
+impl view::View for HighlightDiffView {
+    fn get(&self, col: usize, row: usize) -> view::ViewElem {
         match self.buf_area.get(col, row) {
             Some(style) => {
                 let fg = style.foreground.into();

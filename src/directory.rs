@@ -238,8 +238,8 @@ impl AddColor {
         Self { x }
     }
 }
-impl view::DiffView for AddColor {
-    fn get(&self, _: usize, row: usize) -> view::ViewElemDiff {
+impl view::View for AddColor {
+    fn get(&self, _: usize, row: usize) -> view::ViewElem {
         if row > self.x.borrow().entries.len() - 1 {
             return (None, None, None)
         }
