@@ -268,13 +268,16 @@ impl view::ViewGen for ViewGen {
         self.x.borrow_mut().update_cache();
 
         let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
-        let dir_view = view::ToView::new(&self.x.borrow().rb.buf, self.x.borrow().rb.current_window());
+
+        let x_ref = self.x.borrow();
+        let dir_view = view::ToViewRef::new(&x_ref.rb.buf);
+
         let add_color = AddColor::new(self.x.clone());
         let dir_view = view::OverlayView::new(dir_view, add_color);
-        let dir_view = view::AddCursor::new(
-            dir_view,
-            Some(self.x.borrow().rb.cursor), // tmp: the cursor is always visible
-        );
+
+        let add_cursor = view::AddCursorNew::new(self.x.borrow().rb.cursor);
+        let dir_view = view::OverlayView::new(dir_view, add_cursor);
+
         let dir_view = view::TranslateView::new(
             dir_view,
             dir_area.col as i32 - self.x.borrow().rb.window.col() as i32,
@@ -292,6 +295,8 @@ impl view::ViewGen for ViewGen {
             right: dir_view,
             col_offset: dir_area.col,
         };
+
+        let view = view::CloneView::new(view, region);
         Box::new(view)
     }
 }
