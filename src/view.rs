@@ -143,8 +143,13 @@ impl ViewGen for NullViewGen {
 }
 
 pub struct EnableView<V> {
-    enabled: bool,
     backing: V,
+    enabled: bool,
+}
+impl <V: View> EnableView<V> {
+    pub fn new(backing: V, enabled: bool) -> Self {
+        Self { backing, enabled }
+    }
 }
 impl <V: View> EnableView<V> {
     fn get(&self, col: usize, row: usize) -> ViewElem {
