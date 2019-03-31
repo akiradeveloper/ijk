@@ -151,7 +151,7 @@ impl <V: View> EnableView<V> {
         Self { backing, enabled }
     }
 }
-impl <V: View> EnableView<V> {
+impl <V: View> View for EnableView<V> {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         if self.enabled {
             self.backing.get(col, row)

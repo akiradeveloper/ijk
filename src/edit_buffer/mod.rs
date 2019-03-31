@@ -1164,22 +1164,26 @@ impl view::ViewGen for ViewGen {
         let buf_ref = self.buf.borrow();
         let buf_window = self.buf.borrow().rb.current_window();
         let buf_view = view::ToViewRef::new(&buf_ref.rb.buf);
+
         // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
         // let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
         let highlight_diff = highlight::HighlightDiffViewRef::new(&buf_ref.highlighter);
         let buf_view = view::OverlayView::new(buf_view, highlight_diff);
+
         let buf_view = view::OverlayView::new(
             buf_view,
             search::DiffView::new(self.buf.borrow().rb.search.clone()),
         );
+        
         let buf_view = view::OverlayView::new(
             buf_view,
             VisualRangeDiffView::new(self.buf.borrow().visual_range()),
         );
-        let buf_view = view::AddCursor::new(
-            buf_view,
-            Some(self.buf.borrow().rb.cursor), // tmp: the cursor is always visible
-        );
+
+        let add_cursor = view::AddCursorNew::new(self.buf.borrow().rb.cursor);
+        let add_cursor = view::EnableView::new(add_cursor, true); // tmp
+        let buf_view = view::OverlayView::new(buf_view, add_cursor);
+
         let buf_view = view::TranslateView::new(
             buf_view,
             buf_reg.col as i32 - self.buf.borrow().rb.window.col() as i32,
