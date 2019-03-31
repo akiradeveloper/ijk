@@ -31,7 +31,7 @@ fn main() {
     let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
 
     let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(file, navigator.clone())));
-    let page = Rc::new(edit_buffer::Page::new(eb));
+    let page = Rc::new(RefCell::new(edit_buffer::Page::new(eb)));
 
     navigator.borrow_mut().push(page);
     let mut editor = ijk::editor::Editor::new(navigator, ijk::editor::TerminalScreen::new());

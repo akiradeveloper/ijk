@@ -101,7 +101,7 @@ impl SnippetViewGen {
     }
 }
 impl view::ViewGen for SnippetViewGen {
-    fn gen(&self, area: view::Area) -> Box<view::View> {
+    fn gen(&mut self, area: view::Area) -> Box<view::View> {
         let x_ref = self.x.borrow_mut();
         let view = view::ToView::new(&x_ref.rb.buf);
 

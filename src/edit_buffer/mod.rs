@@ -1207,7 +1207,7 @@ impl ViewGen {
     }
 }
 impl view::ViewGen for ViewGen {
-    fn gen(&self, region: view::Area) -> Box<view::View> {
+    fn gen(&mut self, region: view::Area) -> Box<view::View> {
         let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
 
         self.buf.borrow_mut().rb.stabilize_cursor();
@@ -1290,8 +1290,8 @@ impl navigator::Page for Page {
     fn controller(&self) -> &Box<controller::Controller> {
         &self.controller
     }
-    fn view_gen(&self) -> &Box<view::ViewGen> {
-        &self.view_gen
+    fn view_gen(&mut self) -> &mut Box<view::ViewGen> {
+        &mut self.view_gen
     }
     fn status(&self) -> String {
         let state: &str = match self.x.borrow().state.as_str() {

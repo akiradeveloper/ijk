@@ -152,18 +152,18 @@ impl Directory {
     pub fn eff_select(&mut self, _: Key) -> String {
         let i = self.rb.cursor.row;
         let entry = &self.entries[i];
-        let page: Rc<navigator::Page> = match entry.clone() {
+        let page: Rc<RefCell<navigator::Page>> = match entry.clone() {
             Entry::Parent(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                Rc::new(self::Page::new(dir, path.clone()))
+                Rc::new(RefCell::new(self::Page::new(dir, path.clone())))
             },
             Entry::Dir(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                Rc::new(self::Page::new(dir, path.clone()))
+                Rc::new(RefCell::new(self::Page::new(dir, path.clone())))
             },
             Entry::File(path) => {
                 let x = Rc::new(RefCell::new(EditBuffer::open(&path, self.navigator.clone())));
-                Rc::new(edit_buffer::Page::new(x))
+                Rc::new(RefCell::new(edit_buffer::Page::new(x)))
             },
         };
         self.navigator.borrow_mut().push(page);
@@ -175,7 +175,7 @@ impl Directory {
         match entry.clone() {
             Entry::Dir(path) => {
                 let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                let new_dir = Rc::new(self::Page::new(dir, path.clone()));
+                let new_dir = Rc::new(RefCell::new(self::Page::new(dir, path.clone())));
                 self.navigator.borrow_mut().pop_and_push(new_dir);
             },
             _ => {}
@@ -187,7 +187,7 @@ impl Directory {
             match e {
                 Entry::Parent(path) => {
                     let dir = Rc::new(RefCell::new(self::Directory::open(&path, self.navigator.clone())));
-                    let new_dir = Rc::new(self::Page::new(dir, path.clone()));
+                    let new_dir = Rc::new(RefCell::new(self::Page::new(dir, path.clone())));
                     self.navigator.borrow_mut().pop_and_push(new_dir);
                 },
                 _ => {},
@@ -262,7 +262,7 @@ impl ViewGen {
     }
 }
 impl view::ViewGen for ViewGen {
-    fn gen(&self, region: view::Area) -> Box<view::View> {
+    fn gen(&mut self, region: view::Area) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize_cursor();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().update_cache();
@@ -327,8 +327,8 @@ impl navigator::Page for Page {
     fn controller(&self) -> &Box<controller::Controller> {
         &self.controller
     }
-    fn view_gen(&self) -> &Box<view::ViewGen> {
-        &self.view_gen
+    fn view_gen(&mut self) -> &mut Box<view::ViewGen> {
+        &mut self.view_gen
     }
     fn status(&self) -> String {
         format!("[Directory] {}", self.path.to_str().unwrap().to_owned())

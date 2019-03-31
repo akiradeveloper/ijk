@@ -14,7 +14,7 @@ pub enum PageKind {
 
 pub trait Page {
     fn controller(&self) -> &Box<controller::Controller>;
-    fn view_gen(&self) -> &Box<view::ViewGen>;
+    fn view_gen(&mut self) -> &mut Box<view::ViewGen>;
     fn kind(&self) -> PageKind;
     fn id(&self) -> String;
     fn status(&self) -> String;
@@ -24,8 +24,8 @@ pub trait Page {
 const INIT: &str = "Normal";
 
 pub struct Navigator {
-    current: Option<Rc<Page>>,
-    list: Vec<Rc<Page>>,
+    current: Option<Rc<RefCell<Page>>>,
+    list: Vec<Rc<RefCell<Page>>>,
     rb: ReadBuffer,
     state: String,
     message_box: MessageBox,
@@ -41,7 +41,7 @@ impl Navigator {
             message_box,
         }
     }
-    pub fn current_page(&self) -> Rc<Page> {
+    pub fn current_page(&self) -> Rc<RefCell<Page>> {
         self.current.clone().unwrap().clone()
     }
     fn update_cache(&mut self) {
@@ -51,7 +51,7 @@ impl Navigator {
         let mut v = vec![];
         for e in &self.list {
             let mut vv = vec![];
-            for c in e.status().chars() {
+            for c in e.borrow().status().chars() {
                 vv.push(BufElem::Char(c));
             }
             vv.push(BufElem::Eol);
@@ -59,7 +59,7 @@ impl Navigator {
         }
         self.rb = read_buffer::ReadBuffer::new(v, self.message_box.clone());
     }
-    pub fn set(&mut self, page: Rc<Page>) {
+    pub fn set(&mut self, page: Rc<RefCell<Page>>) {
         self.refresh_buffer();
         self.current = Some(page);
     }
@@ -76,8 +76,8 @@ impl Navigator {
         self.list.remove(0);
         self.select(0);
     }
-    pub fn push(&mut self, page: Rc<Page>) {
-        let pos0 = self.list.iter().position(|e| e.id() == page.id());
+    pub fn push(&mut self, page: Rc<RefCell<Page>>) {
+        let pos0 = self.list.iter().position(|e| e.borrow().id() == page.borrow().id());
         match pos0 {
             Some(i) => {
                 self.select(i);
@@ -88,7 +88,7 @@ impl Navigator {
             }
         }
     }
-    pub fn pop_and_push(&mut self, e: Rc<Page>) {
+    pub fn pop_and_push(&mut self, e: Rc<RefCell<Page>>) {
         self.list.remove(0);
         self.list.insert(0, e);
         self.select(0);
@@ -106,13 +106,13 @@ impl Navigator {
         INIT.to_owned()
     }
     pub fn eff_select_cur_directory(&mut self, _: Key) -> String {
-        for i in self.list.iter().position(|e| e.kind() == PageKind::Directory) {
+        for i in self.list.iter().position(|e| e.borrow().kind() == PageKind::Directory) {
             self.select(i);
         }
         INIT.to_owned()
     }
     pub fn eff_select_cur_buffer(&mut self, _: Key) -> String {
-        for i in self.list.iter().position(|e| e.kind() == PageKind::Buffer) {
+        for i in self.list.iter().position(|e| e.borrow().kind() == PageKind::Buffer) {
             self.select(i);
         }
         INIT.to_owned()
@@ -156,7 +156,7 @@ impl ViewGen {
     }
 }
 impl view::ViewGen for ViewGen {
-    fn gen(&self, region: view::Area) -> Box<view::View> {
+    fn gen(&mut self, region: view::Area) -> Box<view::View> {
         self.x.borrow_mut().rb.stabilize_cursor();
         self.x.borrow_mut().rb.adjust_window(region.width, region.height);
         self.x.borrow_mut().update_cache();
@@ -209,8 +209,8 @@ impl Page for NavigatorPage {
     fn controller(&self) -> &Box<controller::Controller> {
         &self.controller
     }
-    fn view_gen(&self) -> &Box<view::ViewGen> {
-        &self.view_gen
+    fn view_gen(&mut self) -> &mut Box<view::ViewGen> {
+        &mut self.view_gen
     }
     fn status(&self) -> String {
         "[Navigator]".to_owned()

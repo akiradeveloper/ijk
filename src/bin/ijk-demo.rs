@@ -52,7 +52,7 @@ fn main() {
 
     let cur_dir = std::env::current_dir().unwrap();
     let dir = Rc::new(RefCell::new(directory::Directory::open(&cur_dir, navigator.clone())));
-    let page = Rc::new(directory::Page::new(dir, fs::canonicalize(cur_dir).unwrap()));
+    let page = Rc::new(RefCell::new(directory::Page::new(dir, fs::canonicalize(cur_dir).unwrap())));
 
     navigator.borrow_mut().push(page);
     let mut editor = ijk::editor::Editor::new(navigator, ijk::editor::TerminalScreen::new());

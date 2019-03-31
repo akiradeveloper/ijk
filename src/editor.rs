@@ -103,14 +103,14 @@ impl Drawable for NullScreen {
 
 pub struct Editor<D> {
     navigator: Rc<RefCell<navigator::Navigator>>,
-    navi_page: Rc<Page>,
+    navi_page: Rc<RefCell<Page>>,
     drawable: D,
 }
 
 impl <D: Drawable> Editor<D> {
     pub fn new(navigator: Rc<RefCell<navigator::Navigator>>, drawable: D) -> Self {
         Self {
-            navi_page: Rc::new(navigator::NavigatorPage::new(navigator.clone())),
+            navi_page: Rc::new(RefCell::new(navigator::NavigatorPage::new(navigator.clone()))),
             navigator: navigator,
             drawable: drawable,
         }
@@ -121,10 +121,10 @@ impl <D: Drawable> Editor<D> {
         let (page_area, common_area) = area.split_vertical(area.height - 2);
         let (status_area, message_area) = common_area.split_vertical(1);
         let page = self.navigator.borrow().current_page();
-        let page_view = page.view_gen().gen(page_area);
+        let page_view = page.borrow_mut().view_gen().gen(page_area);
         let view = page_view;
 
-        let status_view = StatusView::new(&page.status());
+        let status_view = StatusView::new(&page.borrow().status());
         let status_view =
             view::TranslateView::new(status_view, status_area.col as i32, status_area.row as i32);
         let view = view::MergeVertical {
@@ -133,7 +133,7 @@ impl <D: Drawable> Editor<D> {
             row_offset: status_area.row,
         };
 
-        let message = page.message();
+        let message = page.borrow().message();
         let message_view = message_box::View::new(&message);
         let message_view = view::TranslateView::new(
             message_view,
@@ -190,7 +190,7 @@ impl <D: Drawable> Editor<D> {
                     let page = self.navigator.borrow().current_page();
 
                     flame::start("editor.receive");
-                    page.controller().receive(kk);
+                    page.borrow().controller().receive(kk);
                     flame::end("editor.receive");
                 }
             }
@@ -233,7 +233,7 @@ mod tests {
 
         let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
         let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(&input, navigator.clone())));
-        let page = Rc::new(edit_buffer::Page::new(eb.clone()));
+        let page = Rc::new(RefCell::new(edit_buffer::Page::new(eb.clone())));
         navigator.borrow_mut().push(page);
         let mut editor = Editor::new(navigator, NullScreen::new(10,10));
 

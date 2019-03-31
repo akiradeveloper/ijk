@@ -24,19 +24,19 @@ fn main() {
     
     let navigator = Rc::new(RefCell::new(navigator::Navigator::new()));
 
-    let page: Rc<navigator::Page> = match path {
+    let page: Rc<RefCell<navigator::Page>> = match path {
         Some(path) if path.is_dir() => {
             let dir = Rc::new(RefCell::new(directory::Directory::open(path, navigator.clone())));
-            Rc::new(directory::Page::new(dir, fs::canonicalize(path).unwrap()))
+            Rc::new(RefCell::new(directory::Page::new(dir, fs::canonicalize(path).unwrap())))
         },
         Some(path) => { // existing/unexisting file
             let eb = Rc::new(RefCell::new(edit_buffer::EditBuffer::open(path, navigator.clone())));
-            Rc::new(edit_buffer::Page::new(eb))
+            Rc::new(RefCell::new(edit_buffer::Page::new(eb)))
         },
         None => {
             let cur_dir = std::env::current_dir().unwrap();
             let dir = Rc::new(RefCell::new(directory::Directory::open(&cur_dir, navigator.clone())));
-            Rc::new(directory::Page::new(dir, fs::canonicalize(cur_dir).unwrap()))
+            Rc::new(RefCell::new(directory::Page::new(dir, fs::canonicalize(cur_dir).unwrap())))
         }
     };
 

@@ -119,7 +119,7 @@ impl <'a, T> BufArea<'a, T> {
 pub type ViewElem = (Option<char>, Option<Color>, Option<Color>);
 
 pub trait ViewGen {
-    fn gen(&self, region: Area) -> Box<View>;
+    fn gen(&mut self, region: Area) -> Box<View>;
 }
 
 pub trait View {
@@ -151,7 +151,7 @@ impl View for NullView {
 }
 pub struct NullViewGen {}
 impl ViewGen for NullViewGen {
-    fn gen(&self, _: Area) -> Box<View> {
+    fn gen(&mut self, _: Area) -> Box<View> {
         Box::new(NullView {})
     }
 }
