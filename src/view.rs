@@ -57,6 +57,19 @@ impl Area {
     }
 }
 
+pub struct BufAreaRef<'a, T> {
+    backing: &'a [Vec<T>],
+}
+impl <'a, T> BufAreaRef<'a, T> {
+    fn get(&self, col: usize, row: usize) -> Option<&T> {
+        if row > self.backing.len() - 1 || col > self.backing[row].len() - 1 {
+            None
+        } else {
+            Some(&self.backing[row][col])
+        }
+    }
+}
+
 pub struct BufArea<T> {
     copy: Vec<Vec<T>>,
     area: Area,
