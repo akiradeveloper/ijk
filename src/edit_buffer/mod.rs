@@ -1226,8 +1226,9 @@ impl view::ViewGen for ViewGen {
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
 
         // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
-        let buf_ref = self.buf.borrow();
-        let buf_window = self.buf.borrow().rb.current_window();
+        let buf_ref = self.buf.borrow_mut();
+        
+        let buf_window = buf_ref.rb.current_window();
         let buf_view = view::ToView::new(&buf_ref.rb.buf);
 
         // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
@@ -1242,22 +1243,22 @@ impl view::ViewGen for ViewGen {
         
         let buf_view = view::OverlayView::new(
             buf_view,
-            VisualRangeDiffView::new(self.buf.borrow().visual_range()),
+            VisualRangeDiffView::new(buf_ref.visual_range()),
         );
 
-        let add_cursor = view::AddCursor::new(self.buf.borrow().rb.cursor);
+        let add_cursor = view::AddCursor::new(buf_ref.rb.cursor);
         let add_cursor = view::EnableView::new(add_cursor, true); // tmp
         let buf_view = view::OverlayView::new(buf_view, add_cursor);
 
         let buf_view = view::TranslateView::new(
             buf_view,
-            buf_reg.col as i32 - self.buf.borrow().rb.window.col() as i32,
-            buf_reg.row as i32 - self.buf.borrow().rb.window.row() as i32,
+            buf_reg.col as i32 - buf_ref.rb.window.col() as i32,
+            buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
         );
 
-        let snippet_view_gen = snippet::SnippetViewGen::new(
-            Box::new(shared::Mapped::new(self.buf.clone(), |x| &mut x.snippet_repo))
-        );
+        // let snippet_view_gen = snippet::SnippetViewGen::new(
+        //     Box::new(shared::Mapped::new(self.buf.clone(), |x| &mut x.snippet_repo))
+        // );
         // snippet_view_gen.gen(region); // tmp. error: buf will be mutablly borrowed after borrowed above
 
         let view = view::MergeHorizontal {
