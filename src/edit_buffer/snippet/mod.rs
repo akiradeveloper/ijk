@@ -36,7 +36,24 @@ impl SnippetRepo {
         }
     }
     fn construct_rb(snippets: &[Snippet]) -> Vec<Vec<BufElem>> {
+        if snippets.is_empty() {
+            return vec![vec![BufElem::Eol]]
+        }
+
         let mut v = vec![];
+        for snippet in snippets {
+            let mut line = vec![];
+            for c in snippet.prefix.chars() {
+                line.push(BufElem::Char(c))
+            }
+            line.push(BufElem::Char(' '));
+            for c in snippet.description.chars() {
+                line.push(BufElem::Char(c))
+            }
+            line.push(BufElem::Eol);
+            
+            v.push(line)
+        }
         v
     }
     pub fn set_searcher(&mut self, s: Vec<char>) {
