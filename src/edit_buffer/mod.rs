@@ -19,6 +19,8 @@ use crate::read_buffer::{BufElem, Cursor, CursorRange};
 use std::fs;
 use std::path;
 use std::time::Instant;
+use self::snippet::SnippetElem;
+use self::diff_tree::ChildComponent;
 
 const INIT: &str = "Normal";
 const COMMAND: &str = "Command";
@@ -548,6 +550,9 @@ impl EditBuffer {
     fn es_ref(&self) -> &EditState {
         self.edit_state.as_ref().unwrap()
     }
+    fn es_mut(&mut self) -> &mut EditState {
+        self.edit_state.as_mut().unwrap()
+    }
     fn restore_buf_before_writeback(&mut self) {
         let n = self.rb.buf.len();
         let m = self.es_ref().orig_buf.len();
@@ -973,12 +978,34 @@ impl EditBuffer {
         }
     }
     fn eff_cursor_up_snippet_mode(&mut self, _: Key) -> String {
+        self.snippet_repo.rb.cursor_up();
         SNIPPET.to_owned()
     }
     fn eff_cursor_down_snippet_mode(&mut self, _: Key) -> String {
+        self.snippet_repo.rb.cursor_down();
         SNIPPET.to_owned()
     }
     fn eff_insert_snippet(&mut self, _: Key) -> String {
+        self.es_mut().diff_buffer.diff_buf_raw.rollback_current_word();
+        let snippet = self.snippet_repo.current_snippet();
+        let mut children = vec![];
+        for es in &snippet.body {
+            for e in es {
+                let child = match e.clone() {
+                    SnippetElem::TabStop(s, order) => {
+                        let order = if order == 0 { 10000000 } else { order };
+                        ChildComponent::Dynamic(s.chars().map(|c| BufElem::Char(c)).collect(), order)
+                    },
+                    SnippetElem::Str(s) => {
+                        ChildComponent::Fixed(s.chars().map(|c| BufElem::Char(c)).collect())
+                    }
+                };
+                children.push(child);
+                children.push(ChildComponent::Eol);
+            }
+        }
+        children.pop(); // pop the last eol
+        self.es_mut().diff_buffer.diff_buf_raw.add_children(children);
         INSERT.to_owned()
     }
     fn eff_leave_snippet_mode(&mut self, _: Key) -> String {

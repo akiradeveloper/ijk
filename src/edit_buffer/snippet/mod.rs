@@ -16,13 +16,13 @@ pub enum SnippetElem {
 #[derive(Clone)]
 pub struct Snippet {
     prefix: String,
-    body: Vec<SnippetElem>,
+    pub body: Vec<Vec<SnippetElem>>,
     description: String,
 }
 
 pub struct SnippetRepo {
     trie: Trie<Snippet>,
-    rb: ReadBuffer,
+    pub rb: ReadBuffer,
     current_matches: Vec<Snippet>,
     message_box: MessageBox,
 }
@@ -57,7 +57,11 @@ impl SnippetRepo {
         self.current_matches = new_list;
     }
     pub fn current_matches(&self) -> &Vec<Snippet> {
-         &self.current_matches
+        &self.current_matches
+    }
+    pub fn current_snippet(&self) -> &Snippet {
+        let pos = self.rb.cursor.row;
+        &self.current_matches[pos]
     }
 }
 
