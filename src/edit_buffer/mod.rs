@@ -30,6 +30,7 @@ const WILL_CHANGE: &str = "WillChange";
 const INSERT: &str = "Insert";
 const SEARCH: &str = "Search";
 const JUMP: &str = "Jump";
+const SNIPPET: &str = "Snippet";
 
 fn to_elems(x: &str) -> Vec<BufElem> {
     let mut v = vec![];
@@ -572,6 +573,7 @@ impl EditBuffer {
     }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
         self.edit_state.as_mut().unwrap().diff_buffer.input(k.clone());
+        self.snippet_repo.set_searcher(&self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.current_word());
 
         self.restore_buf_before_writeback();
         self.writeback_edit_state();
@@ -962,6 +964,26 @@ impl EditBuffer {
         self.writeback_edit_state();
         INSERT.to_owned()
     }
+    fn eff_enter_snippet_mode(&mut self, _: Key) -> String {
+        let no_candidates = self.snippet_repo.current_matches().is_empty();
+        if no_candidates {
+            INSERT.to_owned()
+        } else {
+            SNIPPET.to_owned()
+        }
+    }
+    fn eff_cursor_up_snippet_mode(&mut self, _: Key) -> String {
+        SNIPPET.to_owned()
+    }
+    fn eff_cursor_down_snippet_mode(&mut self, _: Key) -> String {
+        SNIPPET.to_owned()
+    }
+    fn eff_insert_snippet(&mut self, _: Key) -> String {
+        INSERT.to_owned()
+    }
+    fn eff_leave_snippet_mode(&mut self, _: Key) -> String {
+        INSERT.to_owned()
+    }
 }
 
 use crate::Key;
@@ -1031,6 +1053,12 @@ def_effect!(SearchJumpBackward, EditBuffer, eff_search_jump_backward);
 def_effect!(EnterCommandMode, EditBuffer, eff_enter_command_mode);
 def_effect!(CancelCommandMode, EditBuffer, eff_cancel_command_mode);
 def_effect!(ExecuteCommand, EditBuffer, eff_execute_command);
+
+def_effect!(EnterSnippetMode, EditBuffer, eff_enter_snippet_mode);
+def_effect!(InsertSnippet, EditBuffer, eff_insert_snippet);
+def_effect!(LeaveSnippetMode, EditBuffer, eff_leave_snippet_mode);
+def_effect!(CursorUpSnippetMode, EditBuffer, eff_cursor_up_snippet_mode);
+def_effect!(CursorDownSnippetMode, EditBuffer, eff_cursor_down_snippet_mode);
 
 use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
@@ -1107,6 +1135,13 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(SEARCH, Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
     g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
     g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())));
+
+    // completion
+    g.add_edge(INSERT, Ctrl('s'), Rc::new(EnterSnippetMode(x.clone())));
+    g.add_edge(SNIPPET, Char('k'), Rc::new(CursorUpSnippetMode(x.clone())));
+    g.add_edge(SNIPPET, Char('j'), Rc::new(CursorDownSnippetMode(x.clone())));
+    g.add_edge(SNIPPET, Char('\n'), Rc::new(InsertSnippet(x.clone())));
+    g.add_edge(SNIPPET, Esc, Rc::new(LeaveSnippetMode(x.clone())));
 
     controller::ControllerFSM::new(INIT, Box::new(g))
 }

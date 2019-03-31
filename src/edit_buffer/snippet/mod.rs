@@ -14,11 +14,15 @@ pub struct Snippet {
     description: String,
 }
 
-pub struct SnippetRepo {}
+pub struct SnippetRepo {
+    current_matches: Vec<Snippet>,
+}
 impl SnippetRepo {
     pub fn new(ext: Option<&str>) -> Self {
-        Self {}
+        Self {
+            current_matches: vec![]
+        }
     }
     pub fn set_searcher(&mut self, s: &[char]) {}
-    pub fn list_matches(&self) -> Vec<Snippet> { vec![] }
+    pub fn current_matches(&self) -> &Vec<Snippet> { &self.current_matches }
 }

@@ -29,6 +29,8 @@ impl Node {
     fn add_children(&mut self, children: Vec<NodeId>) {
         self.children = children
     }
+    fn current_word(&self) -> Vec<char> { unimplemented!() }
+    fn rollback_current_word(&mut self) {}
 }
 
 type NodeId = usize;
@@ -51,6 +53,12 @@ impl DiffTree {
             stack: vec![0],
             nodes,
         }
+    }
+    pub fn current_word(&self) -> Vec<char> {
+         self.node(self.cur_node_id()).current_word()
+    }
+    pub fn rollback_current_word(&mut self) {
+         self.cur_node().rollback_current_word() 
     }
     fn node(&self, i: NodeId) -> &Node {
         self.nodes.get(&i).unwrap()
