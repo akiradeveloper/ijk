@@ -1272,8 +1272,12 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
             let cursor = buf_ref.rb.cursor;
             let snippet_area = compute_snippet_area(&buf_reg, &cursor, buf_ref.snippet_repo.current_matches().len(), 15);
             let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
-            Some(view_gen.gen(region))
+            Some(view_gen.gen(snippet_area))
         }
+    };
+    let buf_view: Box<view::View> = match snippet_view {
+        None => Box::new(buf_view),
+        Some(v) => Box::new(view::OverlayView::new(buf_view, v))
     };
     
     let view = view::MergeHorizontal {
