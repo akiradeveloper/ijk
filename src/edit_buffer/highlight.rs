@@ -94,29 +94,29 @@ impl <'a> view::View for HighlightDiffViewRef<'a> {
     }
 }
 
-pub struct HighlightDiffView {
-    buf_area: view::BufArea<Style>,
-    bg_default: Color,
-}
-impl HighlightDiffView {
-    pub fn new(x: &Highlighter, area: view::Area) -> Self {
-        let buf_area = view::BufArea::new(&x.cache, area);
-        let bg_default = theme::default().settings.background.unwrap();
-        Self { buf_area, bg_default }
-    }
-}
-impl view::View for HighlightDiffView {
-    fn get(&self, col: usize, row: usize) -> view::ViewElem {
-        match self.buf_area.get(col, row) {
-            Some(style) => {
-                let fg = style.foreground.into();
-                let bg = style.background.into();
-                (None, Some(fg), Some(bg))
-            },
-            None => {
-                let bg = self.bg_default.into();
-                (None, None, Some(bg))
-            },
-        }
-    }
-}
+// pub struct HighlightDiffView {
+//     buf_area: view::BufArea<Style>,
+//     bg_default: Color,
+// }
+// impl HighlightDiffView {
+//     pub fn new(x: &Highlighter, area: view::Area) -> Self {
+//         let buf_area = view::BufArea::new(&x.cache, area);
+//         let bg_default = theme::default().settings.background.unwrap();
+//         Self { buf_area, bg_default }
+//     }
+// }
+// impl view::View for HighlightDiffView {
+//     fn get(&self, col: usize, row: usize) -> view::ViewElem {
+//         match self.buf_area.get(col, row) {
+//             Some(style) => {
+//                 let fg = style.foreground.into();
+//                 let bg = style.background.into();
+//                 (None, Some(fg), Some(bg))
+//             },
+//             None => {
+//                 let bg = self.bg_default.into();
+//                 (None, None, Some(bg))
+//             },
+//         }
+//     }
+// }

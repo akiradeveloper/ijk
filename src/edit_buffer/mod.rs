@@ -1163,7 +1163,7 @@ impl view::ViewGen for ViewGen {
         // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
         let buf_ref = self.buf.borrow();
         let buf_window = self.buf.borrow().rb.current_window();
-        let buf_view = view::ToViewRef::new(&buf_ref.rb.buf);
+        let buf_view = view::ToView::new(&buf_ref.rb.buf);
 
         // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
         // let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
@@ -1180,7 +1180,7 @@ impl view::ViewGen for ViewGen {
             VisualRangeDiffView::new(self.buf.borrow().visual_range()),
         );
 
-        let add_cursor = view::AddCursorNew::new(self.buf.borrow().rb.cursor);
+        let add_cursor = view::AddCursor::new(self.buf.borrow().rb.cursor);
         let add_cursor = view::EnableView::new(add_cursor, true); // tmp
         let buf_view = view::OverlayView::new(buf_view, add_cursor);
 

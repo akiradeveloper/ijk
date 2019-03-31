@@ -270,12 +270,12 @@ impl view::ViewGen for ViewGen {
         let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
 
         let x_ref = self.x.borrow();
-        let dir_view = view::ToViewRef::new(&x_ref.rb.buf);
+        let dir_view = view::ToView::new(&x_ref.rb.buf);
 
         let add_color = AddColor::new(self.x.clone());
         let dir_view = view::OverlayView::new(dir_view, add_color);
 
-        let add_cursor = view::AddCursorNew::new(self.x.borrow().rb.cursor);
+        let add_cursor = view::AddCursor::new(self.x.borrow().rb.cursor);
         let dir_view = view::OverlayView::new(dir_view, add_cursor);
 
         let dir_view = view::TranslateView::new(

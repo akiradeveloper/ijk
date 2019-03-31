@@ -57,10 +57,10 @@ impl Area {
     }
 }
 
-pub struct BufAreaRef<'a, T> {
+pub struct BufArea<'a, T> {
     backing: &'a [Vec<T>],
 }
-impl <'a, T> BufAreaRef<'a, T> {
+impl <'a, T> BufArea<'a, T> {
     fn get(&self, col: usize, row: usize) -> Option<&T> {
         if row > self.backing.len() - 1 || col > self.backing[row].len() - 1 {
             None
@@ -70,51 +70,51 @@ impl <'a, T> BufAreaRef<'a, T> {
     }
 }
 
-pub struct BufArea<T> {
-    copy: Vec<Vec<T>>,
-    area: Area,
-}
-impl <T: Clone> BufArea<T> {
-    pub fn new(orig: &[Vec<T>], area: Area) -> Self {
-        let mut v = vec![];
-        for i in 0..area.height {
-            let row = area.row + i;
-            if row > orig.len() - 1 {
-                break;
-            }
-            let mut vv = vec![];
-            for j in 0..area.width {
-                let col = area.col + j;
-                if col > orig[row].len() - 1 {
-                    break;
-                }
-                vv.push(orig[row][col].clone());
-            }
-            v.push(vv);
-        }
-        // orig and area should have some overwrap
-        assert!(!v.is_empty());
-        Self {
-            copy: v,
-            area: area,
-        }
-    }
-    pub fn get(&self, col: usize, row: usize) -> Option<&T> {
-        let copy_row = row - self.area.row;
-        let copy_col = col - self.area.col;
-        if copy_row > self.copy.len() - 1 || copy_col > self.copy[copy_row].len() - 1 {
-            None
-        } else {
-            Some(&self.copy[copy_row][copy_col])
-        }
-    }
-    #[deprecated]
-    pub fn last_some(&self) -> &T {
-        let row = self.copy.len() - 1;
-        let col = self.copy[row].len() - 1;
-        &self.copy[row][col]
-    }
-}
+// pub struct BufArea<T> {
+//     copy: Vec<Vec<T>>,
+//     area: Area,
+// }
+// impl <T: Clone> BufArea<T> {
+//     pub fn new(orig: &[Vec<T>], area: Area) -> Self {
+//         let mut v = vec![];
+//         for i in 0..area.height {
+//             let row = area.row + i;
+//             if row > orig.len() - 1 {
+//                 break;
+//             }
+//             let mut vv = vec![];
+//             for j in 0..area.width {
+//                 let col = area.col + j;
+//                 if col > orig[row].len() - 1 {
+//                     break;
+//                 }
+//                 vv.push(orig[row][col].clone());
+//             }
+//             v.push(vv);
+//         }
+//         // orig and area should have some overwrap
+//         assert!(!v.is_empty());
+//         Self {
+//             copy: v,
+//             area: area,
+//         }
+//     }
+//     pub fn get(&self, col: usize, row: usize) -> Option<&T> {
+//         let copy_row = row - self.area.row;
+//         let copy_col = col - self.area.col;
+//         if copy_row > self.copy.len() - 1 || copy_col > self.copy[copy_row].len() - 1 {
+//             None
+//         } else {
+//             Some(&self.copy[copy_row][copy_col])
+//         }
+//     }
+//     #[deprecated]
+//     pub fn last_some(&self) -> &T {
+//         let row = self.copy.len() - 1;
+//         let col = self.copy[row].len() - 1;
+//         &self.copy[row][col]
+//     }
+// }
 
 pub type ViewElem = (Option<char>, Option<Color>, Option<Color>);
 
@@ -219,15 +219,15 @@ impl View for CloneView {
     }
 }
 
-pub struct ToViewRef<'a> {
+pub struct ToView<'a> {
     pub back: &'a[Vec<BufElem>],
 }
-impl <'a> ToViewRef<'a> {
+impl <'a> ToView<'a> {
     pub fn new(back: &'a[Vec<BufElem>]) -> Self {
         Self { back }
     }
 }
-impl <'a> View for ToViewRef<'a> {
+impl <'a> View for ToView<'a> {
     fn get(&self, col: usize, row: usize) -> ViewElem {
         if row > self.back.len() - 1 || col > self.back[row].len() - 1 {
             (Some(' '), Some(default_fg()), Some(default_bg()))
@@ -243,32 +243,32 @@ impl <'a> View for ToViewRef<'a> {
     fn get_cursor_pos(&self) -> Option<Cursor> { None }
 }
 
-#[deprecated]
-pub struct ToView {
-    buf_area: BufArea<BufElem>,
-}
-impl ToView {
-    pub fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
-        let _flame_guard = flame::start_guard("clone area buf");
-        Self {
-            buf_area: BufArea::new(orig, area)
-        }
-    }
-}
-impl View for ToView {
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        match self.buf_area.get(col, row) {
-            Some(e) => {
-                let c = match *e {
-                    BufElem::Char(c) => c,
-                    BufElem::Eol => ' ',
-                };
-                (Some(c), Some(default_fg()), Some(default_bg()))
-            },
-            None => (Some(' '), Some(default_fg()), Some(default_bg()))
-        }
-    }
-}
+// #[deprecated]
+// pub struct ToView {
+//     buf_area: BufArea<BufElem>,
+// }
+// impl ToView {
+//     pub fn new(orig: &[Vec<BufElem>], area: Area) -> Self {
+//         let _flame_guard = flame::start_guard("clone area buf");
+//         Self {
+//             buf_area: BufArea::new(orig, area)
+//         }
+//     }
+// }
+// impl View for ToView {
+//     fn get(&self, col: usize, row: usize) -> ViewElem {
+//         match self.buf_area.get(col, row) {
+//             Some(e) => {
+//                 let c = match *e {
+//                     BufElem::Char(c) => c,
+//                     BufElem::Eol => ' ',
+//                 };
+//                 (Some(c), Some(default_fg()), Some(default_bg()))
+//             },
+//             None => (Some(' '), Some(default_fg()), Some(default_bg()))
+//         }
+//     }
+// }
 
 pub struct BgColor {
     bg: Color,
@@ -313,41 +313,41 @@ fn test_lineno() {
     }
 }
 
-pub struct AddCursorNew {
+pub struct AddCursor {
     cursor: Cursor,
 }
-impl AddCursorNew {
+impl AddCursor {
     pub fn new(cursor: Cursor) -> Self {
         Self { cursor }
     }
 }
-impl View for AddCursorNew {
+impl View for AddCursor {
     fn get_cursor_pos(&self) -> Option<Cursor> {
         Some(self.cursor)
     }
 }
 
-#[deprecated]
-pub struct AddCursor<V> {
-    x: V,
-    cursor: Option<Cursor>,
-}
-impl<V> View for AddCursor<V>
-where
-    V: View,
-{
-    fn get(&self, col: usize, row: usize) -> ViewElem {
-        self.x.get(col, row)
-    }
-    fn get_cursor_pos(&self) -> Option<Cursor> {
-        self.cursor
-    }
-}
-impl<V> AddCursor<V> {
-    pub fn new(x: V, cursor: Option<Cursor>) -> Self {
-        Self { x, cursor }
-    }
-}
+// #[deprecated]
+// pub struct AddCursor<V> {
+//     x: V,
+//     cursor: Option<Cursor>,
+// }
+// impl<V> View for AddCursor<V>
+// where
+//     V: View,
+// {
+//     fn get(&self, col: usize, row: usize) -> ViewElem {
+//         self.x.get(col, row)
+//     }
+//     fn get_cursor_pos(&self) -> Option<Cursor> {
+//         self.cursor
+//     }
+// }
+// impl<V> AddCursor<V> {
+//     pub fn new(x: V, cursor: Option<Cursor>) -> Self {
+//         Self { x, cursor }
+//     }
+// }
 
 pub struct TranslateView<V> {
     x: V,
@@ -470,7 +470,7 @@ fn test_view_overlay() {
         width: 1,
         height: 1,
     };
-    let v0 = ToView::new(&buf, area);
+    let v0 = ToView::new(&buf);
     let d0 = TestDiffView {};
     let v1 = OverlayView { v: v0, d: d0 };
 

@@ -163,11 +163,11 @@ impl view::ViewGen for ViewGen {
 
         let (lineno_area, navi_area) = region.split_horizontal(view::LINE_NUMBER_W);
         let x_ref = self.x.borrow();
-        let navi_view = view::ToViewRef::new(&x_ref.rb.buf);
+        let navi_view = view::ToView::new(&x_ref.rb.buf);
 
-        let add_cursor = view::AddCursorNew::new(self.x.borrow().rb.cursor);
+        let add_cursor = view::AddCursor::new(self.x.borrow().rb.cursor);
         let navi_view = view::OverlayView::new(navi_view, add_cursor);
-        
+
         let navi_view = view::TranslateView::new(
             navi_view,
             navi_area.col as i32 - self.x.borrow().rb.window.col() as i32,
