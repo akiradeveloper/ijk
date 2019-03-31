@@ -155,39 +155,41 @@ impl ViewGen {
          }
     }
 }
+fn gen_impl(x: &mut Navigator, region: view::Area) -> Box<view::View> {
+    x.rb.stabilize_cursor();
+    x.rb.adjust_window(region.width, region.height);
+    x.update_cache();
+
+    let (lineno_area, navi_area) = region.split_horizontal(view::LINE_NUMBER_W);
+    let navi_view = view::ToView::new(&x.rb.buf);
+
+    let add_cursor = view::AddCursor::new(x.rb.cursor);
+    let navi_view = view::OverlayView::new(navi_view, add_cursor);
+
+    let navi_view = view::TranslateView::new(
+        navi_view,
+        navi_area.col as i32 - x.rb.window.col() as i32,
+        navi_area.row as i32 - x.rb.window.row() as i32,
+    );
+
+    let lineno_range = x.rb.lineno_range();
+    let lineno_view = view::LineNumber {
+        from: lineno_range.start+1,
+        to: lineno_range.end,
+    };
+
+    let view = view::MergeHorizontal {
+        left: lineno_view,
+        right: navi_view,
+        col_offset: navi_area.col,
+    };
+
+    let view = view::CloneView::new(view, region);
+    Box::new(view)
+}
 impl view::ViewGen for ViewGen {
     fn gen(&mut self, region: view::Area) -> Box<view::View> {
-        self.x.borrow_mut().rb.stabilize_cursor();
-        self.x.borrow_mut().rb.adjust_window(region.width, region.height);
-        self.x.borrow_mut().update_cache();
-
-        let (lineno_area, navi_area) = region.split_horizontal(view::LINE_NUMBER_W);
-        let x_ref = self.x.borrow();
-        let navi_view = view::ToView::new(&x_ref.rb.buf);
-
-        let add_cursor = view::AddCursor::new(self.x.borrow().rb.cursor);
-        let navi_view = view::OverlayView::new(navi_view, add_cursor);
-
-        let navi_view = view::TranslateView::new(
-            navi_view,
-            navi_area.col as i32 - self.x.borrow().rb.window.col() as i32,
-            navi_area.row as i32 - self.x.borrow().rb.window.row() as i32,
-        );
-
-        let lineno_range = self.x.borrow().rb.lineno_range();
-        let lineno_view = view::LineNumber {
-            from: lineno_range.start+1,
-            to: lineno_range.end,
-        };
-
-        let view = view::MergeHorizontal {
-            left: lineno_view,
-            right: navi_view,
-            col_offset: navi_area.col,
-        };
-
-        let view = view::CloneView::new(view, region);
-        Box::new(view)
+        gen_impl(&mut self.x.borrow_mut(), region)
     }
 }
 
