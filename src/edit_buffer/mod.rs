@@ -59,6 +59,7 @@ pub struct EditBuffer {
     path: path::PathBuf,
     sync_clock: Option<Instant>,
     highlighter: highlight::Highlighter,
+    snippet_repo: snippet::SnippetRepo,
     navigator: Rc<RefCell<Navigator>>,
     message_box: MessageBox,
 }
@@ -103,6 +104,7 @@ impl EditBuffer {
             path: path.to_owned(),
             sync_clock: None,
             highlighter: highlight::Highlighter::new(n_rows, ext),
+            snippet_repo: snippet::SnippetRepo::new(ext),
             navigator,
             message_box,
         }
