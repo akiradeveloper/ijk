@@ -241,17 +241,17 @@ impl Search {
     }
 }
 
-pub struct DiffView {
-    model: Search,
+pub struct DiffView<'a> {
+    model: &'a Search,
 }
-impl DiffView {
-    pub fn new(search: Search) -> Self {
+impl <'a> DiffView<'a> {
+    pub fn new(search: &'a Search) -> Self {
         Self {
             model: search
         }
     }
 }
-impl view::View for DiffView {
+impl <'a> view::View for DiffView<'a> {
     fn get(&self, col: usize, row: usize) -> view::ViewElem {
         let search_word_len = self.model.cur_word.len();
         if row >= self.model.cache.len() {

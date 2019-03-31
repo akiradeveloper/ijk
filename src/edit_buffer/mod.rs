@@ -1172,7 +1172,7 @@ impl view::ViewGen for ViewGen {
 
         let buf_view = view::OverlayView::new(
             buf_view,
-            search::DiffView::new(self.buf.borrow().rb.search.clone()),
+            search::DiffView::new(&buf_ref.rb.search),
         );
         
         let buf_view = view::OverlayView::new(

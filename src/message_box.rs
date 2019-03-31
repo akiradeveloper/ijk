@@ -36,18 +36,18 @@ impl MessageBox {
 }
 
 use crate::view;
-pub struct View {
-    x: Arc<Mutex<MessageBoxImpl>>,
+pub struct View<'a> {
+    x: &'a MessageBox,
 }
-impl self::View {
-    pub fn new(x: MessageBox) -> Self {
-        Self { x: x.x }
+impl <'a> self::View<'a> {
+    pub fn new(x: &'a MessageBox) -> Self {
+        Self { x: x }
     }
 }
-impl view::View for self::View {
+impl <'a> view::View for self::View<'a> {
     fn get(&self, col: usize, row: usize) -> view::ViewElem {
-        if row == 0 && col < self.x.lock().unwrap().buf.len() {
-            let c = self.x.lock().unwrap().buf[col];
+        if row == 0 && col < self.x.x.lock().unwrap().buf.len() {
+            let c = self.x.x.lock().unwrap().buf[col];
             (Some(c), Some(Color::White), Some(view::default_bg()))
         } else {
             (Some(' '), Some(Color::White), Some(view::default_bg()))

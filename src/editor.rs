@@ -133,7 +133,8 @@ impl <D: Drawable> Editor<D> {
             row_offset: status_area.row,
         };
 
-        let message_view = message_box::View::new(page.message());
+        let message = page.message();
+        let message_view = message_box::View::new(&message);
         let message_view = view::TranslateView::new(
             message_view,
             message_area.col as i32,
@@ -144,6 +145,8 @@ impl <D: Drawable> Editor<D> {
             bottom: message_view,
             row_offset: message_area.row,
         };
+
+        let view = view::CloneView::new(view, area);
         Box::new(view)
     }
     fn draw<V: View>(&mut self, view: V) {

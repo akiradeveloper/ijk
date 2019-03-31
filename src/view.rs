@@ -95,6 +95,7 @@ impl <T: Clone> BufArea<T> {
             Some(&self.copy[copy_row][copy_col])
         }
     }
+    #[deprecated]
     pub fn last_some(&self) -> &T {
         let row = self.copy.len() - 1;
         let col = self.copy[row].len() - 1;
