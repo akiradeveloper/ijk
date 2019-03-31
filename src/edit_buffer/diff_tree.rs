@@ -1,5 +1,5 @@
 use crate::Key;
-use crate::read_buffer::BufElem;
+use crate::read_buffer::{Line, BufElem};
 use super::indent;
 use std::collections::HashMap;
 
@@ -29,7 +29,30 @@ impl Node {
     fn add_children(&mut self, children: Vec<NodeId>) {
         self.children = children
     }
-    fn current_word(&self) -> Option<Vec<char>> { None }
+    fn current_word(&self) -> Vec<char> {
+        if self.is_placeholder {
+            return vec![]
+        }
+        if self.buffer.is_empty() {
+            return vec![]
+        }
+
+        let col = self.buffer.len() - 1;
+        let line = Line::new(&self.buffer);
+        let r = line.word_range(col);
+        if r.is_none() {
+            return vec![]
+        }
+        let r = r.unwrap();
+
+        let mut v = vec![];
+        for i in r {
+            if let BufElem::Char(c) = self.buffer[i] {
+                v.push(c)
+            }
+        }
+        v
+    }
     fn rollback_current_word(&mut self) {}
 }
 
@@ -54,7 +77,7 @@ impl DiffTree {
             nodes,
         }
     }
-    pub fn current_word(&self) -> Option<Vec<char>> {
+    pub fn current_word(&self) -> Vec<char> {
          self.node(self.cur_node_id()).current_word()
     }
     pub fn rollback_current_word(&mut self) {

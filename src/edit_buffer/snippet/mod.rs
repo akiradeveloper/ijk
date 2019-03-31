@@ -5,13 +5,15 @@ mod trie;
 use crate::read_buffer::{BufElem, ReadBuffer};
 use crate::view;
 use crate::message_box::MessageBox;
+use self::trie::Trie;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum SnippetElem {
     TabStop(String, usize),
     Str(String)
 }
 
+#[derive(Clone)]
 pub struct Snippet {
     prefix: String,
     body: Vec<SnippetElem>,
@@ -19,18 +21,44 @@ pub struct Snippet {
 }
 
 pub struct SnippetRepo {
+    trie: Trie<Snippet>,
     rb: ReadBuffer,
     current_matches: Vec<Snippet>,
+    message_box: MessageBox,
 }
 impl SnippetRepo {
     pub fn new(ext: Option<&str>, message_box: MessageBox) -> Self {
         Self {
-            rb: ReadBuffer::new(vec![vec![BufElem::Eol]], message_box),
-            current_matches: vec![]
+            trie: Trie::new(),
+            rb: ReadBuffer::new(vec![vec![BufElem::Eol]], message_box.clone()),
+            current_matches: vec![],
+            message_box: message_box,
         }
     }
-    pub fn set_searcher(&mut self, s: Option<Vec<char>>) {}
-    pub fn current_matches(&self) -> &Vec<Snippet> { &self.current_matches }
+    fn construct_rb(snippets: &[Snippet]) -> Vec<Vec<BufElem>> {
+        let mut v = vec![];
+        v
+    }
+    pub fn set_searcher(&mut self, s: Vec<char>) {
+        let new_list = if s.is_empty() {
+            vec![]
+        } else {
+            self.trie.get_node(&s).map(|node| {
+                let mut res = vec![];
+                for (k, vv) in node.list_values() {
+                    for v in vv {
+                        res.push(v)
+                    }
+                }
+                res
+            }).unwrap_or(vec![])
+        };
+        self.rb = ReadBuffer::new(Self::construct_rb(&new_list), self.message_box.clone());
+        self.current_matches = new_list;
+    }
+    pub fn current_matches(&self) -> &Vec<Snippet> {
+         &self.current_matches
+    }
 }
 
 struct SnippetView<'a> {

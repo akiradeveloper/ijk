@@ -15,6 +15,7 @@ fn is_word_char(e: &BufElem) -> bool {
         BufElem::Eol => false,
         BufElem::Char(c) => match c {
             '_' => true,
+            '!' => true,
             'a' ... 'z' => true,
             'A' ... 'Z' => true,
             '0' ... '9' => true,
