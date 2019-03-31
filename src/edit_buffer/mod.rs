@@ -1206,67 +1206,68 @@ impl ViewGen {
         Self { buf: buf }
     }
 }
+fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
+    let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
+
+    buf_ref.rb.stabilize_cursor();
+    buf_ref.rb.adjust_window(buf_reg.width, buf_reg.height);
+    buf_ref.update_cache();
+
+    let lineno_range = buf_ref.rb.lineno_range();
+    let lineno_view = view::LineNumber {
+        from: lineno_range.start + 1,
+        to: lineno_range.end,
+    };
+    let lineno_view =
+        view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
+
+    // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
+    
+    let buf_window = buf_ref.rb.current_window();
+    let buf_view = view::ToView::new(&buf_ref.rb.buf);
+
+    // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
+    // let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
+    let highlight_diff = highlight::HighlightDiffViewRef::new(&buf_ref.highlighter);
+    let buf_view = view::OverlayView::new(buf_view, highlight_diff);
+
+    let buf_view = view::OverlayView::new(
+        buf_view,
+        search::DiffView::new(&buf_ref.rb.search),
+    );
+    
+    let buf_view = view::OverlayView::new(
+        buf_view,
+        VisualRangeDiffView::new(buf_ref.visual_range()),
+    );
+
+    let add_cursor = view::AddCursor::new(buf_ref.rb.cursor);
+    let add_cursor = view::EnableView::new(add_cursor, true); // tmp
+    let buf_view = view::OverlayView::new(buf_view, add_cursor);
+
+    let buf_view = view::TranslateView::new(
+        buf_view,
+        buf_reg.col as i32 - buf_ref.rb.window.col() as i32,
+        buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
+    );
+
+    // let snippet_view_gen = snippet::SnippetViewGen::new(
+    //     Box::new(shared::Mapped::new(self.buf.clone(), |x| &mut x.snippet_repo))
+    // );
+    // snippet_view_gen.gen(region); // tmp. error: buf will be mutablly borrowed after borrowed above
+
+    let view = view::MergeHorizontal {
+        left: lineno_view,
+        right: buf_view,
+        col_offset: buf_reg.col,
+    };
+
+    let view = view::CloneView::new(view, region);
+    Box::new(view)
+}
 impl view::ViewGen for ViewGen {
-    fn gen(&mut self, region: view::Area) -> Box<view::View> {
-        let mut buf_ref = self.buf.borrow_mut();
-        
-        let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
-
-        buf_ref.rb.stabilize_cursor();
-        buf_ref.rb.adjust_window(buf_reg.width, buf_reg.height);
-        buf_ref.update_cache();
-
-        let lineno_range = buf_ref.rb.lineno_range();
-        let lineno_view = view::LineNumber {
-            from: lineno_range.start + 1,
-            to: lineno_range.end,
-        };
-        let lineno_view =
-            view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
-
-        // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
-        
-        let buf_window = buf_ref.rb.current_window();
-        let buf_view = view::ToView::new(&buf_ref.rb.buf);
-
-        // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
-        // let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
-        let highlight_diff = highlight::HighlightDiffViewRef::new(&buf_ref.highlighter);
-        let buf_view = view::OverlayView::new(buf_view, highlight_diff);
-
-        let buf_view = view::OverlayView::new(
-            buf_view,
-            search::DiffView::new(&buf_ref.rb.search),
-        );
-        
-        let buf_view = view::OverlayView::new(
-            buf_view,
-            VisualRangeDiffView::new(buf_ref.visual_range()),
-        );
-
-        let add_cursor = view::AddCursor::new(buf_ref.rb.cursor);
-        let add_cursor = view::EnableView::new(add_cursor, true); // tmp
-        let buf_view = view::OverlayView::new(buf_view, add_cursor);
-
-        let buf_view = view::TranslateView::new(
-            buf_view,
-            buf_reg.col as i32 - buf_ref.rb.window.col() as i32,
-            buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
-        );
-
-        // let snippet_view_gen = snippet::SnippetViewGen::new(
-        //     Box::new(shared::Mapped::new(self.buf.clone(), |x| &mut x.snippet_repo))
-        // );
-        // snippet_view_gen.gen(region); // tmp. error: buf will be mutablly borrowed after borrowed above
-
-        let view = view::MergeHorizontal {
-            left: lineno_view,
-            right: buf_view,
-            col_offset: buf_reg.col,
-        };
-
-        let view = view::CloneView::new(view, region);
-        Box::new(view)
+    fn gen(&mut self, area: view::Area) -> Box<view::View> {
+        gen_impl(&mut self.buf.borrow_mut(), area)
     }
 }
 

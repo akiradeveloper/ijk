@@ -230,20 +230,20 @@ pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     controller::ControllerFSM::new(INIT, Box::new(g))
 }
 
-struct AddColor {
-    x: Rc<RefCell<Directory>>,
+struct AddColor<'a> {
+    x: &'a Directory
 }
-impl AddColor {
-    fn new(x: Rc<RefCell<Directory>>) -> Self {
+impl <'a> AddColor<'a> {
+    fn new(x: &'a Directory) -> Self {
         Self { x }
     }
 }
-impl view::View for AddColor {
+impl <'a> view::View for AddColor<'a> {
     fn get(&self, _: usize, row: usize) -> view::ViewElem {
-        if row > self.x.borrow().entries.len() - 1 {
+        if row > self.x.entries.len() - 1 {
             return (None, None, None)
         }
-        match self.x.borrow().entries[row] {
+        match self.x.entries[row] {
             Entry::File(_) => (None, None, None),
             Entry::Dir(_) => (None, Some(Color::LightRed), None),
             Entry::Parent(_) => (None, Some(Color::LightRed), None),
@@ -261,43 +261,45 @@ impl ViewGen {
          }
     }
 }
+fn gen_impl(x: &mut Directory, region: view::Area) -> Box<view::View> {
+    x.rb.stabilize_cursor();
+    x.rb.adjust_window(region.width, region.height);
+    x.update_cache();
+
+    let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
+
+    let dir_view = view::ToView::new(&x.rb.buf);
+
+    let add_color = AddColor::new(x);
+    let dir_view = view::OverlayView::new(dir_view, add_color);
+
+    let add_cursor = view::AddCursor::new(x.rb.cursor);
+    let dir_view = view::OverlayView::new(dir_view, add_cursor);
+
+    let dir_view = view::TranslateView::new(
+        dir_view,
+        dir_area.col as i32 - x.rb.window.col() as i32,
+        dir_area.row as i32 - x.rb.window.row() as i32,
+    );
+
+    let lineno_range = x.rb.lineno_range();
+    let lineno_view = view::LineNumber {
+        from: lineno_range.start+1,
+        to: lineno_range.end,
+    };
+
+    let view = view::MergeHorizontal {
+        left: lineno_view,
+        right: dir_view,
+        col_offset: dir_area.col,
+    };
+
+    let view = view::CloneView::new(view, region);
+    Box::new(view)
+}
 impl view::ViewGen for ViewGen {
     fn gen(&mut self, region: view::Area) -> Box<view::View> {
-        self.x.borrow_mut().rb.stabilize_cursor();
-        self.x.borrow_mut().rb.adjust_window(region.width, region.height);
-        self.x.borrow_mut().update_cache();
-
-        let (lineno_area, dir_area) = region.split_horizontal(view::LINE_NUMBER_W);
-
-        let x_ref = self.x.borrow();
-        let dir_view = view::ToView::new(&x_ref.rb.buf);
-
-        let add_color = AddColor::new(self.x.clone());
-        let dir_view = view::OverlayView::new(dir_view, add_color);
-
-        let add_cursor = view::AddCursor::new(self.x.borrow().rb.cursor);
-        let dir_view = view::OverlayView::new(dir_view, add_cursor);
-
-        let dir_view = view::TranslateView::new(
-            dir_view,
-            dir_area.col as i32 - self.x.borrow().rb.window.col() as i32,
-            dir_area.row as i32 - self.x.borrow().rb.window.row() as i32,
-        );
-
-        let lineno_range = self.x.borrow().rb.lineno_range();
-        let lineno_view = view::LineNumber {
-            from: lineno_range.start+1,
-            to: lineno_range.end,
-        };
-
-        let view = view::MergeHorizontal {
-            left: lineno_view,
-            right: dir_view,
-            col_offset: dir_area.col,
-        };
-
-        let view = view::CloneView::new(view, region);
-        Box::new(view)
+        gen_impl(&mut self.x.borrow_mut(), region)
     }
 }
 
