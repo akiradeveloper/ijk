@@ -1326,6 +1326,7 @@ impl navigator::Page for Page {
             WILL_CHANGE => "c",
             WILL_YANK => "y",
             INSERT => "i",
+            SNIPPET => "i",
             SEARCH => "/",
             _ => "*",
         };
