@@ -23,6 +23,6 @@ impl SnippetRepo {
             current_matches: vec![]
         }
     }
-    pub fn set_searcher(&mut self, s: &[char]) {}
+    pub fn set_searcher(&mut self, s: Option<Vec<char>>) {}
     pub fn current_matches(&self) -> &Vec<Snippet> { &self.current_matches }
 }

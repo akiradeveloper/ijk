@@ -573,7 +573,7 @@ impl EditBuffer {
     }
     pub fn eff_edit_mode_input(&mut self, k: Key) -> String {
         self.edit_state.as_mut().unwrap().diff_buffer.input(k.clone());
-        self.snippet_repo.set_searcher(&self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.current_word());
+        self.snippet_repo.set_searcher(self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.current_word());
 
         self.restore_buf_before_writeback();
         self.writeback_edit_state();

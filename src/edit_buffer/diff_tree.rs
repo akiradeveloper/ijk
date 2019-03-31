@@ -29,7 +29,7 @@ impl Node {
     fn add_children(&mut self, children: Vec<NodeId>) {
         self.children = children
     }
-    fn current_word(&self) -> Vec<char> { unimplemented!() }
+    fn current_word(&self) -> Option<Vec<char>> { None }
     fn rollback_current_word(&mut self) {}
 }
 
@@ -54,7 +54,7 @@ impl DiffTree {
             nodes,
         }
     }
-    pub fn current_word(&self) -> Vec<char> {
+    pub fn current_word(&self) -> Option<Vec<char>> {
          self.node(self.cur_node_id()).current_word()
     }
     pub fn rollback_current_word(&mut self) {
