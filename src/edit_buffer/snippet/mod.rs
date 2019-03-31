@@ -61,14 +61,14 @@ impl SnippetRepo {
     }
 }
 
-struct SnippetView<'a> {
-    x: &'a SnippetRepo,
-}
-impl <'a> view::View for SnippetView<'a> {
-    fn get(&self, col: usize, row: usize) -> view::ViewElem {
-        unimplemented!();
-    }
-}
+// struct SnippetView<'a> {
+//     x: &'a SnippetRepo,
+// }
+// impl <'a> view::View for SnippetView<'a> {
+//     fn get(&self, col: usize, row: usize) -> view::ViewElem {
+//         unimplemented!();
+//     }
+// }
 
 struct SnippetViewGen<'a> {
     x: &'a SnippetRepo,

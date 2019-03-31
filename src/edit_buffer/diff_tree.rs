@@ -53,7 +53,12 @@ impl Node {
         }
         v
     }
-    fn rollback_current_word(&mut self) {}
+    fn rollback_current_word(&mut self) {
+        let n = self.current_word().len();
+        for _ in 0 .. n {
+            self.buffer.pop();
+        }
+    }
 }
 
 type NodeId = usize;
