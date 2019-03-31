@@ -10,6 +10,7 @@ mod snippet;
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;
 
+use crate::shared;
 use crate::navigator::Navigator;
 use crate::message_box::MessageBox;
 use crate::navigator;
@@ -1253,6 +1254,11 @@ impl view::ViewGen for ViewGen {
             buf_reg.col as i32 - self.buf.borrow().rb.window.col() as i32,
             buf_reg.row as i32 - self.buf.borrow().rb.window.row() as i32,
         );
+
+        let snippet_view_gen = snippet::SnippetViewGen::new(
+            Box::new(shared::Mapped::new(self.buf.clone(), |x| &mut x.snippet_repo))
+        );
+        // snippet_view_gen.gen(region); // tmp. error: buf will be mutablly borrowed after borrowed above
 
         let view = view::MergeHorizontal {
             left: lineno_view,
