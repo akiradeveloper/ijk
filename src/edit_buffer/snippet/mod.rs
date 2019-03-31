@@ -92,26 +92,29 @@ impl SnippetRepo {
 // }
 
 use crate::shared::SharedMut;
-pub struct SnippetViewGen {
-    x: Box<SharedMut<SnippetRepo>>,
+pub struct SnippetViewGen<'a> {
+    x: &'a mut SnippetRepo,
 }
-impl SnippetViewGen {
-    pub fn new(x: Box<SharedMut<SnippetRepo>>) -> Self {
+impl <'a> SnippetViewGen<'a> {
+    pub fn new(x: &'a mut SnippetRepo) -> Self {
         Self { x }
     }
 }
-impl view::ViewGen for SnippetViewGen {
+impl <'a> view::ViewGen for SnippetViewGen<'a> {
     fn gen(&mut self, area: view::Area) -> Box<view::View> {
-        let x_ref = self.x.borrow_mut();
-        let view = view::ToView::new(&x_ref.rb.buf);
+        self.x.rb.update_cache();
+        self.x.rb.stabilize_cursor();
+        self.x.rb.adjust_window(area.width, area.height);
 
-        let add_cursor = view::AddCursor::new(x_ref.rb.cursor);
+        let view = view::ToView::new(&self.x.rb.buf);
+
+        let add_cursor = view::AddCursor::new(self.x.rb.cursor);
         let view = view::OverlayView::new(view, add_cursor);
 
         let view = view::TranslateView::new(
             view,
-            area.col as i32 - x_ref.rb.window.col() as i32,
-            area.row as i32 - x_ref.rb.window.row() as i32,
+            area.col as i32 - self.x.rb.window.col() as i32,
+            area.row as i32 - self.x.rb.window.row() as i32,
         );
 
         let view = view::CloneView::new(view, area);
