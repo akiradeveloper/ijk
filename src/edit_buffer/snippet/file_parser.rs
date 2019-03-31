@@ -2,39 +2,41 @@ use serde_derive::Deserialize;
 use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
-struct Line(String);
+pub struct Line(String);
 
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
-enum Body {
+pub enum Body {
     Single(Line),
     Array(Vec<Line>),
 }
 
 #[derive(Deserialize, Debug)]
-struct Unit {
+pub struct Unit {
     prefix: String,
     body: Body,
     description: String,
 }
 
 #[derive(Deserialize, Debug)]
-struct File(HashMap<String, Unit>);
+pub struct File(HashMap<String, Unit>);
+
+
 
 #[test]
 fn test_parse_file() {
     let data = r#"{
-        "For_Loop": {
+        "for": {
             "prefix": "for",
             "body": [
-            "for (const ${2:element} of ${1:array}) {",
-            "\t$0",
+            "for (const ${2:x} of ${1:xs}) {",
+            "\t${0:unimplemented!())",
             "}"
             ],
             "description": "For Loop"
         },
-        "Assert": {
-            "prefix": "as",
+        "assert": {
+            "prefix": "assert",
             "body": "assert!($0)",
             "description": "never use this shit"
         }

@@ -20,6 +20,17 @@ pub struct Snippet {
     description: String,
 }
 
+use self::file_parser::{Unit, Body, Line};
+fn convert(unit: Unit) -> Snippet {
+    unimplemented!()
+}
+fn convert_body(b: Body) -> Option<Vec<Vec<SnippetElem>>> {
+    unimplemented!()
+}
+fn convert_body_line(s: String) -> Option<Vec<SnippetElem>> {
+    unimplemented!()
+}
+
 pub struct SnippetRepo {
     trie: Trie<Snippet>,
     pub rb: ReadBuffer,
