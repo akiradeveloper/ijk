@@ -105,7 +105,7 @@ impl EditBuffer {
             path: path.to_owned(),
             sync_clock: None,
             highlighter: highlight::Highlighter::new(n_rows, ext),
-            snippet_repo: snippet::SnippetRepo::new(ext),
+            snippet_repo: snippet::SnippetRepo::new(ext, message_box.clone()),
             navigator,
             message_box,
         }
