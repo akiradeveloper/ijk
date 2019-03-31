@@ -1208,16 +1208,15 @@ impl ViewGen {
 }
 impl view::ViewGen for ViewGen {
     fn gen(&mut self, region: view::Area) -> Box<view::View> {
+        let mut buf_ref = self.buf.borrow_mut();
+        
         let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
 
-        self.buf.borrow_mut().rb.stabilize_cursor();
-        self.buf
-            .borrow_mut()
-            .rb
-            .adjust_window(buf_reg.width, buf_reg.height);
-        self.buf.borrow_mut().update_cache();
+        buf_ref.rb.stabilize_cursor();
+        buf_ref.rb.adjust_window(buf_reg.width, buf_reg.height);
+        buf_ref.update_cache();
 
-        let lineno_range = self.buf.borrow().rb.lineno_range();
+        let lineno_range = buf_ref.rb.lineno_range();
         let lineno_view = view::LineNumber {
             from: lineno_range.start + 1,
             to: lineno_range.end,
@@ -1226,7 +1225,6 @@ impl view::ViewGen for ViewGen {
             view::TranslateView::new(lineno_view, lineno_reg.col as i32, lineno_reg.row as i32);
 
         // let buf_view = view::ToView::new(self.buf.borrow().rb.buf.clone());
-        let buf_ref = self.buf.borrow_mut();
         
         let buf_window = buf_ref.rb.current_window();
         let buf_view = view::ToView::new(&buf_ref.rb.buf);
