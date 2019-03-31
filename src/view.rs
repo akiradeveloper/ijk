@@ -25,6 +25,22 @@ pub struct Area {
     pub height: usize,
 }
 impl Area {
+    pub fn contains(&self, other: &Self) -> bool {
+        if other.col < self.col {
+            return false
+        }
+        if other.row < self.row {
+            return false
+        }
+        if other.col + other.width > self.col + self.width {
+            return false
+        }
+        if other.row + other.height > self.row + self.height {
+            return false
+        }
+
+        true
+    }
     pub fn split_horizontal(&self, left_width: usize) -> (Area, Area) {
         let left = Self {
             col: self.col,

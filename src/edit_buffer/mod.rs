@@ -10,6 +10,7 @@ mod snippet;
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;
 
+use crate::view::{ViewGen, Area};
 use crate::shared;
 use crate::navigator::Navigator;
 use crate::message_box::MessageBox;
@@ -1198,13 +1199,26 @@ impl VisualRangeDiffView {
     }
 }
 
-pub struct ViewGen {
+pub struct EbViewGen {
     buf: Rc<RefCell<EditBuffer>>,
 }
-impl ViewGen {
+impl EbViewGen {
     pub fn new(buf: Rc<RefCell<EditBuffer>>) -> Self {
         Self { buf: buf }
     }
+}
+fn compute_snippet_area(area: &Area, cursor: &Cursor, w: usize, h: usize) -> Area {
+    assert!(w>0);
+    assert!(h>0);
+    let area0 = Area { col: area.col+1, row: area.row-h, width: w, height: h };
+    let area1 = Area { col: area.col+1, row: area.row+1, width: w, height: h };
+    let area2 = Area { col: area.col-w, row: area.row-h, width: w, height: h };
+    let area3 = Area { col: area.col-w, row: area.row+1, width: w, height: h };
+    if area.contains(&area0) { return area0 }
+    if area.contains(&area1) { return area1 }
+    if area.contains(&area2) { return area2 }
+    if area.contains(&area3) { return area3 }
+    area0
 }
 fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
     let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
@@ -1251,11 +1265,17 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
         buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
     );
 
-    // let snippet_view_gen = snippet::SnippetViewGen::new(
-    //     Box::new(shared::Mapped::new(self.buf.clone(), |x| &mut x.snippet_repo))
-    // );
-    // snippet_view_gen.gen(region); // tmp. error: buf will be mutablly borrowed after borrowed above
-
+    let snippet_view = {
+        if buf_ref.snippet_repo.current_matches().is_empty() {
+            None
+        } else {
+            let cursor = buf_ref.rb.cursor;
+            let snippet_area = compute_snippet_area(&buf_reg, &cursor, buf_ref.snippet_repo.current_matches().len(), 15);
+            let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
+            Some(view_gen.gen(region))
+        }
+    };
+    
     let view = view::MergeHorizontal {
         left: lineno_view,
         right: buf_view,
@@ -1265,7 +1285,7 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
     let view = view::CloneView::new(view, region);
     Box::new(view)
 }
-impl view::ViewGen for ViewGen {
+impl ViewGen for EbViewGen {
     fn gen(&mut self, area: view::Area) -> Box<view::View> {
         gen_impl(&mut self.buf.borrow_mut(), area)
     }
@@ -1280,7 +1300,7 @@ impl Page {
     pub fn new(x: Rc<RefCell<EditBuffer>>) -> Self {
         Self {
             controller: Box::new(mk_controller(x.clone())),
-            view_gen: Box::new(ViewGen::new(x.clone())),
+            view_gen: Box::new(EbViewGen::new(x.clone())),
             x: x,
         }
     }

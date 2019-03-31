@@ -91,7 +91,6 @@ impl SnippetRepo {
 //     }
 // }
 
-use crate::shared::SharedMut;
 pub struct SnippetViewGen<'a> {
     x: &'a mut SnippetRepo,
 }
