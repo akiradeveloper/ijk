@@ -5,7 +5,7 @@
 
 A real editor for real programmers.
 
-![Demo](https://github.com/akiradeveloper/ijk/blob/media/demo.gif)
+![Demo](https://github.com/akiradeveloper/ijk/blob/media/ijk-demo.gif)
 
 ## Usage
 
@@ -29,6 +29,6 @@ ijk is similar to vi but with some differences:
 
 - [x] Syntax highlighting (probably the syntect is a good choice)
 - [x] Automated benchmarking (using flamer is planned) and performance optimization
+- [x] Code snippet
 - [ ] Integration with language server
-- [ ] Code snippet
 - [ ] Integration with Git
