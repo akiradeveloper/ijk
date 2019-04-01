@@ -1285,7 +1285,8 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
     };
 
     let add_cursor = view::AddCursor::new(buf_ref.rb.cursor);
-    let add_cursor = view::EnableView::new(add_cursor, true); // tmp
+    let hide_buf_cursor = buf_ref.state == SNIPPET;
+    let add_cursor = view::EnableView::new(add_cursor, !hide_buf_cursor);
     let buf_view = view::OverlayView::new(buf_view, add_cursor);
 
     let buf_view = view::TranslateView::new(
