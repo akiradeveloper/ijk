@@ -11,7 +11,7 @@ const TESTDATA: &'static str = r#"{
     "for": {
         "prefix": "for",
         "body": [
-        "for ${2:x} in ${1:xs} {",
+        "for ${1:x} in ${2:xs} {",
         "    ${0:unimplemented!()}",
         "}"
         ],
@@ -19,12 +19,12 @@ const TESTDATA: &'static str = r#"{
     },
     "format": {
         "prefix": "format",
-        "body": "format!(${1:format}, ${2:s})",
+        "body": "format!(${1:format}, $2)",
         "description": "format!"
     },
     "assert": {
         "prefix": "assert",
-        "body": "assert!($0)",
+        "body": "assert!(${0:true})",
         "description": "assert!"
     }
 }"#;
