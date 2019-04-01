@@ -15,20 +15,9 @@ pub enum SnippetElem {
 
 #[derive(Clone)]
 pub struct Snippet {
-    prefix: String,
+    pub prefix: String,
     pub body: Vec<Vec<SnippetElem>>,
-    description: String,
-}
-
-use self::file_parser::{Unit, Body, Line};
-fn convert(unit: Unit) -> Snippet {
-    unimplemented!()
-}
-fn convert_body(b: Body) -> Option<Vec<Vec<SnippetElem>>> {
-    unimplemented!()
-}
-fn convert_body_line(s: String) -> Option<Vec<SnippetElem>> {
-    unimplemented!()
+    pub description: String,
 }
 
 pub struct SnippetRepo {
@@ -112,9 +101,9 @@ impl <'a> SnippetViewGen<'a> {
 }
 impl <'a> view::ViewGen for SnippetViewGen<'a> {
     fn gen(&mut self, area: view::Area) -> Box<view::View> {
-        self.x.rb.update_cache();
         self.x.rb.stabilize_cursor();
         self.x.rb.adjust_window(area.width, area.height);
+        self.x.rb.update_cache();
 
         let view = view::ToView::new(&self.x.rb.buf);
 
