@@ -25,7 +25,23 @@ pub struct Area {
     pub height: usize,
 }
 impl Area {
-    pub fn contains(&self, other: &Self) -> bool {
+    pub fn contains(&self, col: usize, row: usize) -> bool {
+        if col < self.col {
+            return false
+        }
+        if row < self.row {
+            return false
+        }
+        if col >= self.col + self.width {
+            return false
+        }
+        if row >= self.row + self.height {
+            return false
+        }
+
+        true
+    }
+    pub fn contains_area(&self, other: &Self) -> bool {
         if other.col < self.col {
             return false
         }
@@ -226,7 +242,7 @@ impl CloneView {
 }
 impl View for CloneView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        if row < self.area.row || col < self.area.col {
+        if !self.area.contains(col, row) {
             (None, None, None)
         } else {
             let i = row - self.area.row;

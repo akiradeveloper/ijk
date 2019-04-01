@@ -973,6 +973,7 @@ impl EditBuffer {
     }
     fn eff_enter_snippet_mode(&mut self, _: Key) -> String {
         let no_candidates = self.snippet_repo.current_matches().is_empty();
+        panic!();
         if no_candidates {
             INSERT.to_owned()
         } else {
@@ -1094,8 +1095,6 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
 
-    g.add_edge(INSERT, Ctrl('s'), Rc::new(StartTestSnippet(x.clone())));
-
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
     g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
     g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
@@ -1133,6 +1132,14 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Ctrl('r'), Rc::new(Redo(x.clone())));
     g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
 
+    // completion
+    // g.add_edge(INSERT, Ctrl('s'), Rc::new(StartTestSnippet(x.clone())));
+    g.add_edge(INSERT, Ctrl('s'), Rc::new(EnterSnippetMode(x.clone())));
+    g.add_edge(SNIPPET, Char('k'), Rc::new(CursorUpSnippetMode(x.clone())));
+    g.add_edge(SNIPPET, Char('j'), Rc::new(CursorDownSnippetMode(x.clone())));
+    g.add_edge(SNIPPET, Char('\n'), Rc::new(InsertSnippet(x.clone())));
+    g.add_edge(SNIPPET, Esc, Rc::new(LeaveSnippetMode(x.clone())));
+
     g.add_edge(INIT, Char(' '), Rc::new(EnterCommandMode(x.clone())));
     g.add_edge(COMMAND, Esc, Rc::new(CancelCommandMode(x.clone())));
     g.add_edge(COMMAND, Otherwise, Rc::new(ExecuteCommand(x.clone())));
@@ -1164,13 +1171,6 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(SEARCH, Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
     g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
     g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())));
-
-    // completion
-    g.add_edge(INSERT, Ctrl('s'), Rc::new(EnterSnippetMode(x.clone())));
-    g.add_edge(SNIPPET, Char('k'), Rc::new(CursorUpSnippetMode(x.clone())));
-    g.add_edge(SNIPPET, Char('j'), Rc::new(CursorDownSnippetMode(x.clone())));
-    g.add_edge(SNIPPET, Char('\n'), Rc::new(InsertSnippet(x.clone())));
-    g.add_edge(SNIPPET, Esc, Rc::new(LeaveSnippetMode(x.clone())));
 
     controller::ControllerFSM::new(INIT, Box::new(g))
 }
@@ -1213,20 +1213,20 @@ fn compute_snippet_area(area: &Area, cursor: &Cursor, w: usize, h: usize) -> Are
 
     if cursor.row >= h {
         let area0 = Area { col: cursor.col+1, row: cursor.row-h, width: w, height: h };
-        if area.contains(&area0) { return area0 }
+        if area.contains_area(&area0) { return area0 }
     }
 
     let area1 = Area { col: cursor.col+1, row: cursor.row+1, width: w, height: h };
-    if area.contains(&area1) { return area1 }
+    if area.contains_area(&area1) { return area1 }
 
     if cursor.col >= w && cursor.row >= h {
         let area2 = Area { col: cursor.col-w, row: cursor.row-h, width: w, height: h };
-        if area.contains(&area2) { return area2 }
+        if area.contains_area(&area2) { return area2 }
     }
 
     if cursor.col >= w {
         let area3 = Area { col: cursor.col-w, row: cursor.row+1, width: w, height: h };
-        if area.contains(&area3) { return area3 }
+        if area.contains_area(&area3) { return area3 }
     }
     
     area1
@@ -1276,21 +1276,20 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
         buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
     );
 
-    // let snippet_view = {
-    //     if buf_ref.snippet_repo.current_matches().is_empty() {
-    //         None
-    //     } else {
-    //         let cursor = buf_ref.rb.cursor;
-    //         let snippet_area = compute_snippet_area(&buf_reg, &cursor, 15, buf_ref.snippet_repo.current_matches().len());
-    //         dbg!(&snippet_area);
-    //         let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
-    //         Some(view_gen.gen(snippet_area))
-    //     }
-    // };
-    // let buf_view: Box<view::View> = match snippet_view {
-    //     None => Box::new(buf_view),
-    //     Some(v) => Box::new(view::OverlayView::new(buf_view, v))
-    // };
+    let snippet_view = {
+        if buf_ref.snippet_repo.current_matches().is_empty() {
+            None
+        } else {
+            let cursor = buf_ref.rb.cursor;
+            let snippet_area = compute_snippet_area(&buf_reg, &cursor, 80, buf_ref.snippet_repo.current_matches().len());
+            let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
+            Some(view_gen.gen(snippet_area))
+        }
+    };
+    let buf_view: Box<view::View> = match snippet_view {
+        None => Box::new(buf_view),
+        Some(v) => Box::new(view::OverlayView::new(buf_view, v))
+    };
     
     let view = view::MergeHorizontal {
         left: lineno_view,
@@ -1338,7 +1337,7 @@ impl navigator::Page for Page {
             WILL_CHANGE => "c",
             WILL_YANK => "y",
             INSERT => "i",
-            SNIPPET => "i",
+            SNIPPET => "s",
             SEARCH => "/",
             _ => "*",
         };

@@ -17,6 +17,11 @@ const TESTDATA: &'static str = r#"{
         ],
         "description": "For Loop"
     },
+    "format": {
+        "prefix": "format",
+        "body": "format!($0, $1)",
+        "description": "format a string"
+    },
     "assert": {
         "prefix": "assert",
         "body": "assert!($0)",
@@ -55,10 +60,10 @@ impl SnippetRepo {
                 for unit in units.values() {
                     match file_parser::convert(unit) {
                         None => {
-                            dbg!(&unit);
+                            // dbg!(&unit);
                         },
                         Some(snippet) => {
-                            dbg!(&snippet);
+                            // dbg!(&snippet);
                             let k: Vec<char> = snippet.prefix.chars().collect();
                             trie.insert(&k, snippet)
                         }
@@ -109,7 +114,7 @@ impl SnippetRepo {
                 res
             }).unwrap_or(vec![])
         };
-        dbg!(&new_list);
+        // dbg!(&new_list);
         self.rb = ReadBuffer::new(Self::construct_rb(&new_list), self.message_box.clone());
         self.current_matches = new_list;
     }
