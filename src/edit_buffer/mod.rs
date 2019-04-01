@@ -973,7 +973,6 @@ impl EditBuffer {
     }
     fn eff_enter_snippet_mode(&mut self, _: Key) -> String {
         let no_candidates = self.snippet_repo.current_matches().is_empty();
-        panic!();
         if no_candidates {
             INSERT.to_owned()
         } else {
@@ -1004,11 +1003,14 @@ impl EditBuffer {
                     }
                 };
                 children.push(child);
-                children.push(ChildComponent::Eol);
             }
+            children.push(ChildComponent::Eol);
         }
         children.pop(); // pop the last eol
         self.es_mut().diff_buffer.diff_buf_raw.add_children(children);
+        self.snippet_repo.set_searcher(self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.current_word());
+        self.restore_buf_before_writeback();
+        self.writeback_edit_state();
         INSERT.to_owned()
     }
     fn eff_leave_snippet_mode(&mut self, _: Key) -> String {
@@ -1126,6 +1128,8 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(WILL_CHANGE, Char('w'), Rc::new(ChangeWord(x.clone())));
     g.add_edge(WILL_CHANGE, Esc, Rc::new(CancelWillMode(x.clone())));
 
+    // g.add_edge(INSERT, Ctrl('s'), Rc::new(StartTestSnippet(x.clone())));
+    g.add_edge(INSERT, Ctrl('s'), Rc::new(EnterSnippetMode(x.clone())));
     g.add_edge(INSERT, Esc, Rc::new(LeaveEditMode(x.clone())));
     g.add_edge(INSERT, Otherwise, Rc::new(EditModeInput(x.clone())));
 
@@ -1133,8 +1137,6 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('u'), Rc::new(Undo(x.clone())));
 
     // completion
-    // g.add_edge(INSERT, Ctrl('s'), Rc::new(StartTestSnippet(x.clone())));
-    g.add_edge(INSERT, Ctrl('s'), Rc::new(EnterSnippetMode(x.clone())));
     g.add_edge(SNIPPET, Char('k'), Rc::new(CursorUpSnippetMode(x.clone())));
     g.add_edge(SNIPPET, Char('j'), Rc::new(CursorDownSnippetMode(x.clone())));
     g.add_edge(SNIPPET, Char('\n'), Rc::new(InsertSnippet(x.clone())));
@@ -1270,18 +1272,13 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
     let add_cursor = view::EnableView::new(add_cursor, true); // tmp
     let buf_view = view::OverlayView::new(buf_view, add_cursor);
 
-    let buf_view = view::TranslateView::new(
-        buf_view,
-        buf_reg.col as i32 - buf_ref.rb.window.col() as i32,
-        buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
-    );
-
     let snippet_view = {
         if buf_ref.snippet_repo.current_matches().is_empty() {
             None
         } else {
             let cursor = buf_ref.rb.cursor;
-            let snippet_area = compute_snippet_area(&buf_reg, &cursor, 80, buf_ref.snippet_repo.current_matches().len());
+            let buf_area = Area { row: 0, col: 0, width: buf_reg.width, height: buf_reg.height };
+            let snippet_area = compute_snippet_area(&buf_area, &cursor, 80, buf_ref.snippet_repo.current_matches().len());
             let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
             Some(view_gen.gen(snippet_area))
         }
@@ -1290,6 +1287,12 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
         None => Box::new(buf_view),
         Some(v) => Box::new(view::OverlayView::new(buf_view, v))
     };
+
+    let buf_view = view::TranslateView::new(
+        buf_view,
+        buf_reg.col as i32 - buf_ref.rb.window.col() as i32,
+        buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
+    );
     
     let view = view::MergeHorizontal {
         left: lineno_view,

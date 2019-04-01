@@ -11,15 +11,15 @@ const TESTDATA: &'static str = r#"{
     "for": {
         "prefix": "for",
         "body": [
-        "for (const ${2:x} of ${1:xs}) {",
-        "\t${0:unimplemented!()}",
+        "for ${2:x} in ${1:xs} {",
+        "    ${0:unimplemented!()}",
         "}"
         ],
         "description": "For Loop"
     },
     "format": {
         "prefix": "format",
-        "body": "format!($0, $1)",
+        "body": "format!(${1:format}, ${2:s})",
         "description": "format a string"
     },
     "assert": {
