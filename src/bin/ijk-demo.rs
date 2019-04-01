@@ -31,8 +31,13 @@ fn main() {
         Char('w'), Char('w'), Char('w'), Char('b'), Char('b'),
         // cursor is on number and then change
         Char('l'), Char('l'), Char('c'), Char('w'), Char('5'), Char('6'), Char('7'), Esc,
+        // snippet completion
+        Char('o'),
+        Char('f'), Ctrl('s'), Char('\n'),
+        Char('\t'), Char('\t'),
+        Char('a'), Ctrl('s'), Char('\n'), Ctrl('c'),
         // undo/redo
-        Char('u'), Ctrl('r'), Char('u'), Ctrl('r'),
+        Char('u'), Char('u'), Ctrl('r'), Char('u'), Ctrl('r'),
         // save
         Char(' '), Char('w'),
         Char('u'),
