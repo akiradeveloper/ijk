@@ -87,9 +87,11 @@ impl SnippetRepo {
         let mut v = vec![];
         for snippet in snippets {
             let mut line = vec![];
+            line.push(BufElem::Char('['));
             for c in snippet.prefix.chars() {
                 line.push(BufElem::Char(c))
             }
+            line.push(BufElem::Char(']'));
             line.push(BufElem::Char(' '));
             for c in snippet.description.chars() {
                 line.push(BufElem::Char(c))
