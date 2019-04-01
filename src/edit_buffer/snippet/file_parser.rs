@@ -38,11 +38,12 @@ fn convert_body(body: &Body) -> Option<Vec<Vec<SnippetElem>>> {
     match body {
         Body::Single(line) => convert_body_line(line).map(|v| vec![v]),
         Body::Array(lines) => { 
-            let mut converted = lines.iter().map(|line| convert_body_line(line));
-            if converted.any(|x| x.is_none()) {
+            let mut xs0 = lines.iter().map(|line| convert_body_line(line));
+            let mut xs1 = xs0.clone();
+            if xs0.any(|x| x.is_none()) {
                 None
             } else {
-                Some(converted.map(|x| x.unwrap()).collect())
+                Some(xs1.map(|x| x.unwrap()).collect())
             }
         }
     }
@@ -63,7 +64,7 @@ fn test_parse_file() {
             "prefix": "for",
             "body": [
             "for (const ${2:x} of ${1:xs}) {",
-            "\t${0:unimplemented!())",
+            "\t${0:unimplemented!()}",
             "}"
             ],
             "description": "For Loop"

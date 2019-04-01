@@ -12,7 +12,7 @@ const TESTDATA: &'static str = r#"{
         "prefix": "for",
         "body": [
         "for (const ${2:x} of ${1:xs}) {",
-        "\t${0:unimplemented!())",
+        "\t${0:unimplemented!()}",
         "}"
         ],
         "description": "For Loop"
@@ -30,7 +30,7 @@ pub enum SnippetElem {
     Str(String)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Snippet {
     pub prefix: String,
     pub body: Vec<Vec<SnippetElem>>,
@@ -54,8 +54,11 @@ impl SnippetRepo {
             File(units) => {
                 for unit in units.values() {
                     match file_parser::convert(unit) {
-                        None => {},
+                        None => {
+                            dbg!(&unit);
+                        },
                         Some(snippet) => {
+                            dbg!(&snippet);
                             let k: Vec<char> = snippet.prefix.chars().collect();
                             trie.insert(&k, snippet)
                         }
@@ -106,6 +109,7 @@ impl SnippetRepo {
                 res
             }).unwrap_or(vec![])
         };
+        dbg!(&new_list);
         self.rb = ReadBuffer::new(Self::construct_rb(&new_list), self.message_box.clone());
         self.current_matches = new_list;
     }

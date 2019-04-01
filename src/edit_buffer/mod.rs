@@ -1276,21 +1276,21 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
         buf_reg.row as i32 - buf_ref.rb.window.row() as i32,
     );
 
-    let snippet_view = {
-        if buf_ref.snippet_repo.current_matches().is_empty() {
-            None
-        } else {
-            let cursor = buf_ref.rb.cursor;
-            let snippet_area = compute_snippet_area(&buf_reg, &cursor, 15, buf_ref.snippet_repo.current_matches().len());
-            dbg!(&snippet_area);
-            let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
-            Some(view_gen.gen(snippet_area))
-        }
-    };
-    let buf_view: Box<view::View> = match snippet_view {
-        None => Box::new(buf_view),
-        Some(v) => Box::new(view::OverlayView::new(buf_view, v))
-    };
+    // let snippet_view = {
+    //     if buf_ref.snippet_repo.current_matches().is_empty() {
+    //         None
+    //     } else {
+    //         let cursor = buf_ref.rb.cursor;
+    //         let snippet_area = compute_snippet_area(&buf_reg, &cursor, 15, buf_ref.snippet_repo.current_matches().len());
+    //         dbg!(&snippet_area);
+    //         let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
+    //         Some(view_gen.gen(snippet_area))
+    //     }
+    // };
+    // let buf_view: Box<view::View> = match snippet_view {
+    //     None => Box::new(buf_view),
+    //     Some(v) => Box::new(view::OverlayView::new(buf_view, v))
+    // };
     
     let view = view::MergeHorizontal {
         left: lineno_view,
