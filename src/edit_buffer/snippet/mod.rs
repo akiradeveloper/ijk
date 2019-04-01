@@ -7,6 +7,23 @@ use crate::view;
 use crate::message_box::MessageBox;
 use self::trie::Trie;
 
+const TESTDATA: &'static str = r#"{
+    "for": {
+        "prefix": "for",
+        "body": [
+        "for (const ${2:x} of ${1:xs}) {",
+        "\t${0:unimplemented!())",
+        "}"
+        ],
+        "description": "For Loop"
+    },
+    "assert": {
+        "prefix": "assert",
+        "body": "assert!($0)",
+        "description": "never use this shit"
+    }
+}"#;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum SnippetElem {
     TabStop(String, usize),
@@ -26,13 +43,32 @@ pub struct SnippetRepo {
     current_matches: Vec<Snippet>,
     message_box: MessageBox,
 }
+
+use self::file_parser::{File, Unit};
+use serde_json;
 impl SnippetRepo {
     pub fn new(ext: Option<&str>, message_box: MessageBox) -> Self {
+        let mut trie = Trie::new();
+        let f: File = serde_json::from_str(&TESTDATA).unwrap();
+        match f {
+            File(units) => {
+                for unit in units.values() {
+                    match file_parser::convert(unit) {
+                        None => {},
+                        Some(snippet) => {
+                            let k: Vec<char> = snippet.prefix.chars().collect();
+                            trie.insert(&k, snippet)
+                        }
+                    }
+                }
+            }
+        }
+
         Self {
-            trie: Trie::new(),
+            trie,
             rb: ReadBuffer::new(vec![vec![BufElem::Eol]], message_box.clone()),
             current_matches: vec![],
-            message_box: message_box,
+            message_box,
         }
     }
     fn construct_rb(snippets: &[Snippet]) -> Vec<Vec<BufElem>> {

@@ -1211,13 +1211,14 @@ fn compute_snippet_area(area: &Area, cursor: &Cursor, w: usize, h: usize) -> Are
     assert!(w>0);
     assert!(h>0);
     let area0 = Area { col: area.col+1, row: area.row-h, width: w, height: h };
-    let area1 = Area { col: area.col+1, row: area.row+1, width: w, height: h };
-    let area2 = Area { col: area.col-w, row: area.row-h, width: w, height: h };
-    let area3 = Area { col: area.col-w, row: area.row+1, width: w, height: h };
     if area.contains(&area0) { return area0 }
+    let area1 = Area { col: area.col+1, row: area.row+1, width: w, height: h };
     if area.contains(&area1) { return area1 }
+    let area2 = Area { col: area.col-w, row: area.row-h, width: w, height: h };
     if area.contains(&area2) { return area2 }
+    let area3 = Area { col: area.col-w, row: area.row+1, width: w, height: h };
     if area.contains(&area3) { return area3 }
+    
     area0
 }
 fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {

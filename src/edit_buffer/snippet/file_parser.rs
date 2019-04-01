@@ -2,11 +2,11 @@ use serde_derive::Deserialize;
 use std::collections::HashMap;
 
 #[derive(Deserialize, Debug)]
-pub struct Line(String);
+struct Line(String);
 
 #[derive(Deserialize, Debug)]
 #[serde(untagged)]
-pub enum Body {
+enum Body {
     Single(Line),
     Array(Vec<Line>),
 }
@@ -19,7 +19,7 @@ pub struct Unit {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct File(HashMap<String, Unit>);
+pub struct File(pub HashMap<String, Unit>);
 
 use super::{Snippet, SnippetElem};
 pub fn convert(unit: &Unit) -> Option<Snippet> {
