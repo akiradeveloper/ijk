@@ -1268,10 +1268,6 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
         VisualRangeDiffView::new(buf_ref.visual_range()),
     );
 
-    let add_cursor = view::AddCursor::new(buf_ref.rb.cursor);
-    let add_cursor = view::EnableView::new(add_cursor, true); // tmp
-    let buf_view = view::OverlayView::new(buf_view, add_cursor);
-
     let snippet_view = {
         if buf_ref.snippet_repo.current_matches().is_empty() {
             None
@@ -1287,6 +1283,10 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
         None => Box::new(buf_view),
         Some(v) => Box::new(view::OverlayView::new(buf_view, v))
     };
+
+    let add_cursor = view::AddCursor::new(buf_ref.rb.cursor);
+    let add_cursor = view::EnableView::new(add_cursor, true); // tmp
+    let buf_view = view::OverlayView::new(buf_view, add_cursor);
 
     let buf_view = view::TranslateView::new(
         buf_view,
