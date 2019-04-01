@@ -1210,16 +1210,26 @@ impl EbViewGen {
 fn compute_snippet_area(area: &Area, cursor: &Cursor, w: usize, h: usize) -> Area {
     assert!(w>0);
     assert!(h>0);
-    let area0 = Area { col: area.col+1, row: area.row-h, width: w, height: h };
-    if area.contains(&area0) { return area0 }
-    let area1 = Area { col: area.col+1, row: area.row+1, width: w, height: h };
+
+    if cursor.row >= h {
+        let area0 = Area { col: cursor.col+1, row: cursor.row-h, width: w, height: h };
+        if area.contains(&area0) { return area0 }
+    }
+
+    let area1 = Area { col: cursor.col+1, row: cursor.row+1, width: w, height: h };
     if area.contains(&area1) { return area1 }
-    let area2 = Area { col: area.col-w, row: area.row-h, width: w, height: h };
-    if area.contains(&area2) { return area2 }
-    let area3 = Area { col: area.col-w, row: area.row+1, width: w, height: h };
-    if area.contains(&area3) { return area3 }
+
+    if cursor.col >= w && cursor.row >= h {
+        let area2 = Area { col: cursor.col-w, row: cursor.row-h, width: w, height: h };
+        if area.contains(&area2) { return area2 }
+    }
+
+    if cursor.col >= w {
+        let area3 = Area { col: cursor.col-w, row: cursor.row+1, width: w, height: h };
+        if area.contains(&area3) { return area3 }
+    }
     
-    area0
+    area1
 }
 fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
     let (lineno_reg, buf_reg) = region.split_horizontal(view::LINE_NUMBER_W);
