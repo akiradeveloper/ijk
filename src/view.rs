@@ -17,7 +17,7 @@ pub fn default_bg() -> Color {
     crate::theme::default().settings.background.unwrap().into()
 }
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct Area {
     pub col: usize,
     pub row: usize,
@@ -226,9 +226,13 @@ impl CloneView {
 }
 impl View for CloneView {
     fn get(&self, col: usize, row: usize) -> ViewElem {
-        let i = row - self.area.row;
-        let j = col - self.area.col;
-        self.owned[i][j]
+        if row < self.area.row || col < self.area.col {
+            (None, None, None)
+        } else {
+            let i = row - self.area.row;
+            let j = col - self.area.col;
+            self.owned[i][j]
+        }
     }
     fn get_cursor_pos(&self) -> Option<Cursor> {
         self.cursor

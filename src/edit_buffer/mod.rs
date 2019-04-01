@@ -1281,7 +1281,8 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
             None
         } else {
             let cursor = buf_ref.rb.cursor;
-            let snippet_area = compute_snippet_area(&buf_reg, &cursor, buf_ref.snippet_repo.current_matches().len(), 15);
+            let snippet_area = compute_snippet_area(&buf_reg, &cursor, 15, buf_ref.snippet_repo.current_matches().len());
+            dbg!(&snippet_area);
             let mut view_gen = snippet::SnippetViewGen::new(&mut buf_ref.snippet_repo);
             Some(view_gen.gen(snippet_area))
         }
