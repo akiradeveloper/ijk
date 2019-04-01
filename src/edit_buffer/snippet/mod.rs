@@ -15,17 +15,17 @@ const TESTDATA: &'static str = r#"{
         "    ${0:unimplemented!()}",
         "}"
         ],
-        "description": "For Loop"
+        "description": "for loop"
     },
     "format": {
         "prefix": "format",
         "body": "format!(${1:format}, ${2:s})",
-        "description": "format a string"
+        "description": "format!"
     },
     "assert": {
         "prefix": "assert",
         "body": "assert!($0)",
-        "description": "never use this shit"
+        "description": "assert!"
     }
 }"#;
 
@@ -138,6 +138,14 @@ impl SnippetRepo {
 //     }
 // }
 
+use crate::screen::Color;
+pub struct AddColor {}
+impl view::View for AddColor {
+    fn get(&self, _: usize, _: usize) -> view::ViewElem {
+        (None, Some(Color::Black), Some(Color::White))
+    }
+}
+
 pub struct SnippetViewGen<'a> {
     x: &'a mut SnippetRepo,
 }
@@ -153,6 +161,10 @@ impl <'a> view::ViewGen for SnippetViewGen<'a> {
         self.x.rb.update_cache();
 
         let view = view::ToView::new(&self.x.rb.buf);
+        let view = view::OverlayView::new(
+            view,
+            AddColor {}
+        );
 
         let add_cursor = view::AddCursor::new(self.x.rb.cursor);
         let view = view::OverlayView::new(view, add_cursor);
