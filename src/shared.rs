@@ -1,11 +1,11 @@
 use std::cell::{RefCell, RefMut, Ref};
 use std::rc::Rc;
 
-pub trait SharedMut<T> {
+pub trait AsRefMut<T> {
     fn borrow_mut(&self) -> RefMut<T>;
 }
 
-impl <T> SharedMut<T> for Rc<RefCell<T>> {
+impl <T> AsRefMut<T> for Rc<RefCell<T>> {
     fn borrow_mut(&self) -> RefMut<T> {
         RefCell::borrow_mut(self)
     }
@@ -15,12 +15,12 @@ pub struct Mapped<S,T,U> {
     orig: S,
     f: fn(&mut T) -> &mut U,
 }
-impl <S,T,U> Mapped<S,T,U> where S: SharedMut<T> {
+impl <S,T,U> Mapped<S,T,U> where S: AsRefMut<T> {
     pub fn new(orig: S, f: fn(&mut T) -> &mut U) -> Self {
         Self { orig, f }
     }
 }
-impl <S,T,U> SharedMut<U> for Mapped<S,T,U> where S: SharedMut<T> {
+impl <S,T,U> AsRefMut<U> for Mapped<S,T,U> where S: AsRefMut<T> {
     fn borrow_mut(&self) -> RefMut<U> {
         RefMut::map(self.orig.borrow_mut(), self.f)
     }

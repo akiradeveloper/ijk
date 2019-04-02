@@ -10,8 +10,8 @@ pub trait Effect {
 #[macro_export]
 macro_rules! def_effect {
     ($eff_name:ident, $t:ty, $fun_name:ident) => {
-        struct $eff_name(Rc<RefCell<$t>>);
-        impl Effect for $eff_name {
+        struct $eff_name<S>(S);
+        impl <S: crate::shared::AsRefMut<$t>> Effect for $eff_name<S> {
             fn run(&self, k: Key) -> String {
                 let next_state: String = self.0.borrow_mut().$fun_name(k);
                 self.0.borrow_mut().state = next_state.clone();
