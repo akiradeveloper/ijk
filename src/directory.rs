@@ -4,19 +4,18 @@ use super::edit_buffer::{self, EditBuffer};
 use super::controller;
 use super::view;
 use super::navigator::{self, Navigator};
-use super::read_buffer::{BufElem, ReadBuffer};
+use super::read_buffer::{self, BufElem, ReadBuffer};
 use std::path::{self, Path, PathBuf};
 use std::fs;
 use crate::screen::Color;
 use crate::message_box::MessageBox;
+use crate::read_buffer::{INIT, SEARCH, JUMP};
 
 enum Entry {
     Parent(path::PathBuf),
     Dir(path::PathBuf),
     File(path::PathBuf),
 }
-
-const INIT: &str = "Normal";
 
 pub struct Directory {
     pub rb: ReadBuffer,
@@ -217,11 +216,12 @@ def_effect!(GoUp, Directory, eff_go_up);
 def_effect!(ToggleHide, Directory, eff_toggle_hide);
 def_effect!(Refresh, Directory, eff_refresh);
 
+use crate::shared::AsRefMut;
 pub fn mk_controller(x: Rc<RefCell<Directory>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
-    g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
-    g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
+    read_buffer::add_edges(&mut g, x.clone().map(|x| &mut x.rb));
+
     g.add_edge(INIT, Char('\n'), Rc::new(Select(x.clone())));
     g.add_edge(INIT, Char('l'), Rc::new(GoDown(x.clone())));
     g.add_edge(INIT, Char('h'), Rc::new(GoUp(x.clone())));

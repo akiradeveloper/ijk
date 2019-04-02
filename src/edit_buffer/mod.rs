@@ -11,7 +11,6 @@ use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;
 
 use crate::view::{ViewGen, Area};
-use crate::shared;
 use crate::navigator::Navigator;
 use crate::message_box::MessageBox;
 use crate::navigator;
@@ -23,8 +22,8 @@ use std::path;
 use std::time::Instant;
 use self::snippet::SnippetElem;
 use self::diff_tree::ChildComponent;
+use crate::read_buffer::{INIT, SEARCH, JUMP};
 
-const INIT: &str = "Normal";
 const COMMAND: &str = "Command";
 const REPLACE_ONCE: &str = "ReplaceOnce";
 const WARP: &str = "Warp";
@@ -32,8 +31,6 @@ const WILL_DELETE: &str = "WillDelete";
 const WILL_YANK: &str = "WillYank";
 const WILL_CHANGE: &str = "WillChange";
 const INSERT: &str = "Insert";
-const SEARCH: &str = "Search";
-const JUMP: &str = "Jump";
 const SNIPPET: &str = "Snippet";
 
 fn to_elems(x: &str) -> Vec<BufElem> {
@@ -1311,7 +1308,8 @@ impl navigator::Page for Page {
     }
     fn status(&self) -> String {
         let state: &str = match self.x.borrow().state.as_str() {
-            INIT => "*",
+            read_buffer::INIT => "*",
+            read_buffer::SEARCH => "/",
             COMMAND => ":",
             REPLACE_ONCE => "r",
             WARP => "w",
@@ -1320,7 +1318,6 @@ impl navigator::Page for Page {
             WILL_YANK => "y",
             INSERT => "i",
             SNIPPET => "s",
-            SEARCH => "/",
             _ => "*",
         };
         let dirty_mark = if self.x.borrow().is_dirty() {

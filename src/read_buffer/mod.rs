@@ -156,9 +156,9 @@ pub struct CursorRange {
     pub end: Cursor,
 }
 
-const INIT: &str = "Normal";
-const SEARCH: &str = "Search";
-const JUMP: &str = "Jump";
+pub const INIT: &str = "Normal";
+pub const SEARCH: &str = "Search";
+pub const JUMP: &str = "Jump";
 
 pub struct ReadBuffer {
     state: String,
@@ -369,6 +369,10 @@ impl ReadBuffer {
     // eff functions
     //
 
+    fn eff_reset(&mut self, _: Key) -> String {
+        self.reset();
+        INIT.to_owned()
+    }
     pub fn eff_cursor_up(&mut self, _: Key) -> String {
         self.cursor_up();
         INIT.to_owned()
@@ -473,6 +477,7 @@ def_effect!(CancelJump, ReadBuffer, eff_cancel_jump);
 def_effect!(JumpLast, ReadBuffer, eff_jump_last);
 def_effect!(JumpWordForward, ReadBuffer, eff_jump_word_forward);
 def_effect!(JumpWordBackward, ReadBuffer, eff_jump_word_backward);
+def_effect!(Reset, ReadBuffer, eff_reset);
 
 def_effect!(EnterSearchMode, ReadBuffer, eff_enter_search_mode);
 def_effect!(SearchModeInput, ReadBuffer, eff_search_mode_input);
@@ -499,6 +504,7 @@ pub fn add_edges<S: crate::shared::AsRefMut<ReadBuffer> + 'static>(g: &mut crate
     g.add_edge(INIT, Char('N'), Rc::new(SearchJumpBackward(x.clone())));
     g.add_edge(INIT, Char('w'), Rc::new(JumpWordForward(x.clone())));
     g.add_edge(INIT, Char('b'), Rc::new(JumpWordBackward(x.clone())));
+    g.add_edge(INIT, Esc, Rc::new(Reset(x.clone())));
 
     // num jump
     g.add_edge(INIT, CharRange('1', '9'), Rc::new(EnterJumpMode(x.clone())));

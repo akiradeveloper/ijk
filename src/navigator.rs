@@ -4,6 +4,7 @@ use super::read_buffer::{self, BufElem, ReadBuffer};
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::message_box::MessageBox;
+use crate::read_buffer::{INIT, SEARCH, JUMP};
 
 #[derive(PartialEq)]
 pub enum PageKind {
@@ -20,8 +21,6 @@ pub trait Page {
     fn status(&self) -> String;
     fn message(&self) -> MessageBox;
 }
-
-const INIT: &str = "Normal";
 
 pub struct Navigator {
     current: Option<Rc<RefCell<Page>>>,
@@ -134,11 +133,12 @@ def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory);
 def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer);
 def_effect!(CloseSelected, Navigator, eff_close_selected);
 
+use crate::shared::AsRefMut;
 pub fn mk_controller(x: Rc<RefCell<Navigator>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
-    g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
-    g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
+    read_buffer::add_edges(&mut g, x.clone().map(|x| &mut x.rb));
+
     g.add_edge(INIT, Char('\n'), Rc::new(Select(x.clone())));
     g.add_edge(INIT, Char('h'), Rc::new(SelectCurDirectory(x.clone())));
     g.add_edge(INIT, Char('l'), Rc::new(SelectCurBuffer(x.clone())));
