@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[derive(Clone)]
 pub struct PageState {
     state: Rc<RefCell<String>>
 }
@@ -12,6 +13,9 @@ impl PageState {
     }
     pub fn set(&self, new_state: String) {
         *self.state.borrow_mut() = new_state;
+    }
+    pub fn get(&self) -> String {
+        self.state.borrow().clone()
     }
 }
 
@@ -26,7 +30,7 @@ macro_rules! def_effect {
         impl <S: crate::shared::AsRefMut<$t>> Effect for $eff_name<S> {
             fn run(&self, k: Key) -> String {
                 let next_state: String = self.0.borrow_mut().$fun_name(k);
-                self.0.borrow_mut().state = next_state.clone();
+                self.0.borrow_mut().state.set(next_state.clone());
                 next_state
             }
         }

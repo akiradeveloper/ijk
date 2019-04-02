@@ -5,6 +5,7 @@ mod trie;
 use crate::read_buffer::{BufElem, ReadBuffer};
 use crate::view;
 use crate::message_box::MessageBox;
+use crate::controller::PageState;
 use self::trie::Trie;
 
 const TESTDATA: &'static str = r#"{
@@ -46,13 +47,14 @@ pub struct SnippetRepo {
     trie: Trie<Snippet>,
     pub rb: ReadBuffer,
     current_matches: Vec<Snippet>,
+    state: PageState,
     message_box: MessageBox,
 }
 
 use self::file_parser::{File, Unit};
 use serde_json;
 impl SnippetRepo {
-    pub fn new(ext: Option<&str>, message_box: MessageBox) -> Self {
+    pub fn new(ext: Option<&str>, state: PageState, message_box: MessageBox) -> Self {
         let mut trie = Trie::new();
         let f: File = serde_json::from_str(&TESTDATA).unwrap();
         match f {
@@ -74,8 +76,9 @@ impl SnippetRepo {
 
         Self {
             trie,
-            rb: ReadBuffer::new(vec![vec![BufElem::Eol]], message_box.clone()),
+            rb: ReadBuffer::new(vec![vec![BufElem::Eol]], state.clone(), message_box.clone()),
             current_matches: vec![],
+            state,
             message_box,
         }
     }
@@ -117,7 +120,7 @@ impl SnippetRepo {
             }).unwrap_or(vec![])
         };
         // dbg!(&new_list);
-        self.rb = ReadBuffer::new(Self::construct_rb(&new_list), self.message_box.clone());
+        self.rb = ReadBuffer::new(Self::construct_rb(&new_list), self.state.clone(), self.message_box.clone());
         self.current_matches = new_list;
     }
     pub fn current_matches(&self) -> &Vec<Snippet> {

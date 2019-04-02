@@ -161,25 +161,25 @@ pub const SEARCH: &str = "Search";
 pub const JUMP: &str = "Jump";
 
 pub struct ReadBuffer {
-    state: String,
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
     num_buffer: Vec<char>,
     pub window: VisibilityWindow,
     pub search: Search,
+    state: PageState,
     message_box: MessageBox,
 }
 
 impl ReadBuffer {
-    pub fn new(init_buf: Vec<Vec<BufElem>>, message_box: MessageBox) -> Self {
+    pub fn new(init_buf: Vec<Vec<BufElem>>, state: PageState, message_box: MessageBox) -> Self {
         let n_rows = init_buf.len();
         Self {
-            state: INIT.to_owned(),
             buf: init_buf,
             cursor: Cursor { row: 0, col: 0 },
             num_buffer: vec![],
             window: VisibilityWindow::new(Cursor { col: 0, row: 0 }),
             search: Search::new(n_rows, message_box.clone()),
+            state,
             message_box,
         }
     }
@@ -459,7 +459,7 @@ impl ReadBuffer {
     }
 }
 
-use crate::controller::Effect;
+use crate::controller::{PageState, Effect};
 use crate::def_effect;
 
 def_effect!(CursorUp, ReadBuffer, eff_cursor_up);

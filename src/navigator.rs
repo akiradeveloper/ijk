@@ -1,4 +1,4 @@
-use super::controller;
+use super::controller::{self, PageState};
 use super::view;
 use super::read_buffer::{self, BufElem, ReadBuffer};
 use std::rc::Rc;
@@ -26,17 +26,18 @@ pub struct Navigator {
     current: Option<Rc<RefCell<Page>>>,
     list: Vec<Rc<RefCell<Page>>>,
     rb: ReadBuffer,
-    state: String,
+    state: PageState,
     message_box: MessageBox,
 }
 impl Navigator {
     pub fn new() -> Self {
+        let state = PageState::new(INIT.to_owned());
         let message_box = MessageBox::new();
         Self {
             current: None,
             list: vec![],
-            rb: read_buffer::ReadBuffer::new(vec![], message_box.clone()),
-            state: INIT.to_owned(),
+            rb: read_buffer::ReadBuffer::new(vec![], state.clone(), message_box.clone()),
+            state,
             message_box,
         }
     }
@@ -56,7 +57,7 @@ impl Navigator {
             vv.push(BufElem::Eol);
             v.push(vv);
         }
-        self.rb = read_buffer::ReadBuffer::new(v, self.message_box.clone());
+        self.rb = read_buffer::ReadBuffer::new(v, self.state.clone(), self.message_box.clone());
     }
     pub fn set(&mut self, page: Rc<RefCell<Page>>) {
         self.refresh_buffer();

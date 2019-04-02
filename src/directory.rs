@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use super::edit_buffer::{self, EditBuffer};
-use super::controller;
+use super::controller::{self, PageState};
 use super::view;
 use super::navigator::{self, Navigator};
 use super::read_buffer::{self, BufElem, ReadBuffer};
@@ -19,23 +19,24 @@ enum Entry {
 
 pub struct Directory {
     pub rb: ReadBuffer,
-    state: String,
     path: path::PathBuf,
     entries: Vec<Entry>,
     evacuated_entries: Vec<Entry>,
     navigator: Rc<RefCell<Navigator>>,
+    state: PageState,
     message_box: MessageBox,
 }
 impl Directory {
     pub fn open(path: &Path, navigator: Rc<RefCell<Navigator>>) -> Self {
+        let state = PageState::new(INIT.to_owned());
         let message_box = MessageBox::new();
         let mut r = Self {
             path: fs::canonicalize(path).unwrap(),
             entries: vec![],
             evacuated_entries: vec![],
-            rb: ReadBuffer::new(vec![], message_box.clone()), // not valid
-            state: INIT.to_owned(),
+            rb: ReadBuffer::new(vec![], state.clone(), message_box.clone()), // not valid
             navigator: navigator,
+            state,
             message_box,
         };
         r.refresh();
@@ -114,7 +115,7 @@ impl Directory {
             vv.push(BufElem::Eol);
             v.push(vv);
         }
-        self.rb = ReadBuffer::new(v, self.message_box.clone());
+        self.rb = ReadBuffer::new(v, self.state.clone(), self.message_box.clone());
     }
     pub fn refresh(&mut self) {
         let was_hide_mode = !self.evacuated_entries.is_empty();

@@ -54,7 +54,6 @@ fn to_cursor_range_end(cursor: Cursor) -> Cursor {
 
 pub struct EditBuffer {
     pub rb: ReadBuffer,
-    state: String,
     visual_cursor: Option<Cursor>,
     change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
@@ -63,6 +62,7 @@ pub struct EditBuffer {
     highlighter: highlight::Highlighter,
     snippet_repo: snippet::SnippetRepo,
     navigator: Rc<RefCell<Navigator>>,
+    state: PageState,
     message_box: MessageBox,
 }
 
@@ -95,19 +95,20 @@ impl EditBuffer {
         let ext: Option<&str> = path.extension().map(|ext| ext.to_str().unwrap());
         let init_buf = read_buffer(path);
         let n_rows = init_buf.len();
+        let state = PageState::new(INIT.to_owned());
         let message_box = MessageBox::new();
 
         EditBuffer {
-            rb: ReadBuffer::new(init_buf, message_box.clone()),
-            state: INIT.to_owned(),
+            rb: ReadBuffer::new(init_buf, state.clone(), message_box.clone()),
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
             path: path.to_owned(),
             sync_clock: None,
             highlighter: highlight::Highlighter::new(n_rows, ext),
-            snippet_repo: snippet::SnippetRepo::new(ext, message_box.clone()),
+            snippet_repo: snippet::SnippetRepo::new(ext, state.clone(), message_box.clone()),
             navigator,
+            state,
             message_box,
         }
     }
@@ -1019,7 +1020,7 @@ use crate::Key;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::controller::Effect;
+use crate::controller::{PageState, Effect};
 use crate::def_effect;
 
 def_effect!(StartTestSnippet, EditBuffer, eff_start_test_snippet);
@@ -1260,7 +1261,7 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
     };
 
     let add_cursor = view::AddCursor::new(buf_ref.rb.cursor);
-    let hide_buf_cursor = buf_ref.state == SNIPPET;
+    let hide_buf_cursor = buf_ref.state.get() == SNIPPET;
     let add_cursor = view::EnableView::new(add_cursor, !hide_buf_cursor);
     let buf_view = view::OverlayView::new(buf_view, add_cursor);
 
@@ -1307,7 +1308,7 @@ impl navigator::Page for Page {
         &mut self.view_gen
     }
     fn status(&self) -> String {
-        let state: &str = match self.x.borrow().state.as_str() {
+        let state: &str = match self.x.borrow().state.get().as_str() {
             read_buffer::INIT => "*",
             read_buffer::SEARCH => "/",
             COMMAND => ":",
