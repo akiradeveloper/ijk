@@ -1099,7 +1099,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     let mut g = controller::Graph::new();
 
     let y = x.clone().map(|a| &mut a.rb);
-    // read_buffer::add_edges(&mut g, y);
+    read_buffer::add_edges(&mut g, y);
 
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
     g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));
@@ -1126,9 +1126,11 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     
     g.add_edge(WILL_YANK, Char('y'), Rc::new(YankLine(x.clone())));
     g.add_edge(WILL_YANK, Esc, Rc::new(CancelWillMode(x.clone())));
+
     g.add_edge(WILL_DELETE, Char('d'), Rc::new(DeleteLine(x.clone())));
     g.add_edge(WILL_DELETE, Char('w'), Rc::new(DeleteWord(x.clone())));
     g.add_edge(WILL_DELETE, Esc, Rc::new(CancelWillMode(x.clone())));
+
     g.add_edge(WILL_CHANGE, Char('w'), Rc::new(ChangeWord(x.clone())));
     g.add_edge(WILL_CHANGE, Esc, Rc::new(CancelWillMode(x.clone())));
 
@@ -1149,34 +1151,6 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char(' '), Rc::new(EnterCommandMode(x.clone())));
     g.add_edge(COMMAND, Esc, Rc::new(CancelCommandMode(x.clone())));
     g.add_edge(COMMAND, Otherwise, Rc::new(ExecuteCommand(x.clone())));
-
-    // immutable
-
-    g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
-    g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
-    g.add_edge(INIT, Char('h'), Rc::new(CursorLeft(x.clone())));
-    g.add_edge(INIT, Char('l'), Rc::new(CursorRight(x.clone())));
-    g.add_edge(INIT, Char('0'), Rc::new(JumpLineHead(x.clone())));
-    g.add_edge(INIT, Char('$'), Rc::new(JumpLineLast(x.clone())));
-    g.add_edge(INIT, Ctrl('f'), Rc::new(JumpPageForward(x.clone())));
-    g.add_edge(INIT, Ctrl('b'), Rc::new(JumpPageBackward(x.clone())));
-    g.add_edge(INIT, Char('G'), Rc::new(JumpLast(x.clone())));
-    g.add_edge(INIT, Char('n'), Rc::new(SearchJumpForward(x.clone())));
-    g.add_edge(INIT, Char('N'), Rc::new(SearchJumpBackward(x.clone())));
-    g.add_edge(INIT, Char('w'), Rc::new(JumpWordForward(x.clone())));
-    g.add_edge(INIT, Char('b'), Rc::new(JumpWordBackward(x.clone())));
-
-    // num jump
-    g.add_edge(INIT, CharRange('1', '9'), Rc::new(EnterJumpMode(x.clone())));
-    g.add_edge(JUMP, CharRange('0', '9'), Rc::new(AccJumpNum(x.clone())));
-    g.add_edge(JUMP, Char('G'), Rc::new(Jump(x.clone())));
-    g.add_edge(JUMP, Esc, Rc::new(CancelJump(x.clone())));
-
-    // search
-    g.add_edge(INIT, Char('/'), Rc::new(EnterSearchMode(x.clone())));
-    g.add_edge(SEARCH, Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
-    g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
-    g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())));
 
     controller::ControllerFSM::new(INIT, Box::new(g))
 }

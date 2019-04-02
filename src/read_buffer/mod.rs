@@ -485,6 +485,7 @@ pub fn add_edges<S: crate::shared::AsRefMut<ReadBuffer> + 'static>(g: &mut crate
     use std::rc::Rc;
     use crate::Key::*;
 
+    // normal movement
     g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
     g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
     g.add_edge(INIT, Char('h'), Rc::new(CursorLeft(x.clone())));
