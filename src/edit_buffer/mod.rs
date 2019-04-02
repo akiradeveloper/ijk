@@ -402,7 +402,7 @@ impl EditBuffer {
     }
 
     //
-    // effect functions
+    // eff functions
     //
 
     fn eff_enter_command_mode(&mut self, _: Key) -> String {
@@ -1099,7 +1099,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     let mut g = controller::Graph::new();
 
     let y = x.clone().map(|a| &mut a.rb);
-    read_buffer::add_edges(&mut g, y);
+    // read_buffer::add_edges(&mut g, y);
 
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
     g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));

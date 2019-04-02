@@ -156,7 +156,12 @@ pub struct CursorRange {
     pub end: Cursor,
 }
 
+const INIT: &str = "Normal";
+const SEARCH: &str = "Search";
+const JUMP: &str = "Jump";
+
 pub struct ReadBuffer {
+    state: String,
     pub buf: Vec<Vec<BufElem>>,
     pub cursor: Cursor,
     num_buffer: Vec<char>,
@@ -169,6 +174,7 @@ impl ReadBuffer {
     pub fn new(init_buf: Vec<Vec<BufElem>>, message_box: MessageBox) -> Self {
         let n_rows = init_buf.len();
         Self {
+            state: INIT.to_owned(),
             buf: init_buf,
             cursor: Cursor { row: 0, col: 0 },
             num_buffer: vec![],
@@ -358,6 +364,150 @@ impl ReadBuffer {
     pub fn line(&self, row: usize) -> Line {
         Line::new(&self.buf[row])
     }
+
+    //
+    // eff functions
+    //
+
+    pub fn eff_cursor_up(&mut self, _: Key) -> String {
+        self.cursor_up();
+        INIT.to_owned()
+    }
+    pub fn eff_cursor_down(&mut self, _: Key) -> String {
+        self.cursor_down();
+        INIT.to_owned()
+    }
+    pub fn eff_cursor_left(&mut self, _: Key) -> String {
+        self.cursor_left();
+        INIT.to_owned()
+    }
+    pub fn eff_cursor_right(&mut self, _: Key) -> String {
+        self.cursor_right();
+        INIT.to_owned()
+    }
+    pub fn eff_jump_line_head(&mut self, _: Key) -> String {
+        self.jump_line_head();
+        INIT.to_owned()
+    }
+    pub fn eff_jump_line_last(&mut self, _: Key) -> String {
+        self.jump_line_last();
+        INIT.to_owned()
+    }
+    pub fn eff_jump_page_forward(&mut self, _: Key) -> String {
+        self.jump_page_forward();
+        INIT.to_owned()
+    }
+    pub fn eff_jump_page_backward(&mut self, _: Key) -> String {
+        self.jump_page_backward();
+        INIT.to_owned()
+    }
+    fn eff_jump_word_forward(&mut self, _: Key) -> String {
+        self.jump_word_forward();
+        INIT.to_owned()
+    }
+    fn eff_jump_word_backward(&mut self, _: Key) -> String {
+        self.jump_word_backward();
+        INIT.to_owned()
+    }
+    pub fn eff_enter_jump_mode(&mut self, k: Key) -> String {
+        self.enter_jump_mode(k);
+        JUMP.to_owned()
+    }
+    pub fn eff_acc_jump_num(&mut self, k: Key) -> String {
+        self.acc_jump_num(k);
+        JUMP.to_owned()
+    }
+    pub fn eff_jump(&mut self, _: Key) -> String {
+        self.jump();
+        INIT.to_owned()
+    }
+    pub fn eff_cancel_jump(&mut self, _: Key) -> String {
+        self.cancel_jump();
+        INIT.to_owned()
+    }
+    pub fn eff_jump_last(&mut self, _: Key) -> String {
+        self.jump_last();
+        INIT.to_owned()
+    }
+    pub fn eff_enter_search_mode(&mut self, _: Key) -> String {
+        self.enter_search_mode();
+        SEARCH.to_owned()
+    }
+    pub fn eff_search_mode_input(&mut self, k: Key) -> String {
+        self.search_mode_input(k);
+        SEARCH.to_owned()
+    }
+    pub fn eff_leave_search_mode(&mut self, _: Key) -> String {
+        self.leave_search_mode();
+        INIT.to_owned()
+    }
+    fn eff_cancel_search_mode(&mut self, _: Key) -> String {
+        self.cancel_search_mode();
+        INIT.to_owned()
+    }
+    pub fn eff_search_jump_forward(&mut self, _: Key) -> String {
+        self.search_jump_forward();
+        INIT.to_owned()
+    }
+    pub fn eff_search_jump_backward(&mut self, _: Key) -> String {
+        self.search_jump_backward();
+        INIT.to_owned()
+    }
 }
 
-pub fn add_edges<S: crate::shared::AsRefMut<ReadBuffer>>(g: &mut crate::controller::Graph, x: S) {}
+use crate::controller::Effect;
+use crate::def_effect;
+
+def_effect!(CursorUp, ReadBuffer, eff_cursor_up);
+def_effect!(CursorDown, ReadBuffer, eff_cursor_down);
+def_effect!(CursorLeft, ReadBuffer, eff_cursor_left);
+def_effect!(CursorRight, ReadBuffer, eff_cursor_right);
+def_effect!(JumpLineHead, ReadBuffer, eff_jump_line_head);
+def_effect!(JumpLineLast, ReadBuffer, eff_jump_line_last);
+def_effect!(JumpPageForward, ReadBuffer, eff_jump_page_forward);
+def_effect!(JumpPageBackward, ReadBuffer, eff_jump_page_backward);
+def_effect!(EnterJumpMode, ReadBuffer, eff_enter_jump_mode);
+def_effect!(AccJumpNum, ReadBuffer, eff_acc_jump_num);
+def_effect!(Jump, ReadBuffer, eff_jump);
+def_effect!(CancelJump, ReadBuffer, eff_cancel_jump);
+def_effect!(JumpLast, ReadBuffer, eff_jump_last);
+def_effect!(JumpWordForward, ReadBuffer, eff_jump_word_forward);
+def_effect!(JumpWordBackward, ReadBuffer, eff_jump_word_backward);
+
+def_effect!(EnterSearchMode, ReadBuffer, eff_enter_search_mode);
+def_effect!(SearchModeInput, ReadBuffer, eff_search_mode_input);
+def_effect!(LeaveSearchMode, ReadBuffer, eff_leave_search_mode);
+def_effect!(CancelSearchMode, ReadBuffer, eff_cancel_search_mode);
+def_effect!(SearchJumpForward, ReadBuffer, eff_search_jump_forward);
+def_effect!(SearchJumpBackward, ReadBuffer, eff_search_jump_backward);
+
+pub fn add_edges<S: crate::shared::AsRefMut<ReadBuffer> + 'static>(g: &mut crate::controller::Graph, x: S) {
+    use std::rc::Rc;
+    use crate::Key::*;
+
+    g.add_edge(INIT, Char('k'), Rc::new(CursorUp(x.clone())));
+    g.add_edge(INIT, Char('j'), Rc::new(CursorDown(x.clone())));
+    g.add_edge(INIT, Char('h'), Rc::new(CursorLeft(x.clone())));
+    g.add_edge(INIT, Char('l'), Rc::new(CursorRight(x.clone())));
+    g.add_edge(INIT, Char('0'), Rc::new(JumpLineHead(x.clone())));
+    g.add_edge(INIT, Char('$'), Rc::new(JumpLineLast(x.clone())));
+    g.add_edge(INIT, Ctrl('f'), Rc::new(JumpPageForward(x.clone())));
+    g.add_edge(INIT, Ctrl('b'), Rc::new(JumpPageBackward(x.clone())));
+    g.add_edge(INIT, Char('G'), Rc::new(JumpLast(x.clone())));
+    g.add_edge(INIT, Char('n'), Rc::new(SearchJumpForward(x.clone())));
+    g.add_edge(INIT, Char('N'), Rc::new(SearchJumpBackward(x.clone())));
+    g.add_edge(INIT, Char('w'), Rc::new(JumpWordForward(x.clone())));
+    g.add_edge(INIT, Char('b'), Rc::new(JumpWordBackward(x.clone())));
+
+    // num jump
+    g.add_edge(INIT, CharRange('1', '9'), Rc::new(EnterJumpMode(x.clone())));
+    g.add_edge(JUMP, CharRange('0', '9'), Rc::new(AccJumpNum(x.clone())));
+    g.add_edge(JUMP, Char('G'), Rc::new(Jump(x.clone())));
+    g.add_edge(JUMP, Esc, Rc::new(CancelJump(x.clone())));
+
+    // search
+    g.add_edge(INIT, Char('/'), Rc::new(EnterSearchMode(x.clone())));
+    g.add_edge(SEARCH, Char('\n'), Rc::new(LeaveSearchMode(x.clone())));
+    g.add_edge(SEARCH, Esc, Rc::new(CancelSearchMode(x.clone())));
+    g.add_edge(SEARCH, Otherwise, Rc::new(SearchModeInput(x.clone())))
+}

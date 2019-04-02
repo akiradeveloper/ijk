@@ -1,7 +1,7 @@
 use std::cell::{RefCell, RefMut, Ref};
 use std::rc::Rc;
 
-pub trait AsRefMut<T> {
+pub trait AsRefMut<T>: Clone {
     fn borrow_mut(&self) -> RefMut<T>;
     fn map<U>(self, f: fn(&mut T) -> &mut U) -> Map<Self,T,U> where Self: Sized {
         Map::new(self, f)
@@ -28,7 +28,7 @@ impl <S,T,U> AsRefMut<U> for Map<S,T,U> where S: AsRefMut<T> {
         RefMut::map(self.orig.borrow_mut(), self.f)
     }
 }
-impl <S,T,U> Clone for Map<S,T,U> where S: AsRefMut<T> + Clone {
+impl <S,T,U> Clone for Map<S,T,U> where S: AsRefMut<T> {
     fn clone(&self) -> Self {
         Map::new(self.orig.clone(), self.f)
     }
