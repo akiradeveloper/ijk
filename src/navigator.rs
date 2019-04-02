@@ -95,14 +95,6 @@ impl Navigator {
         self.list.insert(0, e);
         self.select(0);
     }
-    pub fn eff_cursor_up(&mut self, _: Key) -> String {
-        self.rb.cursor_up();
-        INIT.to_owned()
-    }
-    pub fn eff_cursor_down(&mut self, _: Key) -> String {
-        self.rb.cursor_down();
-        INIT.to_owned()
-    }
     pub fn eff_select(&mut self, _: Key) -> String {
         self.select(self.rb.cursor.row);
         INIT.to_owned()
@@ -129,8 +121,6 @@ use crate::controller::Effect;
 use crate::def_effect;
 use crate::Key;
 
-def_effect!(CursorUp, Navigator, eff_cursor_up);
-def_effect!(CursorDown, Navigator, eff_cursor_down);
 def_effect!(Select, Navigator, eff_select);
 def_effect!(SelectCurDirectory, Navigator, eff_select_cur_directory);
 def_effect!(SelectCurBuffer, Navigator, eff_select_cur_buffer);

@@ -141,15 +141,12 @@ impl Directory {
 
         self.refresh_memory()
     }
-    pub fn eff_cursor_up(&mut self, _: Key) -> String {
-        self.rb.cursor_up();
-        INIT.to_owned()
-    }
-    pub fn eff_cursor_down(&mut self, _: Key) -> String {
-        self.rb.cursor_down();
-        INIT.to_owned()
-    }
-    pub fn eff_select(&mut self, _: Key) -> String {
+
+    // 
+    // eff functions
+    //
+
+    fn eff_select(&mut self, _: Key) -> String {
         let i = self.rb.cursor.row;
         let entry = &self.entries[i];
         let page: Rc<RefCell<navigator::Page>> = match entry.clone() {
@@ -169,7 +166,7 @@ impl Directory {
         self.navigator.borrow_mut().push(page);
         INIT.to_owned()
     }
-    pub fn eff_go_down(&mut self, _: Key) -> String {
+    fn eff_go_down(&mut self, _: Key) -> String {
         let i = self.rb.cursor.row;
         let entry = &self.entries[i];
         match entry.clone() {
@@ -182,7 +179,7 @@ impl Directory {
         };
         INIT.to_owned()
     }
-    pub fn eff_go_up(&mut self, _: Key) -> String {
+    fn eff_go_up(&mut self, _: Key) -> String {
         for e in &self.entries {
             match e {
                 Entry::Parent(path) => {
@@ -209,8 +206,6 @@ use crate::controller::Effect;
 use crate::def_effect;
 use crate::Key;
 
-def_effect!(CursorUp, Directory, eff_cursor_up);
-def_effect!(CursorDown, Directory, eff_cursor_down);
 def_effect!(Select, Directory, eff_select);
 def_effect!(GoDown, Directory, eff_go_down);
 def_effect!(GoUp, Directory, eff_go_up);
