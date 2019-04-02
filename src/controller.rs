@@ -55,6 +55,12 @@ impl Graph {
     pub fn add_edge(&mut self, from: &str, matcher: Key, eff: Rc<Effect>) {
         self.ensure_edge_vec(from);
         let v = self.edges.get_mut(from).unwrap();
+        // if exists remove it to override
+        let pos0 = v.iter().position(|x| x.matcher == matcher);
+        match pos0 {
+            Some(i) => { v.remove(i); },
+            None => {},
+        }
         v.push(Edge {
             matcher: matcher,
             eff: eff,
