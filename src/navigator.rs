@@ -23,6 +23,7 @@ pub trait Page {
 }
 
 pub struct Navigator {
+    needs_refresh: bool,
     current: Option<Rc<RefCell<Page>>>,
     list: Vec<Rc<RefCell<Page>>>,
     rb: ReadBuffer,
@@ -34,6 +35,7 @@ impl Navigator {
         let state = PageState::new(INIT.to_owned());
         let message_box = MessageBox::new();
         Self {
+            needs_refresh: false,
             current: None,
             list: vec![],
             rb: read_buffer::ReadBuffer::new(vec![], state.clone(), message_box.clone()),
@@ -60,7 +62,7 @@ impl Navigator {
         self.rb = read_buffer::ReadBuffer::new(v, self.state.clone(), self.message_box.clone());
     }
     pub fn set(&mut self, page: Rc<RefCell<Page>>) {
-        self.refresh_buffer();
+        self.needs_refresh = true;
         self.current = Some(page);
     }
     fn select(&mut self, i: usize) {
@@ -70,7 +72,7 @@ impl Navigator {
     }
     fn delete(&mut self, i: usize) {
         self.list.remove(i);
-        self.refresh_buffer()
+        self.needs_refresh = true;
     }
     pub fn pop(&mut self) {
         self.list.remove(0);
@@ -157,6 +159,13 @@ impl ViewGen {
     }
 }
 fn gen_impl(x: &mut Navigator, region: view::Area) -> Box<view::View> {
+    // refreshing the buffer content is delayed because
+    // calling status of a page when it is mutablly borrowed is not safe.
+    // (e.g. directory opens a file and it kicks refreshing)
+    if x.needs_refresh {
+        x.refresh_buffer();
+        x.needs_refresh = false;
+    }
     x.rb.stabilize_cursor();
     x.rb.adjust_window(region.width, region.height);
     x.update_cache();
@@ -216,7 +225,12 @@ impl Page for NavigatorPage {
         &mut self.view_gen
     }
     fn status(&self) -> String {
-        "[Navigator]".to_owned()
+        let state: &str = match self.x.borrow().state.get().as_str() {
+            read_buffer::INIT => "*",
+            read_buffer::SEARCH => "/",
+            _ => "*",
+        };
+        format!("[Navigator -{}-]", state)
     }
     fn kind(&self) -> PageKind {
         PageKind::Navigator

@@ -334,7 +334,12 @@ impl navigator::Page for Page {
         &mut self.view_gen
     }
     fn status(&self) -> String {
-        format!("[Directory] {}", self.path.to_str().unwrap().to_owned())
+        let state: &str = match self.x.borrow().state.get().as_str() {
+            read_buffer::INIT => "*",
+            read_buffer::SEARCH => "/",
+            _ => "*",
+        };
+        format!("[Directory -{}-] {}", state, self.path.to_str().unwrap().to_owned())
     }
     fn kind(&self) -> navigator::PageKind {
         navigator::PageKind::Directory
