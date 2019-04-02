@@ -15,7 +15,7 @@ use crate::shared;
 use crate::navigator::Navigator;
 use crate::message_box::MessageBox;
 use crate::navigator;
-use crate::read_buffer::*;
+use crate::read_buffer::{self, *};
 use crate::screen;
 use crate::read_buffer::{BufElem, Cursor, CursorRange};
 use std::fs;
@@ -1092,10 +1092,14 @@ def_effect!(LeaveSnippetMode, EditBuffer, eff_leave_snippet_mode);
 def_effect!(CursorUpSnippetMode, EditBuffer, eff_cursor_up_snippet_mode);
 def_effect!(CursorDownSnippetMode, EditBuffer, eff_cursor_down_snippet_mode);
 
+use crate::shared::AsRefMut;
 use crate::controller;
 pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     use crate::Key::*;
     let mut g = controller::Graph::new();
+
+    let y = x.clone().map(|a| &mut a.rb);
+    read_buffer::add_edges(&mut g, y);
 
     g.add_edge(INIT, Char('v'), Rc::new(EnterVisualMode(x.clone())));
     g.add_edge(INIT, Char('D'), Rc::new(DeleteLineTail(x.clone())));

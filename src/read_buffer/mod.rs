@@ -359,3 +359,5 @@ impl ReadBuffer {
         Line::new(&self.buf[row])
     }
 }
+
+pub fn add_edges<S: crate::shared::AsRefMut<ReadBuffer>>(g: &mut crate::controller::Graph, x: S) {}
