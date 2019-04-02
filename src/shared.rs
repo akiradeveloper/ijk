@@ -25,6 +25,11 @@ impl <S,T,U> AsRefMut<U> for Mapped<S,T,U> where S: AsRefMut<T> {
         RefMut::map(self.orig.borrow_mut(), self.f)
     }
 }
+impl <S,T,U> Clone for Mapped<S,T,U> where S: AsRefMut<T> + Clone {
+    fn clone(&self) -> Self {
+        Mapped::new(self.orig.clone(), self.f)
+    }
+}
 
 struct T {
     x: i32
@@ -35,7 +40,8 @@ fn test_shared_mut() {
     let x = Rc::new(RefCell::new(T { x: 0 }));
     let y0 = Mapped::new(x.clone(), |t| &mut t.x);
     let y1 = Mapped::new(x.clone(), |t| &mut t.x);
-    *y1.borrow_mut() += 10;
+    let y2 = y1.clone();
+    *y2.borrow_mut() += 10;
     assert_eq!(*y0.borrow_mut(), 10);
     assert_eq!(*y1.borrow_mut(), 10);
 }
