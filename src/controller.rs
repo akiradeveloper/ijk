@@ -3,6 +3,18 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+pub struct PageState {
+    state: Rc<RefCell<String>>
+}
+impl PageState {
+    pub fn new(init: String) -> Self {
+        Self { state: Rc::new(RefCell::new(init)) }
+    }
+    pub fn set(&self, new_state: String) {
+        *self.state.borrow_mut() = new_state;
+    }
+}
+
 pub trait Effect {
     fn run(&self, k: Key) -> String;
 }
