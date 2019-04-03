@@ -93,6 +93,9 @@ pub struct BufArea<'a, T> {
     backing: &'a [Vec<T>],
 }
 impl <'a, T> BufArea<'a, T> {
+    pub fn new(backing: &'a [Vec<T>]) -> Self {
+        Self { backing }
+    }
     fn get(&self, col: usize, row: usize) -> Option<&T> {
         if row > self.backing.len() - 1 || col > self.backing[row].len() - 1 {
             None
@@ -100,7 +103,23 @@ impl <'a, T> BufArea<'a, T> {
             Some(&self.backing[row][col])
         }
     }
+    pub fn map(self, f: fn(&T) -> ViewElem) -> Map<'a, T> {
+        Map { backing: self, f }
+    }
 }
+pub struct Map<'a, T> {
+    backing: BufArea<'a, T>,
+    f: fn(&T) -> ViewElem,
+}
+impl <'a, T> View for Map<'a, T> {
+    fn get(&self, col: usize, row: usize) -> ViewElem {
+        match self.backing.get(col, row) {
+            None => (None, None, None),
+            Some(t) => (self.f)(t)
+        }
+    }
+}
+
 
 // pub struct BufArea<T> {
 //     copy: Vec<Vec<T>>,

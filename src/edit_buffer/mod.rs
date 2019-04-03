@@ -15,7 +15,7 @@ use crate::navigator::Navigator;
 use crate::message_box::MessageBox;
 use crate::navigator;
 use crate::read_buffer::{self, *};
-use crate::screen;
+use crate::screen::{self, Color};
 use crate::read_buffer::{BufElem, Cursor, CursorRange};
 use std::fs;
 use std::path;
@@ -1096,8 +1096,21 @@ fn gen_impl(buf_ref: &mut EditBuffer, region: view::Area) -> Box<view::View> {
 
     // let buf_view = view::ToView::new(&self.buf.borrow().rb.buf, buf_window);
     // let highlight_diff = highlight::HighlightDiffView::new(&self.buf.borrow().highlighter, buf_window);
-    let highlight_diff = highlight::HighlightDiffViewRef::new(&buf_ref.highlighter);
-    let buf_view = view::OverlayView::new(buf_view, highlight_diff);
+    let buf_view = view::OverlayView::new(
+        buf_view,
+        highlight::HighlightDiffViewRef::new(&buf_ref.highlighter),
+    );
+
+    let buf_view = view::OverlayView::new(
+        buf_view,
+        view::BufArea::new(&buf_ref.rb.buf).map(|e0| {
+            if e0 == &BufElem::Char('\t') {
+                (Some(' '), None, Some(Color::Red))
+            } else {
+                (None, None, None)
+            }
+        })
+    );
 
     let buf_view = view::OverlayView::new(
         buf_view,
