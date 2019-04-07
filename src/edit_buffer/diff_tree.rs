@@ -1,6 +1,6 @@
 use crate::Key;
 use crate::read_buffer::{Line, BufElem};
-use super::indent;
+use super::{indent, IndentType};
 use std::collections::HashMap;
 
 #[derive(PartialEq, Clone)]
@@ -65,18 +65,20 @@ type NodeId = usize;
 
 pub struct DiffTree {
     pre_buffer: Vec<BufElem>,
+    indent_type: IndentType,
     stack: Vec<NodeId>,
     nodes: HashMap<NodeId, Node>,
     next_node_id: NodeId,
 }
 
 impl DiffTree {
-    pub fn new(pre_buffer: Vec<BufElem>) -> Self {
+    pub fn new(pre_buffer: Vec<BufElem>, indent_type: IndentType) -> Self {
         let root = Node::new(vec![]);
         let mut nodes = HashMap::new();
         nodes.insert(0, root);
         Self {
             pre_buffer,
+            indent_type,
             next_node_id: 1,
             stack: vec![0],
             nodes,
@@ -259,7 +261,7 @@ impl DiffTree {
 #[test]
 fn test_only_root() {
     use crate::read_buffer::BufElem::*;
-    let mut dt = DiffTree::new(vec![Char('a'),Eol,Char('a')]);
+    let mut dt = DiffTree::new(vec![Char('a'),Eol,Char('a')], IndentType::Spaces(4));
     assert_eq!(dt.flatten(), (vec![], 0));
     dt.input(Key::Backspace);
     assert_eq!(dt.flatten(), (vec![], 0));
@@ -277,7 +279,7 @@ fn test_only_root() {
 #[test]
 fn test_simple() {
     use crate::read_buffer::BufElem::*;
-    let mut dt = DiffTree::new(vec![]);
+    let mut dt = DiffTree::new(vec![], IndentType::Spaces(4));
     dt.add_children(vec![
         ChildComponent::Fixed(vec![BufElem::Char('a')]),
         ChildComponent::Dynamic(vec![BufElem::Char('b')],0)

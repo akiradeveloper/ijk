@@ -1,17 +1,15 @@
 use super::BufElem;
 
 #[derive(Clone, Copy)]
-enum IndentType {
+pub enum IndentType {
     Spaces(usize),
     Tab,
 }
 
-impl Into<Vec<BufElem>> for IndentType {
-    fn into(self) -> Vec<BufElem> {
-        match self {
-            IndentType::Spaces(n) => vec![BufElem::Char(' '); n],
-            IndentType::Tab => vec![BufElem::Char('\t')],
-        }
+pub fn into_bufelems(x: IndentType) -> Vec<BufElem> {
+    match x {
+        IndentType::Spaces(n) => vec![BufElem::Char(' '); n],
+        IndentType::Tab => vec![BufElem::Char('\t')],
     }
 }
 
@@ -44,7 +42,7 @@ impl AutoIndent {
             let last = self.line_predecessors.last().cloned().unwrap();
             let choices = ['{', '[', '(', ':'];
             if choices.iter().any(|c| last == BufElem::Char(*c)) {
-                self.indent_type.into()
+                into_bufelems(self.indent_type)
             } else {
                 vec![]
             }

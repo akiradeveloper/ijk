@@ -2,13 +2,14 @@ pub mod change_log;
 pub mod clipboard;
 pub mod diff_buffer;
 pub mod highlight;
-pub mod indent;
+mod indent;
 pub mod undo_buffer;
 mod diff_tree;
 mod snippet;
 
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;
+use self::indent::IndentType;
 
 use crate::view::{ViewGen, Area};
 use crate::navigator::Navigator;
@@ -52,8 +53,13 @@ fn to_cursor_range_end(cursor: Cursor) -> Cursor {
     }
 }
 
+pub struct Config {
+    pub indent_type: IndentType,
+}
+
 pub struct EditBuffer {
     pub rb: ReadBuffer,
+    config: Config,
     visual_cursor: Option<Cursor>,
     change_log_buffer: ChangeLogBuffer,
     edit_state: Option<EditState>,
@@ -100,6 +106,7 @@ impl EditBuffer {
 
         EditBuffer {
             rb: ReadBuffer::new(init_buf, state.clone(), message_box.clone()),
+            config: Config { indent_type: IndentType::Spaces(4) },
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
@@ -346,6 +353,7 @@ impl EditBuffer {
                 init_pre,
                 init_post,
                 post_survivors,
+                self.config.indent_type,
             ),
             at: r.start,
             removed: removed,
@@ -810,7 +818,7 @@ impl EditBuffer {
     }
     fn indent_back_range(&mut self, row_range: std::ops::Range<usize>) {
         for row in row_range {
-            self.indent_back_line(row, &vec![BufElem::Char(' '); 4]);
+            self.indent_back_line(row, &indent::into_bufelems(self.config.indent_type));
         }
     }
     pub fn eff_indent_back(&mut self, _: Key) -> String {
