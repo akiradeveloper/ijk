@@ -17,6 +17,7 @@ pub struct Highlighter {
 }
 impl Highlighter {
     pub fn new(n_rows: usize, ext: Option<&str>) -> Self {
+        // FIXME
         let syntax = ps.find_syntax_by_extension(ext.unwrap_or("rs")).unwrap_or(ps.find_syntax_plain_text());
         Self {
             cache: vec![vec![]; n_rows],

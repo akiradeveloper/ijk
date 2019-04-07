@@ -33,3 +33,4 @@ pub mod message_box;
 pub mod util;
 pub mod theme;
 pub mod shared;
+mod config;
