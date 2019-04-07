@@ -1,3 +1,5 @@
+mod file_parser;
+
 use std::path::{Path, PathBuf};
 use crate::edit_buffer::config::Config;
 use std::collections::HashMap;

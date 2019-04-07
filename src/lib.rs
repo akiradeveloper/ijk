@@ -34,3 +34,8 @@ pub mod util;
 pub mod theme;
 pub mod shared;
 mod config;
+
+extern crate flame;
+#[macro_use]
+extern crate serde_derive;
+extern crate toml;

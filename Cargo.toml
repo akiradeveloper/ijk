@@ -18,6 +18,7 @@ sequence_trie = "*"
 serde = "1"
 serde_json = "1"
 serde_derive = "1"
+toml = "0.4"
 
 [build-dependencies]
 build-deps = "^0.1"

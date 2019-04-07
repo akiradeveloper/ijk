@@ -10,8 +10,9 @@ pub mod config;
 
 use self::change_log::{ChangeLog, ChangeLogBuffer};
 use self::diff_buffer::DiffBuffer;
-use self::indent::IndentType;
-use self::config::Config;
+
+pub use self::indent::IndentType;
+pub use self::config::Config;
 
 use crate::view::{ViewGen, Area};
 use crate::navigator::Navigator;

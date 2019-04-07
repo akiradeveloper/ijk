@@ -1,5 +1,3 @@
-extern crate flame;
-
 use std;
 use std::cell::RefCell;
 use std::io;
