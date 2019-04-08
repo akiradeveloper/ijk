@@ -15,7 +15,7 @@ enum Body {
 pub struct Unit {
     prefix: String,
     body: Body,
-    description: String,
+    description: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -31,7 +31,7 @@ pub fn convert(unit: &Unit) -> Option<Snippet> {
     Some(Snippet {
         prefix: unit.prefix.clone(),
         body: body,
-        description: unit.description.clone(),
+        description: unit.description.clone().unwrap_or(unit.prefix.clone())
     })
 }
 fn convert_body(body: &Body) -> Option<Vec<Vec<SnippetElem>>> {
