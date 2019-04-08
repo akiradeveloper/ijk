@@ -18,9 +18,9 @@ pub struct AutoIndent {
     line_predecessors: Vec<BufElem>
 }
 impl AutoIndent {
-    pub fn new(line_predecessors: &[BufElem]) -> Self {
+    pub fn new(line_predecessors: &[BufElem], indent_type: IndentType) -> Self {
         Self {
-            indent_type: IndentType::Spaces(4), // TODO
+            indent_type,
             line_predecessors: line_predecessors.to_vec()
         }
     }
@@ -58,6 +58,6 @@ impl AutoIndent {
 fn test_auto_indent() {
     use super::BufElem::*;
     let line = [Char(' '), Char(' '), Char('a'), Char('{')];
-    let ai = AutoIndent::new(&line);
+    let ai = AutoIndent::new(&line, IndentType::Spaces(4));
     assert_eq!(ai.next_indent(), vec![Char(' '); 6]);
 }

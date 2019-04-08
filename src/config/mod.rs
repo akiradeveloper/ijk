@@ -15,7 +15,7 @@ const FALLBACK_CONFIG: Config = Config {
 
 use lazy_static::lazy_static;
 lazy_static! {
-    static ref SINGLETON: ConfigRepo = create_config_repo();
+    pub static ref SINGLETON: ConfigRepo = create_config_repo();
 }
 
 pub type Lang = String;
@@ -34,10 +34,6 @@ impl ConfigRepo {
         }
     }
     fn do_get_config(&self, lang: &str) -> Config {
-        let fallback = Config {
-            indent_type: Tab,
-            snippet: None,
-        };
         let indent_type = match self.configs.get(lang) {
             Some(lc) => match lc.indent {
                 None => Tab,
@@ -75,7 +71,11 @@ fn list_snippet_files() -> HashMap<Lang, PathBuf> {
     let home_dir = std::env::home_dir().unwrap();
     let snippet_dir = home_dir.join(".ijk").join("snippets");
     let mut res = HashMap::new();
-    for entry in std::fs::read_dir(&snippet_dir).unwrap() {
+    let read_dir0 = std::fs::read_dir(&snippet_dir);
+    if read_dir0.is_err() {
+        return res;
+    }
+    for entry in read_dir0.unwrap() {
         let path = entry.unwrap().path();
         let ext0 = path.extension();
         if ext0.is_none() {

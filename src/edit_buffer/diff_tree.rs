@@ -215,7 +215,8 @@ impl DiffTree {
             i
         };
         let auto_indent = indent::AutoIndent::new(
-            &v1[start_of_cur_line..v1.len()]
+            &v1[start_of_cur_line..v1.len()],
+            self.indent_type,
         );
         auto_indent
     }

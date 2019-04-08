@@ -105,7 +105,7 @@ impl EditBuffer {
 
         EditBuffer {
             rb: ReadBuffer::new(init_buf, state.clone(), message_box.clone()),
-            config: Config { indent_type: IndentType::Spaces(4), snippet: None }, // FIXME
+            config: crate::config::SINGLETON.get_config(&path),
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
@@ -458,6 +458,7 @@ impl EditBuffer {
         let mut v = vec![BufElem::Eol];
         let auto_indent = indent::AutoIndent::new(
             &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
+            self.config.indent_type,
         );
         v.append(&mut auto_indent.next_indent());
         self.create_edit_state(&delete_range, v, vec![]);
@@ -471,6 +472,7 @@ impl EditBuffer {
         };
         let auto_indent = indent::AutoIndent::new(
             &self.rb.buf[row][0..self.rb.buf[row].len() - 1],
+            self.config.indent_type,
         );
         self.create_edit_state(
             &delete_range,
