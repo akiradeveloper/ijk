@@ -906,6 +906,16 @@ impl EditBuffer {
             children.push(ChildComponent::Eol);
         }
         children.pop(); // pop the last eol
+
+        // if there is no tabstop insert one tabstop at end
+        let no_dynamic = !children.iter().any(|child| match child {
+            ChildComponent::Dynamic(_,_) => true,
+            _ => false
+        });
+        if no_dynamic {
+            children.push(ChildComponent::Dynamic(vec![], 10000000));
+        }
+
         self.es_mut().diff_buffer.diff_buf_raw.add_children(children);
         self.snippet_repo.set_searcher(self.edit_state.as_mut().unwrap().diff_buffer.diff_buf_raw.current_word());
         self.restore_buf_before_writeback();

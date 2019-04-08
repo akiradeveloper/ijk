@@ -144,6 +144,9 @@ impl DiffTree {
 
         self.cur_node().add_children(children_ids);
         
+        // any snippet should have at least a dynamic
+        // if the snippet doesn't have a placeholder,
+        // it should complete with a placeholder at the end.
         assert!(!dynamics.is_empty());
         self.stack.pop();
         
@@ -151,6 +154,7 @@ impl DiffTree {
         for pair in dynamics.iter().rev() {
             self.stack.push(pair.1)
         }
+        assert!(!self.stack.is_empty());
     }
     // fn right_most_node_id(&self) -> NodeId {
     //     let mut cur = 0;
