@@ -5,6 +5,13 @@ use super::Lang;
 pub struct LangConfig {
     pub indent: Option<usize>,
 }
+impl LangConfig {
+    fn default() -> Self {
+        Self {
+             indent: None,
+        }
+    }
+}
 
 pub struct Builder {
     pub configs: HashMap<Lang, LangConfig>,
@@ -26,7 +33,14 @@ impl Builder {
         for ext in config.extensions.unwrap_or_default() {
             self.extensions.insert(ext, lang.clone());
         }
-
+        if self.configs.get(&lang).is_none() {
+            self.configs.insert(lang.clone(), LangConfig::default());
+        }
+        for i in config.indent {
+            for c in self.configs.get_mut(&lang) {
+                c.indent = Some(i)
+            }
+        }
     }
     pub fn add_config_file(&mut self, config: FileToml) {
         for m in config.lang {

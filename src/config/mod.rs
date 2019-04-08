@@ -27,7 +27,13 @@ pub struct ConfigRepo {
     filenames: HashMap<String, Lang>,
 }
 impl ConfigRepo {
-    fn get_config(&self, lang: &str) -> Config {
+    pub fn get_config(&self, path: &Path) -> Config {
+        match self.infer_lang(path) {
+            Some(lang) => self.do_get_config(&lang),
+            None => FALLBACK_CONFIG,
+        }
+    }
+    fn do_get_config(&self, lang: &str) -> Config {
         let fallback = Config {
             indent_type: Tab,
             snippet: None,
