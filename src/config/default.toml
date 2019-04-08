@@ -1,0 +1,8 @@
+    [lang.rust]
+    extensions = ["rs"]
+    indent = 4
+    
+    [lang.ruby]
+    extensions = ["rb", "erb"]
+    filenames = ["Rakefile"]
+    indent = 2
