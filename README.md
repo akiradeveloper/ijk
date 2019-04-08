@@ -11,6 +11,8 @@ A real editor for real programmers.
 
 * `make install` to install.
 * `ijk` to start ijk with the current directory.
+* [KeyBindings](https://github.com/akiradeveloper/ijk/wiki/KeyBindings)
+* [Configurations](https://github.com/akiradeveloper/ijk/wiki/Configurations)
 
 ## Design Doc
 
