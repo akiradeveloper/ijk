@@ -102,17 +102,18 @@ impl EditBuffer {
         let n_rows = init_buf.len();
         let state = PageState::new(INIT.to_owned());
         let message_box = MessageBox::new();
+        let config = crate::config::SINGLETON.get_config(path);
 
         EditBuffer {
             rb: ReadBuffer::new(init_buf, state.clone(), message_box.clone()),
-            config: crate::config::SINGLETON.get_config(&path),
+            snippet_repo: snippet::SnippetRepo::new(config.snippet.clone(), state.clone(), message_box.clone()),
+            config: config,
             visual_cursor: None,
             change_log_buffer: ChangeLogBuffer::new(),
             edit_state: None,
             path: path.to_owned(),
             sync_clock: None,
             highlighter: highlight::Highlighter::new(n_rows, ext),
-            snippet_repo: snippet::SnippetRepo::new(ext, state.clone(), message_box.clone()),
             navigator,
             state,
             message_box,

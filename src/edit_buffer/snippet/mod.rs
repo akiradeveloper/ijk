@@ -2,6 +2,7 @@ mod file_parser;
 mod line_parser;
 mod trie;
 
+use std::path::PathBuf;
 use crate::read_buffer::{BufElem, ReadBuffer};
 use crate::view;
 use crate::message_box::MessageBox;
@@ -50,28 +51,32 @@ pub struct SnippetRepo {
     state: PageState,
     message_box: MessageBox,
 }
-
+use std::fs::File as IOFile;
+use std::io::BufReader;
 use self::file_parser::{File, Unit};
 use serde_json;
 impl SnippetRepo {
-    pub fn new(ext: Option<&str>, state: PageState, message_box: MessageBox) -> Self {
+    pub fn new(snippet_path0: Option<PathBuf>, state: PageState, message_box: MessageBox) -> Self {
         let mut trie = Trie::new();
-        let f: File = serde_json::from_str(&TESTDATA).unwrap();
-        match f {
-            File(units) => {
-                for unit in units.values() {
-                    match file_parser::convert(unit) {
-                        None => {
-                            // dbg!(&unit);
-                        },
-                        Some(snippet) => {
-                            // dbg!(&snippet);
-                            let k: Vec<char> = snippet.prefix.chars().collect();
-                            trie.insert(&k, snippet)
+        for snippet_path in snippet_path0 {
+            let reader = BufReader::new(IOFile::open(snippet_path).unwrap());
+            let f: File = serde_json::from_reader(reader).unwrap();
+            match f {
+                File(units) => {
+                    for unit in units.values() {
+                        match file_parser::convert(unit) {
+                            None => {
+                                // dbg!(&unit);
+                            },
+                            Some(snippet) => {
+                                // dbg!(&snippet);
+                                let k: Vec<char> = snippet.prefix.chars().collect();
+                                trie.insert(&k, snippet)
+                            }
                         }
                     }
                 }
-            }
+            }    
         }
 
         Self {
