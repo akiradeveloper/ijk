@@ -180,10 +180,6 @@ impl <D: Drawable> Editor<D> {
                         Some(Ok(TermKey::Ctrl(c))) => Key::Ctrl(c),
                         Some(Ok(TermKey::Char(c))) => Key::Char(c),
                         _ => {
-                            // this path is unreachable as we use sync stdio now
-                            panic!();
-
-                            thread::sleep(time::Duration::from_millis(100));
                             continue;
                         }
                     };
