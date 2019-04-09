@@ -101,8 +101,15 @@ fn create_config_repo() -> ConfigRepo {
     let default_config = toml::from_str(&default_config).unwrap();
     builder.add_config_file(default_config);
 
-    let ijk_config_path = current_dir.join(".ijk.toml");
-    for s in std::fs::read_to_string(ijk_config_path) {
+    let home_dir = std::env::home_dir().unwrap();
+    let home_config_path = home_dir.join(".ijk").join("config.toml");
+    for s in std::fs::read_to_string(home_config_path) {
+        let config = toml::from_str(&s).unwrap();
+        builder.add_config_file(config);
+    }
+
+    let project_config_path = current_dir.join(".ijk.toml");
+    for s in std::fs::read_to_string(project_config_path) {
         let config = toml::from_str(&s).unwrap();
         builder.add_config_file(config);
     }
