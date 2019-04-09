@@ -230,7 +230,9 @@ impl DiffTree {
             Key::Char('\t') => {
                 if self.stack.len() == 1 {
                     self.before_change_buffer();
-                    self.cur_node().buffer.push(BufElem::Char('\t'))
+                    for e in indent::into_bufelems(self.indent_type) {
+                        self.cur_node().buffer.push(e);
+                    }
                 } else {
                     // MEMO: Idea toward the nested placeholder
                     // to implement the VSCode's the nested placeholder
