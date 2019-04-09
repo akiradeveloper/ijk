@@ -835,6 +835,26 @@ impl EditBuffer {
 
         INIT.to_owned()
     }
+    fn indent_forward(&mut self, row: usize) {
+        let delete_range = CursorRange {
+            start: Cursor { row, col: 0, },
+            end: Cursor { row, col: 0, },
+        };
+        let v = indent::into_bufelems(self.config.indent_type);
+        self.create_edit_state(&delete_range, v, vec![]);
+        self.commit_edit_state();
+    }
+    fn eff_indent_forward(&mut self, _: Key) -> String {
+        if self.visual_range().is_none() {
+            self.indent_forward(self.rb.cursor.row);
+            return INIT.to_owned()
+        }
+        let vr = self.visual_range().unwrap();
+        for row in vr.start.row .. vr.end.row+1 {
+            self.indent_forward(row);
+        }
+        INIT.to_owned()
+    }
     pub fn eff_enter_visual_mode(&mut self, _: Key) -> String {
         self.visual_cursor = Some(self.rb.cursor.clone());
         INIT.to_owned()
@@ -959,6 +979,7 @@ def_effect!(PasteSystem, EditBuffer, eff_paste_system);
 def_effect!(YankRange, EditBuffer, eff_yank_range);
 def_effect!(YankLine, EditBuffer, eff_yank_line);
 def_effect!(IndentBack, EditBuffer, eff_indent_back);
+def_effect!(IndentForward, EditBuffer, eff_indent_forward);
 def_effect!(EnterVisualMode, EditBuffer, eff_enter_visual_mode);
 def_effect!(Reset, EditBuffer, eff_reset);
 
@@ -990,6 +1011,7 @@ pub fn mk_controller(x: Rc<RefCell<EditBuffer>>) -> controller::ControllerFSM {
     g.add_edge(INIT, Char('d'), Rc::new(DeleteRange(x.clone())));
     g.add_edge(INIT, Char('x'), Rc::new(DeleteChar(x.clone())));
     g.add_edge(INIT, Char('<'), Rc::new(IndentBack(x.clone())));
+    g.add_edge(INIT, Char('>'), Rc::new(IndentForward(x.clone())));
     g.add_edge(INIT, Char('J'), Rc::new(JoinNextLine(x.clone())));
     g.add_edge(INIT, Char('o'), Rc::new(EnterInsertNewline(x.clone())));
     g.add_edge(INIT, Char('O'), Rc::new(EnterInsertNewlineAbove(x.clone())));
