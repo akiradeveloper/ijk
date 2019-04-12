@@ -227,7 +227,14 @@ impl ReadBuffer {
     }
     pub fn jump_page_forward(&mut self) {
         let dist_from_window_bottom = self.window.row_high - self.cursor.row;
-        for _ in 0 .. self.window.height() + dist_from_window_bottom {
+        for _ in 0 .. dist_from_window_bottom {
+            self.cursor_down();
+        }
+        if self.cursor.row == self.buf.len() - 1 {
+            return;
+        }
+
+        for _ in 0 .. self.window.height() {
             self.cursor_down();
         }
         self.window.adjust(self.cursor);
@@ -237,7 +244,14 @@ impl ReadBuffer {
     }
     pub fn jump_page_backward(&mut self) {
         let dist_from_window_top = self.cursor.row - self.window.row_low;
-        for _ in 0 .. self.window.height() + dist_from_window_top {
+        for _ in 0 .. dist_from_window_top {
+            self.cursor_up();
+        }
+        if self.cursor.row == 0 {
+            return;
+        }
+
+        for _ in 0 .. self.window.height() {
             self.cursor_up();
         }
         self.window.adjust(self.cursor);
